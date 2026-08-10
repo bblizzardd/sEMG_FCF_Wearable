@@ -1,0 +1,14 @@
+# Raw sEMG dataset (large files stored on Zenodo)
+dataset/sEMG_data/
+dataset/self_perceived_fatigue_index/
+dataset/self_perceived_fatigue_index.zip
+dataset/protocol.xlsx
+
+# Office temporary files
+~$*
+
+# Python & Jupyter cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.vscode/
