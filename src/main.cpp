@@ -11,7 +11,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#define BUTTON_PIN 5
 Adafruit_MPU6050 mpu;
+int lastState = LOW;
 
 void scanI2C() {
   Serial.println("--- Dang quet dia chi I2C tren chan (SDA=4, SCL=5)... ---");
@@ -48,6 +50,7 @@ void setup(void) {
 
   // Khoi tao I2C: SDA = GPIO 18, SCL = GPIO 17
   Wire.begin(18, 17);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   delay(100);
 
@@ -128,7 +131,8 @@ void setup(void) {
     break;
   }
 
-  Serial.println("");
+  Serial.print("\n--- BAT DAU DU LIEU CSV ---\n");
+  Serial.print("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n");
   delay(500);
 }
 
@@ -137,27 +141,33 @@ void loop() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  /* Print out the values */
-  Serial.print("Acceleration X: ");
-  Serial.print(a.acceleration.x);
-  Serial.print(", Y: ");
-  Serial.print(a.acceleration.y);
-  Serial.print(", Z: ");
-  Serial.print(a.acceleration.z);
-  Serial.println(" m/s^2");
+  int buttonState = digitalRead(BUTTON_PIN);
+  // Button dùng INPUT_PULLUP: LOW (0) khi nhấn, HIGH (1) khi nhả.
+  // Gán 1 khi nhấn nút (dùng đánh dấu Rep / Sự kiện), 0 khi bình thường.
+  int isButtonPressed = (buttonState == LOW) ? 1 : 0;
 
-  Serial.print("Rotation X: ");
-  Serial.print(g.gyro.x);
-  Serial.print(", Y: ");
-  Serial.print(g.gyro.y);
-  Serial.print(", Z: ");
-  Serial.print(g.gyro.z);
-  Serial.println(" rad/s");
+  /* In dữ liệu dạng CSV:
+   * timestamp,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button
+   * Sử dụng ký tự '\n' (thay vì println có cả '\r\n') để tránh bị nhân đôi dòng trống trong file log trên Windows
+   */
+  Serial.print(millis());
+  Serial.print(",");
+  Serial.print(a.acceleration.x, 4);
+  Serial.print(",");
+  Serial.print(a.acceleration.y, 4);
+  Serial.print(",");
+  Serial.print(a.acceleration.z, 4);
+  Serial.print(",");
+  Serial.print(g.gyro.x, 4);
+  Serial.print(",");
+  Serial.print(g.gyro.y, 4);
+  Serial.print(",");
+  Serial.print(g.gyro.z, 4);
+  Serial.print(",");
+  Serial.print(temp.temperature, 2);
+  Serial.print(",");
+  Serial.print(isButtonPressed);
+  Serial.print("\n");
 
-  Serial.print("Temperature: ");
-  Serial.print(temp.temperature);
-  Serial.println(" degC");
-
-  Serial.println("");
-  delay(20);
+  delay(10); // Chu kỳ ~10ms (tần số lấy mẫu khoảng 100Hz)
 }
