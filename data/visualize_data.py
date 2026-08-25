@@ -1,7 +1,10 @@
+import os
 import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Dam bao terminal Windows khong bi loi Unicode khi print
 if hasattr(sys.stdout, 'reconfigure'):
@@ -18,7 +21,9 @@ plt.rcParams['axes.linewidth'] = 0.8
 plt.rcParams['figure.facecolor'] = 'white'
 plt.rcParams['axes.facecolor'] = '#FAFAFA'
 
-def load_data(filepath='data.csv'):
+def load_data(filepath=None):
+    if filepath is None or filepath == 'data.csv':
+        filepath = os.path.join(BASE_DIR, 'data.csv') if os.path.exists(os.path.join(BASE_DIR, 'data.csv')) else 'data.csv'
     df = pd.read_csv(filepath)
     # Quy doi timestamp_ms sang thoi gian tuong doi tinh bang giay
     df['time_s'] = (df['timestamp_ms'] - df['timestamp_ms'].iloc[0]) / 1000.0
@@ -223,7 +228,7 @@ if __name__ == '__main__':
     print("Dang doc file data.csv...")
     df = load_data('data.csv')
     print(f"Da nap {len(df)} dong du lieu.")
-    plot_overview(df, 'plot_sensor_overview.png')
-    plot_distributions_and_correlation(df, 'plot_distributions_correlation.png')
-    plot_3d_and_fft(df, 'plot_3d_trajectory_fft.png')
+    plot_overview(df, os.path.join(BASE_DIR, 'plot_sensor_overview.png'))
+    plot_distributions_and_correlation(df, os.path.join(BASE_DIR, 'plot_distributions_correlation.png'))
+    plot_3d_and_fft(df, os.path.join(BASE_DIR, 'plot_3d_trajectory_fft.png'))
     print("Hoan tat tao tat ca do thi thanh cong!")

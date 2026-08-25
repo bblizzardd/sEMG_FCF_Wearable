@@ -3,13 +3,18 @@ import json
 import numpy as np
 import pandas as pd
 
+import os
+
 if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
 
-df = pd.read_csv('data.csv')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+csv_file = os.path.join(BASE_DIR, 'data.csv') if os.path.exists(os.path.join(BASE_DIR, 'data.csv')) else 'data.csv'
+
+df = pd.read_csv(csv_file)
 df['time_s'] = ((df['timestamp_ms'] - df['timestamp_ms'].iloc[0]) / 1000.0).round(3)
 df['acc_mag'] = (df['acc_x']**2 + df['acc_y']**2 + df['acc_z']**2)**0.5
 df['gyro_mag'] = (df['gyro_x']**2 + df['gyro_y']**2 + df['gyro_z']**2)**0.5
@@ -567,7 +572,8 @@ html_content = f"""<!DOCTYPE html>
 </html>
 """
 
-with open('dashboard.html', 'w', encoding='utf-8') as f:
+output_file = os.path.join(BASE_DIR, 'dashboard.html')
+with open(output_file, 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print(f"dashboard.html generated successfully for {num_samples} samples!")
+print(f"{output_file} generated successfully for {num_samples} samples!")
