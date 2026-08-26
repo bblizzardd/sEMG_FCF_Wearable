@@ -1,135 +1,122 @@
 /*
-  IMU Capture with Button Trigger & 100 Hz Sampling Rate
+  IMU Capture & Stream with 100 Hz Sampling Rate (Arduino Nano 33 BLE)
 
-  Thu thập dữ liệu Gia tốc kế (Accelerometer) và Con quay hồi chuyển (Gyroscope)
-  từ cảm biến IMU (LSM9DS1) trên board Arduino Nano 33 BLE với tốc độ 100 sample
-  / 1s (100 Hz).
+  Thu thập dữ liệu từ cảm biến IMU LSM9DS1 (Gia tốc kế, Con quay hồi chuyển, Nhiệt độ)
+  và trạng thái nút bấm với tốc độ chính xác 100 Hz (10 ms / mẫu).
 
-  - Đã loại bỏ ngưỡng kích hoạt tự động (threshold).
-  - Sử dụng nút bấm (kết nối chân D2 với GND) để kích hoạt thu thập đúng 100
-  sample (1 giây dữ liệu).
-  - Tích hợp đèn LED báo hiệu khi đang thu thập.
+  Định dạng dữ liệu xuất ra Serial (CSV):
+  timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button
 
   Sơ đồ đấu nối nút bấm:
-  - Một chân nút bấm -> Chân D2 của Arduino Nano 33 BLE
-  - Chân còn lại của nút bấm -> Chân GND (Sử dụng điện trở kéo lên nội
-  INPUT_PULLUP)
+  - Một chân nút bấm -> Chân D2 (Arduino Nano 33 BLE)
+  - Chân còn lại      -> GND (sử dụng điện trở kéo lên nội INPUT_PULLUP)
 */
+
 #include <Arduino.h>
 #include <Arduino_LSM9DS1.h>
+#include <Wire.h>
+
+#ifdef ARDUINO_ARDUINO_NANO33BLE
+#define IMU_WIRE Wire1
+#else
+#define IMU_WIRE Wire
+#endif
 
 // Cấu hình chân kết nối
 const int BUTTON_PIN = 2;        // Chân kết nối nút bấm (nối D2 với GND)
-const int LED_PIN = LED_BUILTIN; // Đèn LED tích hợp trên bo mạch để báo hiệu
+const int LED_PIN = LED_BUILTIN; // Đèn LED tích hợp (sáng khi bấm nút)
 
-// Cấu hình tần số lấy mẫu (100 sample / 1s)
-const int numSamples =
-    100; // Số mẫu mỗi lần thu thập (100 sample = 1 giây ở 100 Hz)
-const unsigned long SAMPLE_INTERVAL_US =
-    10000; // Chu kỳ lấy mẫu: 10,000 us = 10 ms = 100 Hz
-
-int samplesRead =
-    numSamples; // Khởi tạo bằng numSamples để ở trạng thái chờ nhấn nút
+// Cấu hình tần số lấy mẫu 100 Hz (chu kỳ 10,000 us = 10 ms)
+const unsigned long SAMPLE_INTERVAL_US = 10000;
 unsigned long previousMicros = 0;
 
-// Biến quản lý chống rung phím (Debounce)
-int buttonState = HIGH;
-int lastButtonState = HIGH;
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50; // Thời gian chống rung (50ms)
+// Hàm đọc nhiệt độ trực tiếp từ thanh ghi cảm biến LSM9DS1 qua I2C (0x6B)
+float readTemperature() {
+  float temp = 0.0f;
+  IMU_WIRE.beginTransmission(0x6B);
+  IMU_WIRE.write(0x80 | 0x15); // Auto-increment đọc từ thanh ghi OUT_TEMP_L (0x15)
+  if (IMU_WIRE.endTransmission(false) == 0) {
+    if (IMU_WIRE.requestFrom(0x6B, (size_t)2) == 2) {
+      uint8_t temp_l = IMU_WIRE.read();
+      uint8_t temp_h = IMU_WIRE.read();
+      int16_t raw_temp = (int16_t)((temp_h << 8) | temp_l);
+      // LSM9DS1: Độ nhạy 16 LSB/°C, điểm chuẩn 25°C
+      temp = 25.0f + ((float)raw_temp / 16.0f);
+    }
+  }
+  return temp;
+}
 
 void setup() {
-  // Khởi tạo Serial ở tốc độ 115200 baud để đảm bảo truyền dữ liệu 100Hz không
-  // bị nghẽn
   Serial.begin(115200);
-  while (!Serial)
-    ;
+  while (!Serial && millis() < 3000) {
+    // Chờ kết nối Serial trong tối đa 3 giây
+  }
 
-  // Cấu hình nút bấm với điện trở kéo lên nội (khi nhấn nút chân D2 sẽ về mức
-  // LOW)
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW); // Tắt LED lúc khởi động
+  digitalWrite(LED_PIN, LOW);
 
   // Khởi tạo cảm biến IMU
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
-    while (1)
-      ;
+    Serial.println(F("[ERROR] Khong the khoi dong LSM9DS1!"));
+    while (1) {
+      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      delay(200);
+    }
   }
 
-  // In tiêu đề dữ liệu CSV
-  Serial.println("aX,aY,aZ,gX,gY,gZ");
+  // In tiêu đề dữ liệu CSV chuẩn
+  Serial.println(F("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button"));
+
+  previousMicros = micros();
 }
 
 void loop() {
-  // 1. Đọc và xử lý chống rung phím nút bấm
-  int reading = digitalRead(BUTTON_PIN);
+  unsigned long currentMicros = micros();
 
-  if (reading != lastButtonState) {
-    lastDebounceTime = millis();
-  }
+  // Non-blocking timer: đảm bảo chu kỳ lấy mẫu chính xác 10.0 ms (100 Hz)
+  if (currentMicros - previousMicros >= SAMPLE_INTERVAL_US) {
+    previousMicros += SAMPLE_INTERVAL_US;
 
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    if (reading != buttonState) {
-      buttonState = reading;
+    float acc_x = 0.0f, acc_y = 0.0f, acc_z = 0.0f;
+    float gyro_x = 0.0f, gyro_y = 0.0f, gyro_z = 0.0f;
 
-      // Khi nút được nhấn (chuyển sang LOW) và hiện tại không trong tiến trình
-      // lấy mẫu
-      if (buttonState == LOW && samplesRead >= numSamples) {
-        samplesRead = 0;
-        previousMicros = micros();
-        digitalWrite(LED_PIN, HIGH); // Bật LED báo hiệu bắt đầu thu thập
-      }
+    // Đọc Gia tốc kế
+    if (IMU.accelerationAvailable()) {
+      IMU.readAcceleration(acc_x, acc_y, acc_z);
     }
-  }
 
-  lastButtonState = reading;
-
-  // 2. Thu thập dữ liệu IMU với tốc độ chính xác 100 sample / 1s
-  if (samplesRead < numSamples) {
-    unsigned long currentMicros = micros();
-
-    // Kiểm tra xem đã đến thời điểm lấy mẫu tiếp theo chưa (mỗi 10,000 us = 10
-    // ms)
-    if (currentMicros - previousMicros >= SAMPLE_INTERVAL_US) {
-      previousMicros += SAMPLE_INTERVAL_US; // Giữ nhịp lấy mẫu chính xác không
-                                            // bị trôi thời gian
-
-      float aX = 0, aY = 0, aZ = 0;
-      float gX = 0, gY = 0, gZ = 0;
-
-      // Đọc dữ liệu Gia tốc kế
-      if (IMU.accelerationAvailable()) {
-        IMU.readAcceleration(aX, aY, aZ);
-      }
-
-      // Đọc dữ liệu Con quay hồi chuyển
-      if (IMU.gyroscopeAvailable()) {
-        IMU.readGyroscope(gX, gY, gZ);
-      }
-
-      samplesRead++;
-
-      // In dữ liệu ra Serial dưới dạng CSV
-      Serial.print(aX, 3);
-      Serial.print(',');
-      Serial.print(aY, 3);
-      Serial.print(',');
-      Serial.print(aZ, 3);
-      Serial.print(',');
-      Serial.print(gX, 3);
-      Serial.print(',');
-      Serial.print(gY, 3);
-      Serial.print(',');
-      Serial.print(gZ, 3);
-      Serial.println();
-
-      // Khi đã thu thập đủ 100 mẫu (1 giây)
-      if (samplesRead == numSamples) {
-        digitalWrite(LED_PIN, LOW); // Tắt LED báo hiệu kết thúc
-        Serial.println(); // Thêm 1 dòng trống phân cách giữa các lần thu thập
-      }
+    // Đọc Con quay hồi chuyển
+    if (IMU.gyroscopeAvailable()) {
+      IMU.readGyroscope(gyro_x, gyro_y, gyro_z);
     }
+
+    // Đọc Nhiệt độ cảm biến
+    float temp = readTemperature();
+
+    // Đọc trạng thái nút bấm (INPUT_PULLUP: LOW khi nhấn -> 1, HIGH khi nhả -> 0)
+    int buttonState = digitalRead(BUTTON_PIN);
+    int isButtonPressed = (buttonState == LOW) ? 1 : 0;
+    digitalWrite(LED_PIN, isButtonPressed ? HIGH : LOW);
+
+    // In dữ liệu CSV: timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button
+    Serial.print(millis());
+    Serial.print(',');
+    Serial.print(acc_x, 4);
+    Serial.print(',');
+    Serial.print(acc_y, 4);
+    Serial.print(',');
+    Serial.print(acc_z, 4);
+    Serial.print(',');
+    Serial.print(gyro_x, 4);
+    Serial.print(',');
+    Serial.print(gyro_y, 4);
+    Serial.print(',');
+    Serial.print(gyro_z, 4);
+    Serial.print(',');
+    Serial.print(temp, 2);
+    Serial.print(',');
+    Serial.println(isButtonPressed);
   }
 }
