@@ -1,14 +1,12 @@
-// ESP32-S3 MPU6050 Driver with 2-State Kalman Filter & Silent I2C Error
-// Handling
+// ESP32-S3 MPU6050 Driver & Silent I2C Error Handling
 
-#include "KalmanFilter.h"
 #include <Arduino.h>
 #include <Wire.h>
 
 // --- CẤU HÌNH PHẦN CỨNG ---
 // Bạn có thể chọn GPIO 16 hoặc GPIO 17 cho chân SDA
-#define I2C_SDA_PIN 10
-#define I2C_SCL_PIN 11
+#define I2C_SDA_PIN 18
+#define I2C_SCL_PIN 17
 #define BUTTON_PIN 5
 #define MPU_ADDR 0x68
 
@@ -23,12 +21,8 @@
 #define MPU6050_WHO_AM_I 0x75
 #define MPU6050_SIG_RESET 0x68
 
-KalmanFilter kalmanRoll;
-KalmanFilter kalmanPitch;
-
 const unsigned long SAMPLE_INTERVAL_US = 10000; // 100Hz (10ms)
 unsigned long previousMicros = 0;
-unsigned long lastTimerMicros = 0;
 
 uint8_t readReg(uint8_t reg) {
   Wire.beginTransmission(MPU_ADDR);
@@ -141,25 +135,10 @@ void setup() {
 
   initMPU6050();
 
-  // Đọc mẫu ban đầu để khởi tạo góc cho Kalman
-  float ax0 = 0, ay0 = 0, az0 = 0, gx0 = 0, gy0 = 0, gz0 = 0, temp0 = 0;
-  for (int i = 0; i < 10; i++) {
-    readSensorData(ax0, ay0, az0, gx0, gy0, gz0, temp0);
-    delay(10);
-  }
-
-  float roll_init = atan2(ay0, az0) * RAD_TO_DEG;
-  float pitch_init = atan2(-ax0, sqrt(ay0 * ay0 + az0 * az0)) * RAD_TO_DEG;
-
-  kalmanRoll.setAngle(roll_init);
-  kalmanPitch.setAngle(pitch_init);
-
-  Serial.print("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,roll,pitch,"
-               "temp,button\n");
+  Serial.print("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n");
   Serial.flush();
 
   previousMicros = micros();
-  lastTimerMicros = micros();
 }
 
 void loop() {
@@ -168,9 +147,6 @@ void loop() {
   // Chu kỳ lấy mẫu cố định 10.0 ms (100 Hz)
   if (currentMicros - previousMicros >= SAMPLE_INTERVAL_US) {
     previousMicros += SAMPLE_INTERVAL_US;
-
-    float dt = (float)(currentMicros - lastTimerMicros) / 1000000.0f;
-    lastTimerMicros = currentMicros;
 
     float acc_x = 0, acc_y = 0, acc_z = 0;
     float gyro_x = 0, gyro_y = 0, gyro_z = 0;
@@ -182,19 +158,10 @@ void loop() {
       int buttonState = digitalRead(BUTTON_PIN);
       int isButtonPressed = (buttonState == LOW) ? 1 : 0;
 
-      // 1. Tính góc từ gia tốc kế
-      float roll_acc = atan2(acc_y, acc_z) * RAD_TO_DEG;
-      float pitch_acc =
-          atan2(-acc_x, sqrt(acc_y * acc_y + acc_z * acc_z)) * RAD_TO_DEG;
-
-      // 2. Lọc Kalman
-      float kalman_roll = kalmanRoll.getAngle(roll_acc, gyro_x, dt);
-      float kalman_pitch = kalmanPitch.getAngle(pitch_acc, gyro_y, dt);
-
-      // 3. Xuất dữ liệu CSV qua Serial
-      Serial.printf("%lu,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,%d\n",
+      // Xuất dữ liệu CSV 9 cột qua Serial
+      Serial.printf("%lu,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,%d\n",
                     millis(), acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z,
-                    kalman_roll, kalman_pitch, temp, isButtonPressed);
+                    temp, isButtonPressed);
     }
   }
 }

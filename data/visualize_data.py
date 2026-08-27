@@ -117,11 +117,17 @@ def plot_axes_xyz_breakdown(df, output_path='plot_axes_xyz_breakdown.png'):
     print(f"Da luu: {output_path}")
 
 def plot_overview(df, output_path='plot_sensor_overview.png'):
-    fig, axes = plt.subplots(4, 1, figsize=(15, 13), sharex=True, 
-                             gridspec_kw={'height_ratios': [2.5, 2.5, 1.2, 1.0], 'hspace': 0.18})
+    has_angles = 'roll' in df.columns and 'pitch' in df.columns
+    num_plots = 5 if has_angles else 4
+    height_ratios = [2.2, 2.2, 2.0, 1.2, 1.0] if has_angles else [2.5, 2.5, 1.2, 1.0]
+    figsize = (15, 16) if has_angles else (15, 13)
+
+    fig, axes = plt.subplots(num_plots, 1, figsize=figsize, sharex=True, 
+                             gridspec_kw={'height_ratios': height_ratios, 'hspace': 0.20})
     
     # Bang mau hien dai
     c_x, c_y, c_z, c_mag = '#0284C7', '#059669', '#D97706', '#DC2626'
+    c_roll, c_pitch = '#0284C7', '#E11D48'
     c_temp, c_btn = '#7C3AED', '#DB2777'
     
     # Tim cac khoang thoi gian nut dang nhan
@@ -156,23 +162,36 @@ def plot_overview(df, output_path='plot_sensor_overview.png'):
     ax2.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9, ncol=4)
     ax2.grid(True, linestyle=':', alpha=0.6)
 
-    # 3. Nhiet do (Temperature)
-    ax3 = axes[2]
-    ax3.plot(df['time_s'], df['temp'], label='Nhiệt độ (°C)', color=c_temp, linewidth=1.8)
-    ax3.set_ylabel('Nhiệt độ (°C)', fontsize=11, fontweight='bold')
-    ax3.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9)
-    ax3.grid(True, linestyle=':', alpha=0.6)
+    ax_idx = 2
 
-    # 4. Trang thai Nut bam (Button)
-    ax4 = axes[3]
-    ax4.step(df['time_s'], df['button'], label='Nút bấm (Button)', color=c_btn, linewidth=2, where='mid')
-    ax4.fill_between(df['time_s'], df['button'], step='mid', color=c_btn, alpha=0.25)
-    ax4.set_yticks([0, 1])
-    ax4.set_yticklabels(['Nhả (0)', 'Nhấn (1)'])
-    ax4.set_ylabel('Trạng thái nút', fontsize=11, fontweight='bold')
-    ax4.set_xlabel('Thời gian (giây)', fontsize=12, fontweight='bold')
-    ax4.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9)
-    ax4.grid(True, linestyle=':', alpha=0.6)
+    # 3. Goc nghieng Kalman Filter (Roll / Pitch) neu co
+    if has_angles:
+        ax_ang = axes[ax_idx]
+        ax_ang.plot(df['time_s'], df['roll'], label='Roll (°)', color=c_roll, linewidth=1.6, alpha=0.9)
+        ax_ang.plot(df['time_s'], df['pitch'], label='Pitch (°)', color=c_pitch, linewidth=1.6, alpha=0.9)
+        ax_ang.set_ylabel('Góc nghiêng (°)', fontsize=11, fontweight='bold')
+        ax_ang.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9, ncol=2)
+        ax_ang.grid(True, linestyle=':', alpha=0.6)
+        ax_idx += 1
+
+    # 4. Nhiet do (Temperature)
+    ax_temp = axes[ax_idx]
+    ax_temp.plot(df['time_s'], df['temp'], label='Nhiệt độ (°C)', color=c_temp, linewidth=1.8)
+    ax_temp.set_ylabel('Nhiệt độ (°C)', fontsize=11, fontweight='bold')
+    ax_temp.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9)
+    ax_temp.grid(True, linestyle=':', alpha=0.6)
+    ax_idx += 1
+
+    # 5. Trang thai Nut bam (Button)
+    ax_btn = axes[ax_idx]
+    ax_btn.step(df['time_s'], df['button'], label='Nút bấm (Button)', color=c_btn, linewidth=2, where='mid')
+    ax_btn.fill_between(df['time_s'], df['button'], step='mid', color=c_btn, alpha=0.25)
+    ax_btn.set_yticks([0, 1])
+    ax_btn.set_yticklabels(['Nhả (0)', 'Nhấn (1)'])
+    ax_btn.set_ylabel('Trạng thái nút', fontsize=11, fontweight='bold')
+    ax_btn.set_xlabel('Thời gian (giây)', fontsize=12, fontweight='bold')
+    ax_btn.legend(loc='upper right', frameon=True, facecolor='white', framealpha=0.9)
+    ax_btn.grid(True, linestyle=':', alpha=0.6)
 
     # Danh dau vung nut nhan xuyen suot cac do thi
     for ax in axes:
@@ -219,7 +238,10 @@ def plot_distributions_and_correlation(df, output_path='plot_distributions_corre
 
     # 3. Heatmap tuong quan Pearson
     ax3 = fig.add_subplot(gs[1, 0])
-    cols_corr = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z', 'temp', 'button']
+    cols_corr = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
+    if 'roll' in df.columns and 'pitch' in df.columns:
+        cols_corr += ['roll', 'pitch']
+    cols_corr += ['temp', 'button']
     corr_matrix = df[cols_corr].corr().values
     
     im = ax3.imshow(corr_matrix, cmap='coolwarm', vmin=-1, vmax=1)
@@ -237,8 +259,6 @@ def plot_distributions_and_correlation(df, output_path='plot_distributions_corre
             val = corr_matrix[i, j]
             text_color = "white" if abs(val) > 0.55 else "black"
             ax3.text(j, i, f"{val:.2f}", ha="center", va="center", color=text_color, fontsize=8, fontweight='bold')
-    ax3.set_title('Ma trận tương quan giữa các cảm biến', fontsize=12, fontweight='bold')
-
     # 4. So sanh gia tri trung binh theo trang thai Nut nhan (0 vs 1)
     ax4 = fig.add_subplot(gs[1, 1])
     features = ['acc_mag', 'gyro_mag', 'temp']

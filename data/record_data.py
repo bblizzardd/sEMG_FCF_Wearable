@@ -63,10 +63,7 @@ def main():
                         parts = line.split(",")
                         if len(parts) >= 8:
                             if not header_written:
-                                if len(parts) >= 11:
-                                    f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,roll,pitch,temp,button\n")
-                                else:
-                                    f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n")
+                                f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n")
                                 header_written = True
                             f.write(line + "\n")
                             f.flush()
