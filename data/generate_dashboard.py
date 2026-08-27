@@ -291,6 +291,31 @@ html_content = f"""<!DOCTYPE html>
         .btn-primary:hover {{
             background: rgba(56, 189, 248, 0.35);
         }}
+        .btn-zoom-mode {{
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }}
+        .btn-zoom-mode:hover {{
+            color: #fff;
+            border-color: var(--primary);
+            background: rgba(56, 189, 248, 0.15);
+        }}
+        .btn-zoom-mode.active {{
+            background: rgba(56, 189, 248, 0.25);
+            border-color: #38bdf8;
+            color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }}
 
         /* KPI Stats Grid */
         .stats-grid {{
@@ -433,6 +458,164 @@ html_content = f"""<!DOCTYPE html>
             height: 420px;
         }}
 
+        /* Fullscreen Card Mode */
+        body.fullscreen-active {{
+            overflow: hidden;
+        }}
+        .axis-card.is-fullscreen,
+        .card.is-fullscreen {{
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            z-index: 999999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 20px 24px !important;
+            background: #090d16 !important;
+            background-image: 
+                radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.16) 0px, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.12) 0px, transparent 50%) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-shadow: none !important;
+            border: none !important;
+            animation: zoomModal 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }}
+
+        @keyframes zoomModal {{
+            from {{
+                opacity: 0;
+                transform: scale(0.98);
+            }}
+            to {{
+                opacity: 1;
+                transform: scale(1);
+            }}
+        }}
+
+        .is-fullscreen .axis-card-header,
+        .is-fullscreen .card-header {{
+            flex-shrink: 0 !important;
+            margin-bottom: 12px !important;
+            padding-bottom: 12px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }}
+
+        .is-fullscreen .chart-box,
+        .is-fullscreen .chart-box-lg,
+        .is-fullscreen .chart-box-btn,
+        .is-fullscreen .plot-container-sm {{
+            flex: 1 1 auto !important;
+            width: 100% !important;
+            height: calc(100vh - 90px) !important;
+            max-height: calc(100vh - 90px) !important;
+            margin-bottom: 0 !important;
+        }}
+
+        .btn-fullscreen {{
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }}
+        .btn-fullscreen:hover {{
+            background: rgba(56, 189, 248, 0.25);
+            border-color: var(--primary);
+            color: #38bdf8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+        }}
+        .is-fullscreen .btn-fullscreen {{
+            background: rgba(244, 63, 94, 0.2);
+            border-color: rgba(244, 63, 94, 0.5);
+            color: #fda4af;
+        }}
+        .is-fullscreen .btn-fullscreen:hover {{
+            background: rgba(244, 63, 94, 0.35);
+            border-color: #f43f5e;
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(244, 63, 94, 0.4);
+        }}
+
+        /* Fullscreen Tab Overlay (Comparison Mode) */
+        .tab-pane.is-tab-fullscreen {{
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            z-index: 999990 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            margin: 0 !important;
+            padding: 20px 30px 60px 30px !important;
+            background: #090d16 !important;
+            background-image: 
+                radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.12) 0px, transparent 50%) !important;
+            display: block !important;
+            animation: zoomModal 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }}
+
+        .tab-fullscreen-header {{
+            position: sticky;
+            top: -20px;
+            z-index: 999995;
+            background: rgba(9, 13, 22, 0.94);
+            backdrop-filter: blur(16px);
+            padding: 14px 20px;
+            margin: -20px -30px 20px -30px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }}
+
+        .btn-tab-fullscreen {{
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(192, 132, 252, 0.18));
+            color: #bae6fd;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }}
+        .btn-tab-fullscreen:hover {{
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(192, 132, 252, 0.35));
+            border-color: var(--primary);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+        }}
+
         /* Table */
         .table-wrap {{
             overflow-x: auto;
@@ -506,18 +689,35 @@ html_content = f"""<!DOCTYPE html>
         <!-- Global Smart Toolbar -->
         <div class="toolbar">
             <div class="toolbar-group">
-                <span class="toolbar-title">🔍 Thu phóng nhanh:</span>
+                <span class="toolbar-title">⚡ Thao tác nhanh:</span>
                 <button class="btn btn-primary" onclick="resetAllZoom()">🔄 Reset Toàn Bộ</button>
-                <button class="btn" onclick="zoomQuick(0, {duration_s/2:.2f})">🎯 Nửa Đầu (0 - {duration_s/2:.1f}s)</button>
-                <button class="btn" onclick="zoomQuick({duration_s/2:.2f}, {duration_s:.2f})">🛑 Nửa Sau ({duration_s/2:.1f}s - {duration_s:.1f}s)</button>
-                <button class="btn" onclick="zoomWindow(2.0)">⚡ Cửa sổ 2s</button>
-                <button class="btn" onclick="zoomWindow(5.0)">⚡ Cửa sổ 5s</button>
+                <button class="btn btn-tab-fullscreen" onclick="toggleCurrentTabFullscreen()" title="Phóng to toàn bộ các đồ thị trong tab hiện tại">📺 Phóng To Mục</button>
             </div>
             <div class="toolbar-group">
-                <span class="toolbar-title">📍 Sự kiện Nút:</span>
-                <button class="btn" onclick="prevButtonEvent()">⏮️ Sự kiện trước</button>
+                <span class="toolbar-title">🎛️ Chế độ Cuộn Chuột:</span>
+                <button class="btn-zoom-mode active" id="btn-mode-xy" onclick="setZoomMode('xy', this)" title="Cuộn chuột phóng to/thu nhỏ cả 2 chiều đồng thời (Mặc định)">🔍 Cả 2 Chiều (XY)</button>
+                <button class="btn-zoom-mode" id="btn-mode-x" onclick="setZoomMode('x', this)" title="Cuộn chuột chỉ dãn/thu trục thời gian (Hoặc giữ phím Shift khi cuộn)">↔️ Chiều Ngang (X)</button>
+                <button class="btn-zoom-mode" id="btn-mode-y" onclick="setZoomMode('y', this)" title="Cuộn chuột chỉ dãn/thu biên độ (Hoặc giữ phím Ctrl/Alt khi cuộn)">↕️ Chiều Dọc (Y)</button>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-title">↔️ Chiều Ngang (Thời Gian):</span>
+                <button class="btn" onclick="stretchX(1.4)" title="Kéo dãn trục thời gian (Phím +)">↔️➕ Dãn X</button>
+                <button class="btn" onclick="stretchX(0.71)" title="Thu hẹp trục thời gian (Phím -)">↔️➖ Thu X</button>
+                <button class="btn" onclick="setTimeWindow(2.0)" title="Xem cửa sổ thời gian 2 giây">⏱️ 2s</button>
+                <button class="btn" onclick="setTimeWindow(5.0)" title="Xem cửa sổ thời gian 5 giây">⏱️ 5s</button>
+                <button class="btn" onclick="setTimeWindow(10.0)" title="Xem cửa sổ thời gian 10 giây">⏱️ 10s</button>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-title">↕️ Chiều Dọc (Biên Độ):</span>
+                <button class="btn" onclick="stretchY(1.4)" title="Phóng to biên độ dọc (Shift + hoặc Ctrl+Cuộn)">↕️➕ Dãn Y</button>
+                <button class="btn" onclick="stretchY(0.71)" title="Thu nhỏ biên độ dọc (Shift - hoặc Ctrl+Cuộn)">↕️➖ Thu Y</button>
+                <button class="btn" onclick="autoFitY()" title="Tự động căn chỉnh biên độ Y vừa vặn">↕️ Auto Y</button>
+            </div>
+            <div class="toolbar-group">
+                <span class="toolbar-title">📍 Nút Nhấn:</span>
+                <button class="btn" onclick="prevButtonEvent()">⏮️ Trước</button>
                 <span id="btn-event-counter" style="font-size:12px; font-family:'JetBrains Mono'; color:var(--accent-pink);">0 / {btn_events}</span>
-                <button class="btn" onclick="nextButtonEvent()">⏭️ Sự kiện kế</button>
+                <button class="btn" onclick="nextButtonEvent()">⏭️ Kế</button>
             </div>
         </div>
 
@@ -553,50 +753,64 @@ html_content = f"""<!DOCTYPE html>
         <!-- ==================== TAB 1: SO SÁNH TÁCH BIỆT THEO TRỤC X, Y, Z ==================== -->
         <div id="tab-axes" class="tab-pane active">
             <div class="hint-box">
-                <span>💡 <strong>Chế độ so sánh trục độc lập (Đơn vị: Gia tốc g | Con quay °/s):</strong> Mỗi trục X, Y, Z được tách riêng thành một card đồ thị rộng rãi. Khi bạn kéo chuột phóng to ở bất kỳ trục nào, các trục còn lại sẽ <strong>đồng bộ thời gian 100%</strong> mà không bị cắt mất tín hiệu!</span>
-                <span style="font-size:11px; opacity:0.8;">Nhấp đúp chuột để Reset</span>
+                <span>💡 <strong>Thao tác trực quan:</strong> 🖱️ <strong>Cuộn chuột</strong> để Zoom (Mặc định cả 2 chiều XY) • ⌨️ <strong>Shift + Cuộn</strong> để Zoom <strong>Chiều Ngang (X)</strong> • <strong>Ctrl/Alt + Cuộn</strong> để Zoom <strong>Chiều Dọc (Y)</strong> • 🖐️ <strong>Nhấn giữ & kéo</strong> để Dịch chuyển (Pan) • 🔄 <strong>Nhấp đúp</strong> để Reset!</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-tab-fullscreen" onclick="toggleTabFullscreen('tab-axes')">📺 Phóng to toàn bộ Tab 1 để so sánh</button>
+                </div>
             </div>
 
             <!-- Card Trục X -->
-            <div class="axis-card">
+            <div class="axis-card" id="card-axis-x">
                 <div class="axis-card-header">
                     <div class="card-title" style="color: var(--axis-x);">
                         <span>🔵 TRỤC X: Gia Tốc Acc X (g) vs Vận Tốc Góc Gyro X (°/s)</span>
                     </div>
-                    <span class="axis-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--axis-x);">AXIS-X</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--axis-x);">AXIS-X</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-axis-x', 'chart-axis-x')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
                 </div>
                 <div id="chart-axis-x" class="chart-box"></div>
             </div>
 
             <!-- Card Trục Y -->
-            <div class="axis-card">
+            <div class="axis-card" id="card-axis-y">
                 <div class="axis-card-header">
                     <div class="card-title" style="color: var(--axis-y);">
                         <span>🟢 TRỤC Y: Gia Tốc Acc Y (g) vs Vận Tốc Góc Gyro Y (°/s)</span>
                     </div>
-                    <span class="axis-badge" style="background: rgba(52, 211, 153, 0.15); color: var(--axis-y);">AXIS-Y</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(52, 211, 153, 0.15); color: var(--axis-y);">AXIS-Y</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-axis-y', 'chart-axis-y')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
                 </div>
                 <div id="chart-axis-y" class="chart-box"></div>
             </div>
 
             <!-- Card Trục Z -->
-            <div class="axis-card">
+            <div class="axis-card" id="card-axis-z">
                 <div class="axis-card-header">
                     <div class="card-title" style="color: var(--axis-z);">
                         <span>🟡 TRỤC Z: Gia Tốc Acc Z (g) vs Vận Tốc Góc Gyro Z (°/s)</span>
                     </div>
-                    <span class="axis-badge" style="background: rgba(251, 191, 36, 0.15); color: var(--axis-z);">AXIS-Z</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(251, 191, 36, 0.15); color: var(--axis-z);">AXIS-Z</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-axis-z', 'chart-axis-z')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
                 </div>
                 <div id="chart-axis-z" class="chart-box"></div>
             </div>
 
             <!-- Card Nút Nhấn & Nhiệt Độ -->
-            <div class="axis-card">
+            <div class="axis-card" id="card-axis-btn">
                 <div class="axis-card-header">
                     <div class="card-title" style="color: var(--accent-pink);">
                         <span>🔘 TRẠNG THÁI NÚT BẤM (BUTTON) & NHIỆT ĐỘ CẢM BIẾN (°C)</span>
                     </div>
-                    <span class="axis-badge" style="background: rgba(244, 114, 182, 0.15); color: var(--accent-pink);">EVENTS</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(244, 114, 182, 0.15); color: var(--accent-pink);">EVENTS</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-axis-btn', 'chart-axis-btn')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
                 </div>
                 <div id="chart-axis-btn" class="chart-box-btn"></div>
             </div>
@@ -605,42 +819,190 @@ html_content = f"""<!DOCTYPE html>
         <!-- ==================== TAB 2: TÁCH RIÊNG 6 KÊNH ĐỘC LẬP ==================== -->
         <div id="tab-isolated" class="tab-pane">
             <div class="hint-box">
-                <span>📊 <strong>Chế độ 6 Kênh Riêng Biệt:</strong> Khoảng cách mỗi sơ đồ được nới rộng tối đa, thang đo trục Y riêng biệt cho từng kênh (Acc theo g, Gyro theo °/s) để zoom sâu vào từng rung động vi mô.</span>
+                <span>📊 <strong>6 Kênh Riêng Biệt:</strong> 🖱️ <strong>Cuộn chuột</strong> để Zoom (Mặc định XY) • ⌨️ <strong>Shift + Cuộn</strong> (Zoom X) • <strong>Ctrl/Alt + Cuộn</strong> (Zoom Y) • 🖐️ <strong>Kéo chuột</strong> để Pan • 🔄 <strong>Nhấp đúp</strong> để Reset!</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-tab-fullscreen" onclick="toggleTabFullscreen('tab-isolated')">📺 Phóng to toàn bộ 6 kênh để so sánh</button>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📈 Chi Tiết 6 Kênh Cảm Biến Độc Lập (Đồng bộ Zoom)</div>
+            <!-- Card Acc X -->
+            <div class="axis-card" id="card-iso-acc-x">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #38bdf8;">
+                        <span>🔵 GIA TỐC ACC X (g)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">ACC-X</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-acc-x', 'chart-iso-acc-x')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
                 </div>
-                <div id="chart-isolated-6" style="width:100%; height: 1300px;"></div>
+                <div id="chart-iso-acc-x" class="chart-box" style="height: 240px;"></div>
+            </div>
+
+            <!-- Card Acc Y -->
+            <div class="axis-card" id="card-iso-acc-y">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #34d399;">
+                        <span>🟢 GIA TỐC ACC Y (g)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">ACC-Y</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-acc-y', 'chart-iso-acc-y')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-iso-acc-y" class="chart-box" style="height: 240px;"></div>
+            </div>
+
+            <!-- Card Acc Z -->
+            <div class="axis-card" id="card-iso-acc-z">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #fbbf24;">
+                        <span>🟡 GIA TỐC ACC Z (g)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">ACC-Z</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-acc-z', 'chart-iso-acc-z')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-iso-acc-z" class="chart-box" style="height: 240px;"></div>
+            </div>
+
+            <!-- Card Gyro X -->
+            <div class="axis-card" id="card-iso-gyro-x">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #fb923c;">
+                        <span>🟠 VẬN TỐC GÓC GYRO X (°/s)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(251, 146, 60, 0.15); color: #fb923c;">GYRO-X</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-gyro-x', 'chart-iso-gyro-x')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-iso-gyro-x" class="chart-box" style="height: 240px;"></div>
+            </div>
+
+            <!-- Card Gyro Y -->
+            <div class="axis-card" id="card-iso-gyro-y">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #c084fc;">
+                        <span>🟣 VẬN TỐC GÓC GYRO Y (°/s)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(192, 132, 252, 0.15); color: #c084fc;">GYRO-Y</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-gyro-y', 'chart-iso-gyro-y')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-iso-gyro-y" class="chart-box" style="height: 240px;"></div>
+            </div>
+
+            <!-- Card Gyro Z -->
+            <div class="axis-card" id="card-iso-gyro-z">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: #f43f5e;">
+                        <span>🔴 VẬN TỐC GÓC GYRO Z (°/s)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">GYRO-Z</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-iso-gyro-z', 'chart-iso-gyro-z')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-iso-gyro-z" class="chart-box" style="height: 240px;"></div>
             </div>
         </div>
 
         <!-- ==================== TAB 3: TỔNG QUAN TOÀN DIỆN ==================== -->
         <div id="tab-overview" class="tab-pane">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📈 Tín Hiệu Thời Gian Tổng Hợp (Đầy Đủ Các Kênh)</div>
-                    <span class="card-desc">Gia Tốc (g), Vận Tốc Góc (°/s), Nhiệt Độ (°C), Nút Bấm</span>
+            <div class="hint-box">
+                <span>💡 <strong>Tổng quan phân nhóm:</strong> 🖱️ <strong>Cuộn chuột</strong> để Zoom (Mặc định XY) • ⌨️ <strong>Shift + Cuộn</strong> (Zoom X) • <strong>Ctrl/Alt + Cuộn</strong> (Zoom Y) • 🖐️ <strong>Kéo chuột</strong> để Pan • 🔄 <strong>Nhấp đúp</strong> để Reset!</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-tab-fullscreen" onclick="toggleTabFullscreen('tab-overview')">📺 Phóng to toàn bộ Tab 3 để so sánh</button>
                 </div>
-                <div id="chart-overview" class="chart-box-lg"></div>
+            </div>
+
+            <!-- Card Gia Tốc -->
+            <div class="axis-card" id="card-overview-acc">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: var(--primary);">
+                        <span>📈 GIA TỐC: Acc X, Acc Y, Acc Z & Độ Lớn Toàn Phần |Acc| (g)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary);">ACCEL</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-overview-acc', 'chart-overview-acc')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-overview-acc" class="chart-box"></div>
+            </div>
+
+            <!-- Card Vận Tốc Góc -->
+            <div class="axis-card" id="card-overview-gyro">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: var(--gyro-x);">
+                        <span>🌀 VẬN TỐC GÓC: Gyro X, Gyro Y, Gyro Z & Độ Lớn Toàn Phần |Gyro| (°/s)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(251, 146, 60, 0.15); color: var(--gyro-x);">GYRO</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-overview-gyro', 'chart-overview-gyro')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-overview-gyro" class="chart-box"></div>
+            </div>
+
+            <!-- Card Nhiệt Độ -->
+            <div class="axis-card" id="card-overview-temp">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: var(--accent-purple);">
+                        <span>🌡️ NHIỆT ĐỘ CẢM BIẾN (°C)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(192, 132, 252, 0.15); color: var(--accent-purple);">TEMP</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-overview-temp', 'chart-overview-temp')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-overview-temp" class="chart-box" style="height: 250px;"></div>
+            </div>
+
+            <!-- Card Nút Bấm -->
+            <div class="axis-card" id="card-overview-btn">
+                <div class="axis-card-header">
+                    <div class="card-title" style="color: var(--accent-pink);">
+                        <span>🔘 TRẠNG THÁI NÚT BẤM (BUTTON EVENTS)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="axis-badge" style="background: rgba(244, 114, 182, 0.15); color: var(--accent-pink);">BUTTON</span>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-overview-btn', 'chart-overview-btn')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
+                    </div>
+                </div>
+                <div id="chart-overview-btn" class="chart-box-btn"></div>
             </div>
         </div>
 
         <!-- ==================== TAB 4: QUỸ ĐẠO 3D & PHỔ TẦN SỐ FFT ==================== -->
         <div id="tab-3d-fft" class="tab-pane">
+            <div class="hint-box">
+                <span>🌐 <strong>Phân tích không gian & tần số:</strong> 🖱️ <strong>Cuộn chuột</strong> để zoom • 🖐️ <strong>Nhấn giữ & kéo chuột</strong> để xoay 3D / Pan FFT!</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-tab-fullscreen" onclick="toggleTabFullscreen('tab-3d-fft')">📺 Phóng to cả 3D & FFT để so sánh</button>
+                </div>
+            </div>
+
             <div class="grid-2col">
-                <div class="card">
+                <div class="card" id="card-3d">
                     <div class="card-header">
-                        <div class="card-title">🌐 Quỹ Đạo Gia Tốc Không Gian 3D (Acc X, Y, Z theo đơn vị g)</div>
-                        <span class="card-desc">Kéo chuột để xoay góc nhìn 3D</span>
+                        <div>
+                            <div class="card-title">🌐 Quỹ Đạo Gia Tốc Không Gian 3D (Acc X, Y, Z theo đơn vị g)</div>
+                            <span class="card-desc">Kéo chuột để xoay góc nhìn 3D • Cuộn chuột để zoom</span>
+                        </div>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-3d', 'chart-3d')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
                     </div>
                     <div id="chart-3d" class="plot-container-sm"></div>
                 </div>
-                <div class="card">
+                <div class="card" id="card-fft">
                     <div class="card-header">
-                        <div class="card-title">⚡ Phổ Tần Số FFT (Gia Tốc g & Vận Tốc Góc °/s)</div>
-                        <span class="card-desc">Phân tích tần số dao động (0 - {fs/2:.1f}Hz)</span>
+                        <div>
+                            <div class="card-title">⚡ Phổ Tần Số FFT (Gia Tốc g & Vận Tốc Góc °/s)</div>
+                            <span class="card-desc">Phân tích tần số dao động (0 - {fs/2:.1f}Hz) • Cuộn chuột để zoom</span>
+                        </div>
+                        <button class="btn-fullscreen" onclick="toggleFullscreen('card-fft', 'chart-fft')" title="Phóng to đồ thị này">⛶ Toàn màn hình</button>
                     </div>
                     <div id="chart-fft" class="plot-container-sm"></div>
                 </div>
@@ -682,6 +1044,14 @@ html_content = f"""<!DOCTYPE html>
         const buttonEvents = rawData.button_events || [];
         let currentEventIdx = -1;
         let isSyncing = false;
+        let syncTimeout = null;
+
+        const renderedTabs = {{
+            'tab-axes': false,
+            'tab-isolated': false,
+            'tab-overview': false,
+            'tab-3d-fft': false
+        }};
 
         // Tao danh sach cac vung highlight nut nhan
         function getButtonShapes() {{
@@ -704,14 +1074,60 @@ html_content = f"""<!DOCTYPE html>
 
         const btnShapes = getButtonShapes();
 
-        // Base Layout Theme
+        // Base Layout Theme: dragmode is set to 'pan' (Click and Drag to Pan / Translate)
         const baseTheme = {{
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'rgba(15, 23, 42, 0.55)',
             font: {{ color: '#cbd5e1', family: 'Plus Jakarta Sans' }},
             hovermode: 'x unified',
-            hoverlabel: {{ bgcolor: '#1e293b', font: {{ family: 'JetBrains Mono', size: 12 }} }}
+            hoverlabel: {{ bgcolor: '#1e293b', font: {{ family: 'JetBrains Mono', size: 12 }} }},
+            dragmode: 'pan'
         }};
+
+        // Plotly Global Configuration (Enabled Mouse Wheel Scroll Zoom + Pan Drag)
+        const plotlyConfig = {{
+            scrollZoom: true,
+            responsive: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d', 'zoom2d']
+        }};
+
+        // Smooth non-blocking group zoom synchronization
+        function setupGroupZoomSync(groupChartIds) {{
+            groupChartIds.forEach(sourceId => {{
+                const el = document.getElementById(sourceId);
+                if (!el) return;
+
+                el.on('plotly_relayout', function(eventdata) {{
+                    if (isSyncing) return;
+                    if (eventdata['xaxis.range[0]'] === undefined && eventdata['xaxis.autorange'] === undefined) return;
+
+                    isSyncing = true;
+                    if (syncTimeout) clearTimeout(syncTimeout);
+
+                    const update = {{}};
+                    if (eventdata['xaxis.range[0]'] !== undefined) {{
+                        update['xaxis.range'] = [eventdata['xaxis.range[0]'], eventdata['xaxis.range[1]']];
+                        update['xaxis.autorange'] = false;
+                    }} else {{
+                        update['xaxis.autorange'] = true;
+                    }}
+
+                    groupChartIds.forEach(targetId => {{
+                        if (targetId !== sourceId) {{
+                            const targetEl = document.getElementById(targetId);
+                            if (targetEl && targetEl.data) {{
+                                Plotly.relayout(targetId, update);
+                            }}
+                        }}
+                    }});
+
+                    syncTimeout = setTimeout(() => {{
+                        isSyncing = false;
+                    }}, 25);
+                }});
+            }});
+        }}
 
         // ==================== 1. RENDER TAB 1: AXES X, Y, Z SEPARATE ====================
         function renderAxesTab() {{
@@ -753,17 +1169,20 @@ html_content = f"""<!DOCTYPE html>
             // --- Trục X ---
             const traceAccX = {{ x: time, y: rawData.acc_x, name: 'Gia tốc Acc X (g)', line: {{ color: '#38bdf8', width: 1.8 }} }};
             const traceGyroX = {{ x: time, y: rawData.gyro_x, name: 'Vận tốc góc Gyro X (°/s)', yaxis: 'y2', line: {{ color: '#fb923c', width: 1.6, dash: 'solid' }} }};
-            Plotly.newPlot('chart-axis-x', [traceAccX, traceGyroX], axisCommonLayout('Acc X (g)', 'Gyro X (°/s)', '#38bdf8', '#fb923c'), {{ responsive: true }});
+            Plotly.newPlot('chart-axis-x', [traceAccX, traceGyroX], axisCommonLayout('Acc X (g)', 'Gyro X (°/s)', '#38bdf8', '#fb923c'), plotlyConfig);
+            attachWheelZoomListener('chart-axis-x');
 
             // --- Trục Y ---
             const traceAccY = {{ x: time, y: rawData.acc_y, name: 'Gia tốc Acc Y (g)', line: {{ color: '#34d399', width: 1.8 }} }};
             const traceGyroY = {{ x: time, y: rawData.gyro_y, name: 'Vận tốc góc Gyro Y (°/s)', yaxis: 'y2', line: {{ color: '#c084fc', width: 1.6, dash: 'solid' }} }};
-            Plotly.newPlot('chart-axis-y', [traceAccY, traceGyroY], axisCommonLayout('Acc Y (g)', 'Gyro Y (°/s)', '#34d399', '#c084fc'), {{ responsive: true }});
+            Plotly.newPlot('chart-axis-y', [traceAccY, traceGyroY], axisCommonLayout('Acc Y (g)', 'Gyro Y (°/s)', '#34d399', '#c084fc'), plotlyConfig);
+            attachWheelZoomListener('chart-axis-y');
 
             // --- Trục Z ---
             const traceAccZ = {{ x: time, y: rawData.acc_z, name: 'Gia tốc Acc Z (g)', line: {{ color: '#fbbf24', width: 1.8 }} }};
             const traceGyroZ = {{ x: time, y: rawData.gyro_z, name: 'Vận tốc góc Gyro Z (°/s)', yaxis: 'y2', line: {{ color: '#f43f5e', width: 1.6, dash: 'solid' }} }};
-            Plotly.newPlot('chart-axis-z', [traceAccZ, traceGyroZ], axisCommonLayout('Acc Z (g)', 'Gyro Z (°/s)', '#fbbf24', '#f43f5e'), {{ responsive: true }});
+            Plotly.newPlot('chart-axis-z', [traceAccZ, traceGyroZ], axisCommonLayout('Acc Z (g)', 'Gyro Z (°/s)', '#fbbf24', '#f43f5e'), plotlyConfig);
+            attachWheelZoomListener('chart-axis-z');
 
             // --- Nút Nhấn & Nhiệt Độ ---
             const traceBtn = {{ 
@@ -810,96 +1229,156 @@ html_content = f"""<!DOCTYPE html>
                     bgcolor: 'rgba(15, 23, 42, 0.7)'
                 }}
             }};
-            Plotly.newPlot('chart-axis-btn', [traceBtn, traceTemp], btnLayout, {{ responsive: true }});
+            Plotly.newPlot('chart-axis-btn', [traceBtn, traceTemp], btnLayout, plotlyConfig);
+            attachWheelZoomListener('chart-axis-btn');
 
             // Đồng bộ hóa Zoom giữa 4 biểu đồ Tab 1
-            const axisCharts = ['chart-axis-x', 'chart-axis-y', 'chart-axis-z', 'chart-axis-btn'];
-            axisCharts.forEach(id => {{
-                const el = document.getElementById(id);
-                el.on('plotly_relayout', function(eventdata) {{
-                    if (isSyncing) return;
-                    if (eventdata['xaxis.range[0]'] !== undefined || eventdata['xaxis.autorange'] !== undefined) {{
-                        isSyncing = true;
-                        const update = {{}};
-                        if (eventdata['xaxis.range[0]'] !== undefined) {{
-                            update['xaxis.range'] = [eventdata['xaxis.range[0]'], eventdata['xaxis.range[1]']];
-                            update['xaxis.autorange'] = false;
-                        }} else {{
-                            update['xaxis.autorange'] = true;
-                        }}
-                        
-                        axisCharts.forEach(otherId => {{
-                            if (otherId !== id) {{
-                                Plotly.relayout(otherId, update);
-                            }}
-                        }});
-                        isSyncing = false;
-                    }}
-                }});
-            }});
+            setupGroupZoomSync(['chart-axis-x', 'chart-axis-y', 'chart-axis-z', 'chart-axis-btn']);
         }}
 
-        // ==================== 2. RENDER TAB 2: 6 ISOLATED CHANNELS ====================
+        // ==================== 2. RENDER TAB 2: 6 SEPARATE ISOLATED CARDS ====================
         function renderIsolatedTab() {{
-            const traces = [
-                {{ x: time, y: rawData.acc_x, name: 'Acc X (g)', line: {{ color: '#38bdf8', width: 1.6 }}, xaxis: 'x', yaxis: 'y1' }},
-                {{ x: time, y: rawData.acc_y, name: 'Acc Y (g)', line: {{ color: '#34d399', width: 1.6 }}, xaxis: 'x', yaxis: 'y2' }},
-                {{ x: time, y: rawData.acc_z, name: 'Acc Z (g)', line: {{ color: '#fbbf24', width: 1.6 }}, xaxis: 'x', yaxis: 'y3' }},
-                {{ x: time, y: rawData.gyro_x, name: 'Gyro X (°/s)', line: {{ color: '#fb923c', width: 1.6 }}, xaxis: 'x', yaxis: 'y4' }},
-                {{ x: time, y: rawData.gyro_y, name: 'Gyro Y (°/s)', line: {{ color: '#c084fc', width: 1.6 }}, xaxis: 'x', yaxis: 'y5' }},
-                {{ x: time, y: rawData.gyro_z, name: 'Gyro Z (°/s)', line: {{ color: '#f43f5e', width: 1.6 }}, xaxis: 'x', yaxis: 'y6' }}
-            ];
-
-            const layout6 = {{
+            const commonIsoLayout = (titleY, color) => ({{
                 ...baseTheme,
-                grid: {{ rows: 6, columns: 1, pattern: 'independent', roworder: 'top to bottom' }},
-                margin: {{ l: 70, r: 30, t: 30, b: 40 }},
+                margin: {{ l: 65, r: 35, t: 10, b: 35 }},
                 shapes: btnShapes,
-                xaxis: {{ title: 'Thời gian (giây)', gridcolor: 'rgba(255,255,255,0.06)', anchor: 'y6' }},
-                yaxis:  {{ title: 'Acc X (g)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.85, 0.98] }},
-                yaxis2: {{ title: 'Acc Y (g)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.68, 0.81] }},
-                yaxis3: {{ title: 'Acc Z (g)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.51, 0.64] }},
-                yaxis4: {{ title: 'Gyro X (°/s)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.34, 0.47] }},
-                yaxis5: {{ title: 'Gyro Y (°/s)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.17, 0.30] }},
-                yaxis6: {{ title: 'Gyro Z (°/s)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.00, 0.13] }},
-                legend: {{ orientation: 'h', x: 0, y: 1.04, font: {{ size: 11 }} }}
-            }};
+                xaxis: {{
+                    title: 'Thời gian (giây)',
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    showgrid: true,
+                    zeroline: true,
+                    zerolinecolor: 'rgba(255,255,255,0.15)'
+                }},
+                yaxis: {{
+                    title: titleY,
+                    titlefont: {{ color: color, size: 12 }},
+                    tickfont: {{ color: color }},
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    zerolinecolor: 'rgba(255,255,255,0.1)'
+                }},
+                legend: {{
+                    orientation: 'h',
+                    x: 0.01,
+                    y: 1.18,
+                    font: {{ size: 11 }},
+                    bgcolor: 'rgba(15, 23, 42, 0.7)'
+                }}
+            }});
 
-            Plotly.newPlot('chart-isolated-6', traces, layout6, {{ responsive: true }});
+            const traceAccX = {{ x: time, y: rawData.acc_x, name: 'Gia tốc Acc X (g)', line: {{ color: '#38bdf8', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-acc-x', [traceAccX], commonIsoLayout('Acc X (g)', '#38bdf8'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-acc-x');
+
+            const traceAccY = {{ x: time, y: rawData.acc_y, name: 'Gia tốc Acc Y (g)', line: {{ color: '#34d399', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-acc-y', [traceAccY], commonIsoLayout('Acc Y (g)', '#34d399'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-acc-y');
+
+            const traceAccZ = {{ x: time, y: rawData.acc_z, name: 'Gia tốc Acc Z (g)', line: {{ color: '#fbbf24', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-acc-z', [traceAccZ], commonIsoLayout('Acc Z (g)', '#fbbf24'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-acc-z');
+
+            const traceGyroX = {{ x: time, y: rawData.gyro_x, name: 'Vận tốc góc Gyro X (°/s)', line: {{ color: '#fb923c', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-gyro-x', [traceGyroX], commonIsoLayout('Gyro X (°/s)', '#fb923c'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-gyro-x');
+
+            const traceGyroY = {{ x: time, y: rawData.gyro_y, name: 'Vận tốc góc Gyro Y (°/s)', line: {{ color: '#c084fc', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-gyro-y', [traceGyroY], commonIsoLayout('Gyro Y (°/s)', '#c084fc'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-gyro-y');
+
+            const traceGyroZ = {{ x: time, y: rawData.gyro_z, name: 'Vận tốc góc Gyro Z (°/s)', line: {{ color: '#f43f5e', width: 1.8 }} }};
+            Plotly.newPlot('chart-iso-gyro-z', [traceGyroZ], commonIsoLayout('Gyro Z (°/s)', '#f43f5e'), plotlyConfig);
+            attachWheelZoomListener('chart-iso-gyro-z');
+
+            // Đồng bộ hóa Zoom giữa 6 kênh Tab 2
+            setupGroupZoomSync(['chart-iso-acc-x', 'chart-iso-acc-y', 'chart-iso-acc-z', 'chart-iso-gyro-x', 'chart-iso-gyro-y', 'chart-iso-gyro-z']);
         }}
 
-        // ==================== 3. RENDER TAB 3: UNIFIED OVERVIEW ====================
+        // ==================== 3. RENDER TAB 3: SEPARATE OVERVIEW CHARTS ====================
         function renderOverviewTab() {{
-            const traceAccX = {{ x: time, y: rawData.acc_x, name: 'Acc X (g)', line: {{ color: '#38bdf8', width: 1.4 }}, xaxis: 'x', yaxis: 'y1' }};
-            const traceAccY = {{ x: time, y: rawData.acc_y, name: 'Acc Y (g)', line: {{ color: '#34d399', width: 1.4 }}, xaxis: 'x', yaxis: 'y1' }};
-            const traceAccZ = {{ x: time, y: rawData.acc_z, name: 'Acc Z (g)', line: {{ color: '#fbbf24', width: 1.4 }}, xaxis: 'x', yaxis: 'y1' }};
-            const traceAccMag = {{ x: time, y: rawData.acc_mag, name: '|Acc| Total (g)', line: {{ color: '#f87171', width: 1.8, dash: 'dot' }}, xaxis: 'x', yaxis: 'y1' }};
-
-            const traceGyroX = {{ x: time, y: rawData.gyro_x, name: 'Gyro X (°/s)', line: {{ color: '#fb923c', width: 1.4 }}, xaxis: 'x', yaxis: 'y2' }};
-            const traceGyroY = {{ x: time, y: rawData.gyro_y, name: 'Gyro Y (°/s)', line: {{ color: '#c084fc', width: 1.4 }}, xaxis: 'x', yaxis: 'y2' }};
-            const traceGyroZ = {{ x: time, y: rawData.gyro_z, name: 'Gyro Z (°/s)', line: {{ color: '#f43f5e', width: 1.4 }}, xaxis: 'x', yaxis: 'y2' }};
-            const traceGyroMag = {{ x: time, y: rawData.gyro_mag, name: '|Gyro| Total (°/s)', line: {{ color: '#f87171', width: 1.8, dash: 'dot' }}, xaxis: 'x', yaxis: 'y2' }};
-
-            const traceTemp = {{ x: time, y: rawData.temp, name: 'Nhiệt độ (°C)', line: {{ color: '#a78bfa', width: 1.8 }}, xaxis: 'x', yaxis: 'y3' }};
-            const traceBtn = {{ x: time, y: rawData.button, name: 'Nút bấm', line: {{ color: '#f472b6', width: 2, shape: 'hv' }}, fill: 'tozeroy', fillcolor: 'rgba(244, 114, 182, 0.25)', xaxis: 'x', yaxis: 'y4' }};
-
-            const layoutOverview = {{
+            const commonOverviewLayout = (titleY, color) => ({{
                 ...baseTheme,
-                grid: {{ rows: 4, columns: 1, pattern: 'independent', roworder: 'top to bottom' }},
-                margin: {{ l: 70, r: 30, t: 25, b: 40 }},
+                margin: {{ l: 65, r: 35, t: 15, b: 35 }},
                 shapes: btnShapes,
-                xaxis: {{ title: 'Thời gian (giây)', gridcolor: 'rgba(255,255,255,0.06)', anchor: 'y4' }},
-                yaxis:  {{ title: 'Gia tốc (g)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.73, 1.0] }},
-                yaxis2: {{ title: 'Vận tốc góc (°/s)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.46, 0.68] }},
-                yaxis3: {{ title: 'Nhiệt độ (°C)', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.22, 0.41] }},
-                yaxis4: {{ 
-                    title: 'Nút nhấn', gridcolor: 'rgba(255,255,255,0.06)', domain: [0.0, 0.17],
-                    tickvals: [0, 1], ticktext: ['Nhả (0)', 'Nhấn (1)']
+                xaxis: {{
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    showgrid: true,
+                    zeroline: true,
+                    zerolinecolor: 'rgba(255,255,255,0.15)'
                 }},
-                legend: {{ orientation: 'h', x: 0, y: 1.06, font: {{ size: 11 }} }}
-            }};
+                yaxis: {{
+                    title: titleY,
+                    titlefont: {{ color: color, size: 12 }},
+                    tickfont: {{ color: color }},
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    zerolinecolor: 'rgba(255,255,255,0.1)'
+                }},
+                legend: {{
+                    orientation: 'h',
+                    x: 0.01,
+                    y: 1.14,
+                    font: {{ size: 11 }},
+                    bgcolor: 'rgba(15, 23, 42, 0.7)'
+                }}
+            }});
 
-            Plotly.newPlot('chart-overview', [traceAccX, traceAccY, traceAccZ, traceAccMag, traceGyroX, traceGyroY, traceGyroZ, traceGyroMag, traceTemp, traceBtn], layoutOverview, {{ responsive: true }});
+            // 1. Gia tốc
+            const traceAccX = {{ x: time, y: rawData.acc_x, name: 'Acc X (g)', line: {{ color: '#38bdf8', width: 1.6 }} }};
+            const traceAccY = {{ x: time, y: rawData.acc_y, name: 'Acc Y (g)', line: {{ color: '#34d399', width: 1.6 }} }};
+            const traceAccZ = {{ x: time, y: rawData.acc_z, name: 'Acc Z (g)', line: {{ color: '#fbbf24', width: 1.6 }} }};
+            const traceAccMag = {{ x: time, y: rawData.acc_mag, name: '|Acc| Toàn phần (g)', line: {{ color: '#f87171', width: 1.8, dash: 'dot' }} }};
+            Plotly.newPlot('chart-overview-acc', [traceAccX, traceAccY, traceAccZ, traceAccMag], commonOverviewLayout('Gia tốc (g)', '#38bdf8'), plotlyConfig);
+            attachWheelZoomListener('chart-overview-acc');
+
+            // 2. Vận tốc góc
+            const traceGyroX = {{ x: time, y: rawData.gyro_x, name: 'Gyro X (°/s)', line: {{ color: '#fb923c', width: 1.6 }} }};
+            const traceGyroY = {{ x: time, y: rawData.gyro_y, name: 'Gyro Y (°/s)', line: {{ color: '#c084fc', width: 1.6 }} }};
+            const traceGyroZ = {{ x: time, y: rawData.gyro_z, name: 'Gyro Z (°/s)', line: {{ color: '#f43f5e', width: 1.6 }} }};
+            const traceGyroMag = {{ x: time, y: rawData.gyro_mag, name: '|Gyro| Toàn phần (°/s)', line: {{ color: '#f87171', width: 1.8, dash: 'dot' }} }};
+            Plotly.newPlot('chart-overview-gyro', [traceGyroX, traceGyroY, traceGyroZ, traceGyroMag], commonOverviewLayout('Vận tốc góc (°/s)', '#fb923c'), plotlyConfig);
+            attachWheelZoomListener('chart-overview-gyro');
+
+            // 3. Nhiệt độ
+            const traceTemp = {{ x: time, y: rawData.temp, name: 'Nhiệt độ (°C)', line: {{ color: '#a78bfa', width: 1.8 }} }};
+            Plotly.newPlot('chart-overview-temp', [traceTemp], commonOverviewLayout('Nhiệt độ (°C)', '#a78bfa'), plotlyConfig);
+            attachWheelZoomListener('chart-overview-temp');
+
+            // 4. Nút bấm
+            const traceBtn = {{ 
+                x: time, y: rawData.button, name: 'Trạng thái nút bấm', 
+                line: {{ color: '#f472b6', width: 2, shape: 'hv' }}, 
+                fill: 'tozeroy', fillcolor: 'rgba(244, 114, 182, 0.22)' 
+            }};
+            const btnLayout = {{
+                ...baseTheme,
+                margin: {{ l: 65, r: 35, t: 10, b: 40 }},
+                shapes: btnShapes,
+                xaxis: {{
+                    title: 'Thời gian (giây)',
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    showgrid: true
+                }},
+                yaxis: {{
+                    title: 'Nút bấm',
+                    titlefont: {{ color: '#f472b6', size: 12 }},
+                    tickfont: {{ color: '#f472b6' }},
+                    tickvals: [0, 1],
+                    ticktext: ['Nhả (0)', 'Nhấn (1)'],
+                    gridcolor: 'rgba(255, 255, 255, 0.06)',
+                    range: [-0.15, 1.25]
+                }},
+                legend: {{
+                    orientation: 'h',
+                    x: 0.01,
+                    y: 1.25,
+                    font: {{ size: 11 }},
+                    bgcolor: 'rgba(15, 23, 42, 0.7)'
+                }}
+            }};
+            Plotly.newPlot('chart-overview-btn', [traceBtn], btnLayout, plotlyConfig);
+            attachWheelZoomListener('chart-overview-btn');
+
+            // Đồng bộ hóa Zoom giữa 4 biểu đồ Tab 3
+            setupGroupZoomSync(['chart-overview-acc', 'chart-overview-gyro', 'chart-overview-temp', 'chart-overview-btn']);
         }}
 
         // ==================== 4. RENDER TAB 4: 3D & FFT ====================
@@ -932,7 +1411,7 @@ html_content = f"""<!DOCTYPE html>
                     bgcolor: 'rgba(15, 23, 42, 0.65)'
                 }}
             }};
-            Plotly.newPlot('chart-3d', [trace3d], layout3d, {{ responsive: true }});
+            Plotly.newPlot('chart-3d', [trace3d], layout3d, plotlyConfig);
 
             // FFT
             const dt = {dt_ms} / 1000.0;
@@ -972,44 +1451,294 @@ html_content = f"""<!DOCTYPE html>
                 legend: {{ orientation: 'h', y: 1.15, font: {{ size: 11 }} }}
             }};
 
-            Plotly.newPlot('chart-fft', [traceAccFFT, traceGyroFFT], layoutFFT, {{ responsive: true }});
+            Plotly.newPlot('chart-fft', [traceAccFFT, traceGyroFFT], layoutFFT, plotlyConfig);
         }}
 
-        // ==================== SMART CONTROLS & ZOOM ====================
-        function getAllActiveChartIds() {{
-            return ['chart-axis-x', 'chart-axis-y', 'chart-axis-z', 'chart-axis-btn', 'chart-isolated-6', 'chart-overview'];
-        }}
+        // ==================== SMART CONTROLS & ZOOM ENGINES ====================
+        const maxTime = {duration_s:.2f};
+        let currentZoomMode = 'xy'; // 'xy', 'x', 'y'
 
-        function resetAllZoom() {{
-            const ids = getAllActiveChartIds();
-            ids.forEach(id => {{
-                const el = document.getElementById(id);
-                if (el && el.data) {{
-                    Plotly.relayout(id, {{ 'xaxis.autorange': true }});
-                }}
-            }});
-        }}
-
-        function zoomQuick(startT, endT) {{
-            const ids = getAllActiveChartIds();
-            ids.forEach(id => {{
-                const el = document.getElementById(id);
-                if (el && el.data) {{
-                    Plotly.relayout(id, {{ 'xaxis.range': [startT, endT], 'xaxis.autorange': false }});
-                }}
-            }});
-        }}
-
-        function zoomWindow(winSec) {{
-            const el = document.getElementById('chart-axis-x');
-            let centerT = {duration_s/2:.2f};
-            if (el && el.layout && el.layout.xaxis && el.layout.xaxis.range) {{
-                centerT = (el.layout.xaxis.range[0] + el.layout.xaxis.range[1]) / 2.0;
+        function setZoomMode(mode, btn) {{
+            currentZoomMode = mode;
+            document.querySelectorAll('.btn-zoom-mode').forEach(b => b.classList.remove('active'));
+            if (btn) {{
+                btn.classList.add('active');
+            }} else {{
+                const targetBtn = document.getElementById('btn-mode-' + mode);
+                if (targetBtn) targetBtn.classList.add('active');
             }}
-            const half = winSec / 2.0;
-            const startT = Math.max(0, centerT - half);
-            const endT = Math.min({duration_s:.2f}, centerT + half);
-            zoomQuick(startT, endT);
+        }}
+
+        // Reset toàn bộ Zoom (cả trục X và tất cả trục Y)
+        function resetAllZoom(targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            plots.forEach(el => {{
+                if (el.id && el.data) {{
+                    Plotly.relayout(el.id, {{
+                        'xaxis.autorange': true,
+                        'yaxis.autorange': true,
+                        'yaxis2.autorange': true
+                    }});
+                }}
+            }});
+        }}
+
+        // Kéo dãn / Thu hẹp CHIỀU NGANG (Trục thời gian X)
+        function stretchX(factor, targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            if (plots.length === 0) return;
+
+            const firstPlot = plots[0];
+            let r0 = 0, r1 = maxTime;
+            if (firstPlot.layout && firstPlot.layout.xaxis && firstPlot.layout.xaxis.range) {{
+                r0 = firstPlot.layout.xaxis.range[0];
+                r1 = firstPlot.layout.xaxis.range[1];
+            }}
+
+            const center = (r0 + r1) / 2.0;
+            let halfSpan = ((r1 - r0) / 2.0) / factor;
+            if (halfSpan < 0.05) halfSpan = 0.05;
+            if (halfSpan > maxTime / 2.0) halfSpan = maxTime / 2.0;
+
+            let newR0 = center - halfSpan;
+            let newR1 = center + halfSpan;
+            if (newR0 < 0) {{
+                newR1 += (0 - newR0);
+                newR0 = 0;
+            }}
+            if (newR1 > maxTime) {{
+                newR0 -= (newR1 - maxTime);
+                newR1 = maxTime;
+                if (newR0 < 0) newR0 = 0;
+            }}
+
+            plots.forEach(el => {{
+                if (el.id && el.data) {{
+                    Plotly.relayout(el.id, {{
+                        'xaxis.range': [newR0, newR1],
+                        'xaxis.autorange': false
+                    }});
+                }}
+            }});
+        }}
+
+        // Kéo dãn / Thu hẹp CHIỀU DỌC (Trục biên độ Y và Y2)
+        function stretchY(factor, targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            
+            plots.forEach(el => {{
+                if (!el.id || !el.data || !el.layout) return;
+                const layout = el.layout;
+                const update = {{}};
+
+                // 1. Trục Y chính
+                if (layout.yaxis) {{
+                    let y0, y1;
+                    if (layout.yaxis.range && !layout.yaxis.autorange) {{
+                        y0 = layout.yaxis.range[0];
+                        y1 = layout.yaxis.range[1];
+                    }} else {{
+                        const vals = [];
+                        el.data.forEach(tr => {{
+                            if ((!tr.yaxis || tr.yaxis === 'y') && tr.y) {{
+                                vals.push(...tr.y);
+                            }}
+                        }});
+                        if (vals.length > 0) {{
+                            const minV = Math.min(...vals);
+                            const maxV = Math.max(...vals);
+                            const pad = Math.max(0.1, (maxV - minV) * 0.12);
+                            y0 = minV - pad;
+                            y1 = maxV + pad;
+                        }} else {{
+                            y0 = -1; y1 = 1;
+                        }}
+                    }}
+                    const center = (y0 + y1) / 2.0;
+                    const half = ((y1 - y0) / 2.0) / factor;
+                    update['yaxis.range'] = [center - half, center + half];
+                    update['yaxis.autorange'] = false;
+                }}
+
+                // 2. Trục Y phụ (Y2 nếu có)
+                if (layout.yaxis2) {{
+                    let y2_0, y2_1;
+                    if (layout.yaxis2.range && !layout.yaxis2.autorange) {{
+                        y2_0 = layout.yaxis2.range[0];
+                        y2_1 = layout.yaxis2.range[1];
+                    }} else {{
+                        const vals2 = [];
+                        el.data.forEach(tr => {{
+                            if (tr.yaxis === 'y2' && tr.y) {{
+                                vals2.push(...tr.y);
+                            }}
+                        }});
+                        if (vals2.length > 0) {{
+                            const minV = Math.min(...vals2);
+                            const maxV = Math.max(...vals2);
+                            const pad = Math.max(0.1, (maxV - minV) * 0.12);
+                            y2_0 = minV - pad;
+                            y2_1 = maxV + pad;
+                        }} else {{
+                            y2_0 = -10; y2_1 = 10;
+                        }}
+                    }}
+                    const center2 = (y2_0 + y2_1) / 2.0;
+                    const half2 = ((y2_1 - y2_0) / 2.0) / factor;
+                    update['yaxis2.range'] = [center2 - half2, center2 + half2];
+                    update['yaxis2.autorange'] = false;
+                }}
+
+                Plotly.relayout(el.id, update);
+            }});
+        }}
+
+        // Tự động căn chỉnh biên độ Y vừa vặn
+        function autoFitY(targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            plots.forEach(el => {{
+                if (el.id && el.data) {{
+                    Plotly.relayout(el.id, {{
+                        'yaxis.autorange': true,
+                        'yaxis2.autorange': true
+                    }});
+                }}
+            }});
+        }}
+
+        // Đặt kích thước cửa sổ thời gian cố định (2s, 5s, 10s...)
+        function setTimeWindow(spanSec, targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            if (plots.length === 0) return;
+
+            const firstPlot = plots[0];
+            let center = maxTime / 2.0;
+            if (firstPlot.layout && firstPlot.layout.xaxis && firstPlot.layout.xaxis.range) {{
+                center = (firstPlot.layout.xaxis.range[0] + firstPlot.layout.xaxis.range[1]) / 2.0;
+            }}
+
+            let half = spanSec / 2.0;
+            let newR0 = Math.max(0, center - half);
+            let newR1 = Math.min(maxTime, center + half);
+            if (newR1 - newR0 < spanSec) {{
+                if (newR0 === 0) newR1 = Math.min(maxTime, spanSec);
+                else if (newR1 === maxTime) newR0 = Math.max(0, maxTime - spanSec);
+            }}
+
+            plots.forEach(el => {{
+                if (el.id && el.data) {{
+                    Plotly.relayout(el.id, {{
+                        'xaxis.range': [newR0, newR1],
+                        'xaxis.autorange': false
+                    }});
+                }}
+            }});
+        }}
+
+        // Dịch chuyển thời gian sang trái / phải
+        function panTime(deltaPercent, targetChartId = null) {{
+            let plots = [];
+            if (targetChartId) {{
+                const el = document.getElementById(targetChartId);
+                if (el) plots = [el];
+            }} else {{
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) plots = Array.from(activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]'));
+            }}
+            if (plots.length === 0) return;
+
+            const firstPlot = plots[0];
+            let r0 = 0, r1 = maxTime;
+            if (firstPlot.layout && firstPlot.layout.xaxis && firstPlot.layout.xaxis.range) {{
+                r0 = firstPlot.layout.xaxis.range[0];
+                r1 = firstPlot.layout.xaxis.range[1];
+            }}
+
+            const span = r1 - r0;
+            const shift = span * deltaPercent;
+            let newR0 = r0 + shift;
+            let newR1 = r1 + shift;
+
+            if (newR0 < 0) {{
+                newR1 = span;
+                newR0 = 0;
+            }}
+            if (newR1 > maxTime) {{
+                newR0 = Math.max(0, maxTime - span);
+                newR1 = maxTime;
+            }}
+
+            plots.forEach(el => {{
+                if (el.id && el.data) {{
+                    Plotly.relayout(el.id, {{
+                        'xaxis.range': [newR0, newR1],
+                        'xaxis.autorange': false
+                    }});
+                }}
+            }});
+        }}
+
+        // Lắng nghe thao tác cuộn chuột thông minh (hỗ trợ Shift = Zoom X, Ctrl/Alt = Zoom Y)
+        function attachWheelZoomListener(chartId) {{
+            const el = document.getElementById(chartId);
+            if (!el) return;
+
+            el.addEventListener('wheel', function(e) {{
+                let mode = currentZoomMode;
+                if (e.shiftKey) mode = 'x';
+                else if (e.ctrlKey || e.altKey) mode = 'y';
+
+                if (mode === 'xy') {{
+                    // Để Plotly xử lý cuộn phóng to 2D tự nhiên
+                    return;
+                }}
+
+                // Nếu là chế độ riêng lẻ X hoặc Y, chặn cuộn 2D và áp dụng zoom riêng
+                e.preventDefault();
+                e.stopPropagation();
+
+                const factor = e.deltaY < 0 ? 1.25 : 0.8;
+                if (mode === 'x') {{
+                    stretchX(factor, chartId);
+                }} else if (mode === 'y') {{
+                    stretchY(factor, chartId);
+                }}
+            }}, {{ passive: false }});
         }}
 
         function nextButtonEvent() {{
@@ -1025,45 +1754,267 @@ html_content = f"""<!DOCTYPE html>
         }}
 
         function focusOnEvent(ev) {{
-            const pad = 1.0; // padding 1s
+            const pad = 0.8; // 0.8s padding
             const startT = Math.max(0, ev.t_start - pad);
-            const endT = Math.min({duration_s:.2f}, ev.t_end + pad);
-            zoomQuick(startT, endT);
+            const endT = Math.min(maxTime, ev.t_end + pad);
+            const activeTab = document.querySelector('.tab-pane.active');
+            if (activeTab) {{
+                const plots = activeTab.querySelectorAll('.js-plotly-plot, [id^="chart-"]');
+                plots.forEach(el => {{
+                    if (el.id && el.data) {{
+                        Plotly.relayout(el.id, {{ 'xaxis.range': [startT, endT], 'xaxis.autorange': false }});
+                    }}
+                }});
+            }}
             document.getElementById('btn-event-counter').innerText = `${{ev.event_id}} / ${{buttonEvents.length}} (${{ev.duration}}s)`;
         }}
 
-        // Tab Switching Logic
+        // Tab Switching Logic (On-Demand Lazy Rendering for Instant Performance)
         function switchTab(tabId, btn) {{
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
+            if (btn) btn.classList.add('active');
 
-            // Trigger Plotly Resize / Render
-            setTimeout(() => {{
-                if (tabId === 'tab-axes') {{
-                    Plotly.Plots.resize('chart-axis-x');
-                    Plotly.Plots.resize('chart-axis-y');
-                    Plotly.Plots.resize('chart-axis-z');
-                    Plotly.Plots.resize('chart-axis-btn');
-                }} else if (tabId === 'tab-isolated') {{
-                    Plotly.Plots.resize('chart-isolated-6');
-                }} else if (tabId === 'tab-overview') {{
-                    Plotly.Plots.resize('chart-overview');
-                }} else if (tabId === 'tab-3d-fft') {{
-                    Plotly.Plots.resize('chart-3d');
-                    Plotly.Plots.resize('chart-fft');
-                }}
-            }}, 50);
+            if (!renderedTabs[tabId]) {{
+                if (tabId === 'tab-axes') renderAxesTab();
+                else if (tabId === 'tab-isolated') renderIsolatedTab();
+                else if (tabId === 'tab-overview') renderOverviewTab();
+                else if (tabId === 'tab-3d-fft') render3DAndFFT();
+                renderedTabs[tabId] = true;
+            }} else {{
+                setTimeout(() => {{
+                    if (tabId === 'tab-axes') {{
+                        Plotly.Plots.resize('chart-axis-x');
+                        Plotly.Plots.resize('chart-axis-y');
+                        Plotly.Plots.resize('chart-axis-z');
+                        Plotly.Plots.resize('chart-axis-btn');
+                    }} else if (tabId === 'tab-isolated') {{
+                        Plotly.Plots.resize('chart-iso-acc-x');
+                        Plotly.Plots.resize('chart-iso-acc-y');
+                        Plotly.Plots.resize('chart-iso-acc-z');
+                        Plotly.Plots.resize('chart-iso-gyro-x');
+                        Plotly.Plots.resize('chart-iso-gyro-y');
+                        Plotly.Plots.resize('chart-iso-gyro-z');
+                    }} else if (tabId === 'tab-overview') {{
+                        Plotly.Plots.resize('chart-overview-acc');
+                        Plotly.Plots.resize('chart-overview-gyro');
+                        Plotly.Plots.resize('chart-overview-temp');
+                        Plotly.Plots.resize('chart-overview-btn');
+                    }} else if (tabId === 'tab-3d-fft') {{
+                        Plotly.Plots.resize('chart-3d');
+                        Plotly.Plots.resize('chart-fft');
+                    }}
+                }}, 30);
+            }}
         }}
 
-        // Initialize All Charts on Load
+        // Fullscreen Single Card Toggle Logic
+        function toggleFullscreen(cardId, chartId) {{
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            const isFull = card.classList.contains('is-fullscreen');
+            const btn = card.querySelector('.btn-fullscreen');
+            
+            if (isFull) {{
+                card.classList.remove('is-fullscreen');
+                document.body.classList.remove('fullscreen-active');
+                if (btn) btn.innerHTML = '⛶ Toàn màn hình';
+                const fsControls = card.querySelector('.single-fs-toolbar');
+                if (fsControls) fsControls.remove();
+            }} else {{
+                document.querySelectorAll('.is-fullscreen').forEach(el => {{
+                    el.classList.remove('is-fullscreen');
+                    const b = el.querySelector('.btn-fullscreen');
+                    if (b) b.innerHTML = '⛶ Toàn màn hình';
+                    const oldC = el.querySelector('.single-fs-toolbar');
+                    if (oldC) oldC.remove();
+                }});
+                card.classList.add('is-fullscreen');
+                document.body.classList.add('fullscreen-active');
+                if (btn) btn.innerHTML = '✕ Thu nhỏ (Esc)';
+
+                // Thêm thanh công cụ Zoom vào tiêu đề thẻ khi phóng to toàn màn hình
+                const header = card.querySelector('.axis-card-header') || card.querySelector('.card-header');
+                if (header && !header.querySelector('.single-fs-toolbar')) {{
+                    const fsBar = document.createElement('div');
+                    fsBar.className = 'single-fs-toolbar';
+                    fsBar.style = 'display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-left:auto; margin-right:12px;';
+                    fsBar.innerHTML = `
+                        <button class="btn btn-primary" style="padding:4px 8px; font-size:11px;" onclick="resetAllZoom('${{chartId}}')">🔄 Reset</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="stretchX(1.4, '${{chartId}}')">↔️➕ Dãn X</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="stretchX(0.71, '${{chartId}}')">↔️➖ Thu X</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="stretchY(1.4, '${{chartId}}')">↕️➕ Dãn Y</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="stretchY(0.71, '${{chartId}}')">↕️➖ Thu Y</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="autoFitY('${{chartId}}')">↕️ Auto Y</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="setTimeWindow(2.0, '${{chartId}}')">⏱️ 2s</button>
+                        <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="setTimeWindow(5.0, '${{chartId}}')">⏱️ 5s</button>
+                    `;
+                    const rightContainer = header.lastElementChild;
+                    header.insertBefore(fsBar, rightContainer);
+                }}
+            }}
+            
+            const chartEl = document.getElementById(chartId);
+            if (chartEl) {{
+                setTimeout(() => {{
+                    Plotly.Plots.resize(chartEl);
+                    Plotly.relayout(chartEl, {{ autosize: true }});
+                }}, 40);
+            }}
+        }}
+
+        // Fullscreen Entire Tab Comparison Logic
+        function toggleTabFullscreen(tabId) {{
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
+
+            // Ensure tab is rendered first
+            if (!renderedTabs[tabId]) {{
+                if (tabId === 'tab-axes') renderAxesTab();
+                else if (tabId === 'tab-isolated') renderIsolatedTab();
+                else if (tabId === 'tab-overview') renderOverviewTab();
+                else if (tabId === 'tab-3d-fft') render3DAndFFT();
+                renderedTabs[tabId] = true;
+            }}
+
+            const isFull = tab.classList.contains('is-tab-fullscreen');
+            
+            // Close single card fullscreen
+            document.querySelectorAll('.is-fullscreen').forEach(el => {{
+                el.classList.remove('is-fullscreen');
+                const b = el.querySelector('.btn-fullscreen');
+                if (b) b.innerHTML = '⛶ Toàn màn hình';
+                const oldC = el.querySelector('.single-fs-toolbar');
+                if (oldC) oldC.remove();
+            }});
+
+            if (isFull) {{
+                tab.classList.remove('is-tab-fullscreen');
+                document.body.classList.remove('fullscreen-active');
+                const oldH = tab.querySelector('.tab-fullscreen-header');
+                if (oldH) oldH.remove();
+            }} else {{
+                // Close other tab fullscreens
+                document.querySelectorAll('.is-tab-fullscreen').forEach(el => {{
+                    el.classList.remove('is-tab-fullscreen');
+                    const oldH = el.querySelector('.tab-fullscreen-header');
+                    if (oldH) oldH.remove();
+                }});
+
+                tab.classList.add('is-tab-fullscreen');
+                document.body.classList.add('fullscreen-active');
+
+                // Add sticky top comparison control bar
+                let fsHeader = tab.querySelector('.tab-fullscreen-header');
+                if (!fsHeader) {{
+                    fsHeader = document.createElement('div');
+                    fsHeader.className = 'tab-fullscreen-header';
+                    fsHeader.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-weight:800; font-size:15px; color:#38bdf8;">
+                                📺 CHẾ ĐỘ SO SÁNH TOÀN BỘ CÁC ĐỒ THỊ TRONG MỤC
+                            </span>
+                            <span class="badge" style="background:rgba(52,211,153,0.15); color:#34d399;">ĐỒNG BỘ ZOOM 100%</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-primary" onclick="resetAllZoom()">🔄 Reset Zoom</button>
+                            <button class="btn" onclick="stretchX(1.4)">↔️➕ Dãn X</button>
+                            <button class="btn" onclick="stretchX(0.71)">↔️➖ Thu X</button>
+                            <button class="btn" onclick="stretchY(1.4)">↕️➕ Dãn Y</button>
+                            <button class="btn" onclick="stretchY(0.71)">↕️➖ Thu Y</button>
+                            <button class="btn" onclick="autoFitY()">↕️ Auto Y</button>
+                            <button class="btn" onclick="setTimeWindow(2.0)">⏱️ 2s</button>
+                            <button class="btn" onclick="setTimeWindow(5.0)">⏱️ 5s</button>
+                            <button class="btn" style="background:rgba(244,63,94,0.25); border-color:#f43f5e; color:#fff;" onclick="toggleTabFullscreen('${{tabId}}')">
+                                ✕ Thu nhỏ (Esc)
+                            </button>
+                        </div>
+                    `;
+                    tab.insertBefore(fsHeader, tab.firstChild);
+                }}
+            }}
+
+            // Auto resize all Plotly charts inside this tab
+            setTimeout(() => {{
+                const plots = tab.querySelectorAll('.js-plotly-plot, [id^="chart-"]');
+                plots.forEach(p => {{
+                    if (p.id) {{
+                        Plotly.Plots.resize(p.id);
+                        Plotly.relayout(p.id, {{ autosize: true }});
+                    }}
+                }});
+            }}, 40);
+        }}
+
+        function toggleCurrentTabFullscreen() {{
+            const activeTab = document.querySelector('.tab-pane.active');
+            if (activeTab) {{
+                toggleTabFullscreen(activeTab.id);
+            }}
+        }}
+
+        // Key Navigation:
+        // + / - : Zoom Chiều Ngang X
+        // Shift + (+ / - / Mũi tên lên / xuống) : Zoom Chiều Dọc Y
+        // Mũi tên trái / phải : Dịch chuyển thời gian (Pan X)
+        // 0 : Reset toàn bộ
+        // Esc : Thoát toàn màn hình
+        document.addEventListener('keydown', function(e) {{
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+            if (e.shiftKey && (e.key === '+' || e.key === '=' || e.key === 'ArrowUp')) {{
+                e.preventDefault();
+                stretchY(1.35);
+            }} else if (e.shiftKey && (e.key === '-' || e.key === '_' || e.key === 'ArrowDown')) {{
+                e.preventDefault();
+                stretchY(0.74);
+            }} else if (!e.shiftKey && (e.key === '+' || e.key === '=')) {{
+                stretchX(1.35);
+            }} else if (!e.shiftKey && (e.key === '-' || e.key === '_')) {{
+                stretchX(0.74);
+            }} else if (!e.shiftKey && e.key === 'ArrowLeft') {{
+                panTime(-0.1);
+            }} else if (!e.shiftKey && e.key === 'ArrowRight') {{
+                panTime(0.1);
+            }} else if (e.key === '0') {{
+                resetAllZoom();
+            }}
+
+            // ESC Key listener to close single card or whole tab fullscreen
+            if (e.key === 'Escape' || e.keyCode === 27) {{
+                // 1. Check single card fullscreen
+                const fullCard = document.querySelector('.is-fullscreen');
+                if (fullCard) {{
+                    const btn = fullCard.querySelector('.btn-fullscreen');
+                    fullCard.classList.remove('is-fullscreen');
+                    document.body.classList.remove('fullscreen-active');
+                    if (btn) btn.innerHTML = '⛶ Toàn màn hình';
+                    
+                    const chartDiv = fullCard.querySelector('.js-plotly-plot') || fullCard.querySelector('[id^="chart-"]');
+                    if (chartDiv && chartDiv.id) {{
+                        setTimeout(() => {{
+                            Plotly.Plots.resize(chartDiv.id);
+                            Plotly.relayout(chartDiv.id, {{ autosize: true }});
+                        }}, 40);
+                    }}
+                    return;
+                }}
+
+                // 2. Check entire tab fullscreen
+                const fullTab = document.querySelector('.is-tab-fullscreen');
+                if (fullTab) {{
+                    toggleTabFullscreen(fullTab.id);
+                }}
+            }}
+        }});
+
+        // Initialize Tab 1 on Load for instant startup
         window.addEventListener('DOMContentLoaded', () => {{
             renderAxesTab();
-            renderIsolatedTab();
-            renderOverviewTab();
-            render3DAndFFT();
+            renderedTabs['tab-axes'] = true;
         }});
     </script>
 </body>
