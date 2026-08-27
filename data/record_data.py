@@ -17,7 +17,7 @@ def get_default_port():
 def main():
     # Cổng COM mặc định hoặc nhận từ tham số dòng lệnh
     port = sys.argv[1] if len(sys.argv) > 1 else get_default_port()
-    baudrate = 115200
+    baudrate = 921600
 
     if not port:
         print("[!] Khong tim thay cong COM nao. Vui long kiem tra lai ket noi cap USB.")
@@ -54,7 +54,6 @@ def main():
                         continue
 
                     # Kiem tra xem co phai dong du lieu CSV hop le khong
-                    # Header hoac dong du lieu co chua dau phay
                     if "timestamp_ms" in line:
                         f.write(line + "\n")
                         f.flush()
@@ -62,10 +61,12 @@ def main():
                         print(f"Header: {line}")
                     elif "," in line:
                         parts = line.split(",")
-                        # Dong hop le thuong co 9 truong
                         if len(parts) >= 8:
                             if not header_written:
-                                f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n")
+                                if len(parts) >= 11:
+                                    f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,roll,pitch,temp,button\n")
+                                else:
+                                    f.write("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n")
                                 header_written = True
                             f.write(line + "\n")
                             f.flush()
