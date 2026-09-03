@@ -125,7 +125,7 @@ void setup() {
   // breadboard. Với clock ADS 512kHz, SCLK đọc/ghi thanh ghi không nên chạy sát
   // giới hạn.
   int attempt = 1;
-  while (!ads.begin(pins, 250000)) {
+  while (!ads.begin(pins, 100000)) { // 100kHz SCLK: internal osc 512kHz → max SCLK = 128kHz
     uint8_t id = ads.getDeviceID();
     Serial.printf("\n[ADS1292R] Lan thu %d: Doc duoc ID = 0x%02X\n", attempt++,
                   id);

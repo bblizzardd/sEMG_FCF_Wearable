@@ -205,10 +205,9 @@ void ADS1292R::readRegisters(uint8_t startReg, uint8_t count, uint8_t* buffer) {
     }
 
     _spi->transfer(ADS1292R_CMD_RREG | (startReg & 0x1F));
-    delayMicroseconds(15);
     _spi->transfer((count - 1) & 0x1F);
 
-    delayMicroseconds(15); // Timing tSDECODE >= 4 tCLK (8us)
+    delayMicroseconds(10); // Timing tSDECODE >= 4 tCLK (8us @ 512kHz) sau khi nhan du 2 byte lenh
 
     for (uint8_t i = 0; i < count; i++) {
         buffer[i] = _spi->transfer(0x00);
@@ -242,10 +241,9 @@ void ADS1292R::writeRegisters(uint8_t startReg, uint8_t count, const uint8_t* da
     }
 
     _spi->transfer(ADS1292R_CMD_WREG | (startReg & 0x1F));
-    delayMicroseconds(15);
     _spi->transfer((count - 1) & 0x1F);
 
-    delayMicroseconds(15);
+    delayMicroseconds(10); // Timing tSDECODE >= 4 tCLK (8us @ 512kHz) sau khi nhan du 2 byte lenh
 
     for (uint8_t i = 0; i < count; i++) {
         _spi->transfer(data[i]);
