@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sEMG Analytics & Signal Dashboard | ESP32-S3 + ADS1292R</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #0a0e17;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --bg-card-hover: rgba(26, 35, 55, 0.85);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(0, 242, 254, 0.3);
+            --primary: #00f2fe;
+            --primary-glow: rgba(0, 242, 254, 0.4);
+            --secondary: #4facfe;
+            --accent-emerald: #00e599;
+            --accent-emerald-glow: rgba(0, 229, 153, 0.4);
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-violet: #8b5cf6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(0, 242, 254, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 85% 90%, rgba(0, 229, 153, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(79, 172, 254, 0.04) 0%, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            padding: 24px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1540px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-card);
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(0, 229, 153, 0.2));
+            border: 1px solid var(--border-glow);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .header-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: var(--primary);
+        }
+
+        h1 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--primary);
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            border: 1px solid rgba(0, 242, 254, 0.25);
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background-color: var(--accent-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-emerald);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 0 0 rgba(0, 229, 153, 0.7); }
+            70% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 8px rgba(0, 229, 153, 0); }
+            100% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 0 0 rgba(0, 229, 153, 0); }
+        }
+
+        /* ACTION CONTROLS */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            text-decoration: none;
+            outline: none;
+            font-family: var(--font-sans);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            color: #07111e;
+            box-shadow: 0 4px 16px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(0, 242, 254, 0.45);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-card);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* DROP ZONE HERO */
+        .dropzone-bar {
+            background: var(--bg-card);
+            border: 2px dashed rgba(0, 242, 254, 0.25);
+            border-radius: var(--radius-md);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            transition: var(--transition);
+            backdrop-filter: blur(12px);
+        }
+
+        .dropzone-bar.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 242, 254, 0.08);
+            transform: scale(1.005);
+        }
+
+        .dropzone-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .dropzone-text h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .dropzone-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* METRIC CARDS GRID */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(16px);
+            transition: var(--transition);
+        }
+
+        .metric-card:hover {
+            border-color: rgba(0, 242, 254, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px -10px rgba(0, 242, 254, 0.15);
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--card-accent, var(--primary)), transparent);
+            opacity: 0.6;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .metric-unit {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .metric-footer {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .metric-badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+        }
+
+        /* TABS NAVIGATION */
+        .tabs-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-card);
+            margin-bottom: 22px;
+            padding-bottom: 8px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.15);
+        }
+
+        /* CHART SECTIONS */
+        .chart-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            padding: 22px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(16px);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .chart-title-group h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-title-group p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .chart-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-card);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(0, 242, 254, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 380px;
+        }
+
+        .chart-container-sm {
+            height: 280px;
+        }
+
+        /* DUAL GRID */
+        .dual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .dual-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* EVENT TABLE */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.05em;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-event {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(0, 229, 153, 0.15);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(0, 229, 153, 0.3);
+        }
+
+        /* EMPTY / LOADING OVERLAY */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-muted);
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* FOOTER */
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-card);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="header-title-group">
+                <div class="header-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <h1>sEMG Telemetry & Bio-Signal Dashboard</h1>
+                    <div class="subtitle">
+                        <span>Texas Instruments ADS1292R 24-bit Front-End</span>
+                        <span style="color: var(--border-card);">&bull;</span>
+                        <span class="chip"><span class="pulse-dot"></span> ESP32-S3 Dual-Core</span>
+                        <span class="chip" id="chipSampleRate">500 SPS</span>
+                        <span class="chip" id="chipDeviceStatus">Live Mode</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="file-input-wrapper">
+                    <button class="btn btn-primary" id="btnUploadTrigger">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Nạp File CSV
+                    </button>
+                    <input type="file" id="csvFileInput" accept=".csv,.txt">
+                </div>
+
+                <button class="btn btn-secondary" id="btnLoadDemo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Tải Dữ Liệu Mẫu (Demo)
+                </button>
+
+                <button class="btn btn-secondary" id="btnExportPNG">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Xuất Biểu Đồ
+                </button>
+            </div>
+        </header>
+
+        <!-- DROP ZONE BAR -->
+        <div class="dropzone-bar" id="dropZone">
+            <div class="dropzone-content">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                <div class="dropzone-text">
+                    <h4 id="fileStatusTitle">Kéo thả file CSV từ record_data.py hoặc chọn file</h4>
+                    <p id="fileStatusDesc">Hỗ trợ các cột: timestamp_ms, raw_ch1, raw_ch2, emg_ch1_mv, emg_ch2_mv, button</p>
+                </div>
+            </div>
+            <div id="fileMetaBadge" style="display: none;">
+                <span class="chip" style="background: rgba(0, 229, 153, 0.15); color: var(--accent-emerald); border-color: rgba(0, 229, 153, 0.3);" id="fileNameChip">recording.csv</span>
+            </div>
+        </div>
+
+        <!-- METRICS CARDS -->
+        <div class="metrics-grid">
+            <div class="metric-card" style="--card-accent: #00f2fe;">
+                <div class="metric-label">
+                    <span>Tổng Mẫu / Thời Gian</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="metric-value" id="valDuration">0.00<span class="metric-unit">giây</span></div>
+                <div class="metric-footer">
+                    <span id="valTotalSamples">0 mẫu</span>
+                    <span class="metric-badge" style="background: rgba(0, 242, 254, 0.15); color: var(--primary);" id="valFs">500.0 Hz</span>
+                </div>
+            </div>
+
+            <div class="metric-card" style="--card-accent: #00e599;">
+                <div class="metric-label">
+                    <span>Kênh 1: Vpp / Max RMS</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                </div>
+                <div class="metric-value" id="valCh1Vpp">0.00<span class="metric-unit">mV</span></div>
+                <div class="metric-footer">
+                    <span>RMS cực đại: <b id="valCh1MaxRms" style="color: var(--accent-emerald);">0.00 mV</b></span>
+                    <span class="metric-badge" style="background: rgba(0, 229, 153, 0.15); color: var(--accent-emerald);">CH1 EMG</span>
+                </div>
+            </div>
+
+            <div class="metric-card" style="--card-accent: #4facfe;">
+                <div class="metric-label">
+                    <span>Kênh 2: Vpp / Max RMS</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                </div>
+                <div class="metric-value" id="valCh2Vpp">0.00<span class="metric-unit">mV</span></div>
+                <div class="metric-footer">
+                    <span>RMS cực đại: <b id="valCh2MaxRms" style="color: var(--secondary);">0.00 mV</b></span>
+                    <span class="metric-badge" style="background: rgba(79, 172, 254, 0.15); color: var(--secondary);">CH2 EMG</span>
+                </div>
+            </div>
+
+            <div class="metric-card" style="--card-accent: #f59e0b;">
+                <div class="metric-label">
+                    <span>Sự Kiện Co Cơ (Button)</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line></svg>
+                </div>
+                <div class="metric-value" id="valButtonEvents">0<span class="metric-unit">lần</span></div>
+                <div class="metric-footer">
+                    <span>Thời gian gồng: <b id="valContractionDuration">0.0 s</b></span>
+                    <span class="metric-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);" id="valButtonPct">0.0%</span>
+                </div>
+            </div>
+
+            <div class="metric-card" style="--card-accent: #8b5cf6;">
+                <div class="metric-label">
+                    <span>Tần Số Trung Vị (MDF - Fatigue)</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </div>
+                <div class="metric-value" id="valMDF">--<span class="metric-unit">Hz</span></div>
+                <div class="metric-footer">
+                    <span>MNF: <b id="valMNF">-- Hz</b></span>
+                    <span class="metric-badge" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-violet);">FFT Bio</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS HEADER -->
+        <div class="tabs-header">
+            <button class="tab-btn active" data-tab="tab-raw">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Tín Hiệu Gốc (Raw sEMG Waveforms)
+            </button>
+            <button class="tab-btn" data-tab="tab-envelope">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M18 9l-5 5-4-4-3 3"></path></svg>
+                Bao Đóng Tuyến Tính & RMS Envelope
+            </button>
+            <button class="tab-btn" data-tab="tab-frequency">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+                Phổ Tần Số (FFT / Power Spectrum)
+            </button>
+            <button class="tab-btn" data-tab="tab-events">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                Danh Sách Co Cơ & Thống Kê
+            </button>
+        </div>
+
+        <!-- TAB CONTENT 1: RAW sEMG -->
+        <div class="tab-pane active" id="tab-raw">
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>Sóng Điện Thế Cơ Bắp 24-bit (sEMG Waveforms)</h3>
+                        <p>Kênh 1 (Xanh lục) & Kênh 2 (Xanh dương) theo thời gian thực (mV). Vùng xám nhạt là thời điểm bấm nút BOOT (co cơ).</p>
+                    </div>
+                    <div class="chart-controls">
+                        <button class="filter-btn active" data-channel="both">Cả 2 Kênh</button>
+                        <button class="filter-btn" data-channel="ch1">Chỉ Kênh 1</button>
+                        <button class="filter-btn" data-channel="ch2">Chỉ Kênh 2</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="rawChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 2: ENVELOPE & RMS -->
+        <div class="tab-pane" id="tab-envelope" style="display: none;">
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>Đường Bao Năng Lượng Cơ (Moving RMS Envelope)</h3>
+                        <p>Tín hiệu chỉnh lưu toàn sóng & cửa sổ trượt RMS (100ms) phản ánh chính xác cường độ kích hoạt cơ bắp.</p>
+                    </div>
+                    <div class="chart-controls">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Cửa sổ RMS:</span>
+                        <button class="filter-btn active" data-window="50">50 ms</button>
+                        <button class="filter-btn" data-window="100">100 ms</button>
+                        <button class="filter-btn" data-window="200">200 ms</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="envelopeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 3: FFT FREQUENCY -->
+        <div class="tab-pane" id="tab-frequency" style="display: none;">
+            <div class="dual-grid">
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h3>Mật Độ Phổ Công Suất (PSD - Kênh 1)</h3>
+                            <p>Phân bố tần số sEMG (Dải hữu dụng: 20Hz - 450Hz). Đường đỏ: Tần số trung vị MDF.</p>
+                        </div>
+                    </div>
+                    <div class="chart-container chart-container-sm">
+                        <canvas id="fftChart1"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h3>Mật Độ Phổ Công Suất (PSD - Kênh 2)</h3>
+                            <p>Phân bố tần số sEMG Kênh 2 phục vụ đánh giá mức độ mỏi cơ (Muscle Fatigue).</p>
+                        </div>
+                    </div>
+                    <div class="chart-container chart-container-sm">
+                        <canvas id="fftChart2"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 4: EVENTS -->
+        <div class="tab-pane" id="tab-events" style="display: none;">
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>Bảng Tổng Hợp Các Đợt Co Cơ (Muscle Contraction Bursts)</h3>
+                        <p>Tự động nhận diện từ trạng thái nút BOOT (hoặc ngưỡng năng lượng RMS vượt đường cơ sở).</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="eventsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bắt Đầu (s)</th>
+                                <th>Kết Thúc (s)</th>
+                                <th>Thời Lượng (s)</th>
+                                <th>Peak CH1 (mV)</th>
+                                <th>Peak CH2 (mV)</th>
+                                <th>Mean RMS CH1 (mV)</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTableBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Chưa có dữ liệu sự kiện</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            <p>Hệ Thống Thu Nhận & Phân Tích Điện Cơ Sinh Học (sEMG FCF Wearable) &bull; ESP32-S3 + Texas Instruments ADS1292R</p>
+        </footer>
+    </div>
+
+    <script>
+        // ====================================================================
+        // DATA STORAGE & STATE
+        // ====================================================================
+        let currentDataset = null;
+        let chartInstances = {};
+        let activeChannelView = 'both';
+        let activeRmsWindowMs = 50;
+
+        // ====================================================================
+        // DOM ELEMENTS
+        // ====================================================================
+        const csvFileInput = document.getElementById('csvFileInput');
+        const dropZone = document.getElementById('dropZone');
+        const btnLoadDemo = document.getElementById('btnLoadDemo');
+        const btnExportPNG = document.getElementById('btnExportPNG');
+
+        // ====================================================================
+        // TAB SWITCHING
+        // ====================================================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const targetTab = btn.getAttribute('data-tab');
+                document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+                const pane = document.getElementById(targetTab);
+                if (pane) {
+                    pane.style.display = 'block';
+                    // Re-render chart if needed
+                    setTimeout(() => {
+                        Object.values(chartInstances).forEach(c => c.resize());
+                    }, 50);
+                }
+            });
+        });
+
+        // Channel filter buttons
+        document.querySelectorAll('.filter-btn[data-channel]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn[data-channel]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeChannelView = btn.getAttribute('data-channel');
+                updateRawChartVisibility();
+            });
+        });
+
+        // Window size filter buttons
+        document.querySelectorAll('.filter-btn[data-window]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn[data-window]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeRmsWindowMs = parseInt(btn.getAttribute('data-window'), 10);
+                if (currentDataset) {
+                    computeEnvelopeAndRms(currentDataset);
+                    renderEnvelopeChart(currentDataset);
+                }
+            });
+        });
+
+        // ====================================================================
+        // DRAG & DROP & FILE HANDLING
+        // ====================================================================
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        csvFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        btnLoadDemo.addEventListener('click', () => {
+            loadSyntheticDataset();
+        });
+
+        btnExportPNG.addEventListener('click', () => {
+            const canvas = document.getElementById('rawChart');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `sEMG_Waveforms_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        });
+
+        function handleFile(file) {
+            document.getElementById('fileStatusTitle').innerText = `Đang tải: ${file.name}`;
+            document.getElementById('fileNameChip').innerText = file.name;
+            document.getElementById('fileMetaBadge').style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                parseCSVText(text, file.name);
+            };
+            reader.readAsText(file);
+        }
+
+        // ====================================================================
+        // CSV PARSER
+        // ====================================================================
+        function parseCSVText(csvText, sourceName = 'Tập tin') {
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length < 2) {
+                alert("File CSV không có dữ liệu!");
+                return;
+            }
+
+            // Find header line
+            let headerIdx = 0;
+            for (let i = 0; i < Math.min(lines.length, 10); i++) {
+                if (lines[i].includes('timestamp_ms') || lines[i].includes('raw_ch1') || lines[i].includes('emg_ch1')) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+
+            const headers = lines[headerIdx].split(',').map(h => h.trim().toLowerCase());
+            const idxTime = headers.findIndex(h => h.includes('timestamp') || h.includes('time'));
+            const idxRawCh1 = headers.findIndex(h => h === 'raw_ch1');
+            const idxRawCh2 = headers.findIndex(h => h === 'raw_ch2');
+            const idxMvCh1 = headers.findIndex(h => h.includes('emg_ch1') || h === 'ch1_mv');
+            const idxMvCh2 = headers.findIndex(h => h.includes('emg_ch2') || h === 'ch2_mv');
+            const idxButton = headers.findIndex(h => h.includes('button') || h === 'btn');
+
+            const time_s = [];
+            const emg_ch1 = [];
+            const emg_ch2 = [];
+            const button = [];
+
+            let t0 = null;
+
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                const row = lines[i].split(',').map(v => v.trim());
+                if (row.length < 3) continue;
+
+                let raw_t = idxTime >= 0 ? parseFloat(row[idxTime]) : (i - headerIdx - 1) * 2.0;
+                if (isNaN(raw_t)) continue;
+
+                if (t0 === null) t0 = raw_t;
+                let rel_time_s = (raw_t - t0) / 1000.0;
+
+                // mV Ch1
+                let ch1_val = 0;
+                if (idxMvCh1 >= 0) {
+                    ch1_val = parseFloat(row[idxMvCh1]);
+                } else if (idxRawCh1 >= 0) {
+                    ch1_val = (parseFloat(row[idxRawCh1]) * 2420.0) / (8388607.0 * 6.0);
+                }
+
+                // mV Ch2
+                let ch2_val = 0;
+                if (idxMvCh2 >= 0) {
+                    ch2_val = parseFloat(row[idxMvCh2]);
+                } else if (idxRawCh2 >= 0) {
+                    ch2_val = (parseFloat(row[idxRawCh2]) * 2420.0) / (8388607.0 * 6.0);
+                }
+
+                let btn_val = idxButton >= 0 ? parseInt(row[idxButton], 10) : 0;
+                if (isNaN(btn_val)) btn_val = 0;
+
+                time_s.push(rel_time_s);
+                emg_ch1.push(isNaN(ch1_val) ? 0 : ch1_val);
+                emg_ch2.push(isNaN(ch2_val) ? 0 : ch2_val);
+                button.push(btn_val);
+            }
+
+            if (time_s.length === 0) {
+                alert("Không thể giải mã dữ liệu cột sEMG hợp lệ từ CSV!");
+                return;
+            }
+
+            processAndRender({
+                name: sourceName,
+                time_s,
+                emg_ch1,
+                emg_ch2,
+                button
+            });
+        }
+
+        // ====================================================================
+        // SYNTHETIC DEMO DATA GENERATOR
+        // ====================================================================
+        function loadSyntheticDataset() {
+            const fs = 500.0;
+            const duration_s = 8.0;
+            const N = Math.floor(fs * duration_s);
+
+            const time_s = [];
+            const emg_ch1 = [];
+            const emg_ch2 = [];
+            const button = [];
+
+            // Define 2 muscle burst events: [2.0s to 3.5s] and [5.0s to 6.8s]
+            for (let i = 0; i < N; i++) {
+                const t = i / fs;
+                time_s.push(t);
+
+                const inBurst1 = (t >= 1.8 && t <= 3.3);
+                const inBurst2 = (t >= 4.8 && t <= 6.5);
+                const isPressed = (inBurst1 || inBurst2) ? 1 : 0;
+                button.push(isPressed);
+
+                // Baseline noise
+                let noise1 = (Math.random() - 0.5) * 0.08;
+                let noise2 = (Math.random() - 0.5) * 0.08;
+
+                // Muscle contraction bursts (mixture of frequencies 60Hz, 110Hz, 180Hz)
+                if (isPressed) {
+                    const env = Math.sin((t - (inBurst1 ? 1.8 : 4.8)) / (inBurst1 ? 1.5 : 1.7) * Math.PI);
+                    const signal1 = env * (
+                        0.9 * Math.sin(2 * Math.PI * 75 * t) +
+                        1.2 * Math.sin(2 * Math.PI * 130 * t) +
+                        0.6 * Math.sin(2 * Math.PI * 220 * t) +
+                        (Math.random() - 0.5) * 0.8
+                    );
+                    const signal2 = env * (
+                        0.7 * Math.sin(2 * Math.PI * 80 * t) +
+                        1.0 * Math.sin(2 * Math.PI * 145 * t) +
+                        0.5 * Math.sin(2 * Math.PI * 190 * t) +
+                        (Math.random() - 0.5) * 0.7
+                    );
+                    emg_ch1.push(noise1 + signal1);
+                    emg_ch2.push(noise2 + signal2);
+                } else {
+                    emg_ch1.push(noise1);
+                    emg_ch2.push(noise2);
+                }
+            }
+
+            document.getElementById('fileStatusTitle').innerText = "Đã tải: Dữ liệu mô phỏng sEMG chuẩn (Demo Dataset)";
+            document.getElementById('fileNameChip').innerText = "synthetic_sEMG_500Hz.csv";
+            document.getElementById('fileMetaBadge').style.display = 'block';
+
+            processAndRender({
+                name: "Synthetic Demo (500 SPS)",
+                time_s,
+                emg_ch1,
+                emg_ch2,
+                button
+            });
+        }
+
+        // ====================================================================
+        // SIGNAL PROCESSING (RMS, ENVELOPE, FFT, EVENTS)
+        // ====================================================================
+        function computeEnvelopeAndRms(ds) {
+            const fs = ds.fs || 500.0;
+            const windowSamples = Math.max(1, Math.round((activeRmsWindowMs / 1000.0) * fs));
+
+            const rms_ch1 = [];
+            const rms_ch2 = [];
+
+            const N = ds.emg_ch1.length;
+            for (let i = 0; i < N; i++) {
+                let start = Math.max(0, i - Math.floor(windowSamples / 2));
+                let end = Math.min(N, i + Math.ceil(windowSamples / 2));
+                let count = end - start;
+
+                let sumSq1 = 0;
+                let sumSq2 = 0;
+                for (let j = start; j < end; j++) {
+                    sumSq1 += ds.emg_ch1[j] * ds.emg_ch1[j];
+                    sumSq2 += ds.emg_ch2[j] * ds.emg_ch2[j];
+                }
+
+                rms_ch1.push(Math.sqrt(sumSq1 / count));
+                rms_ch2.push(Math.sqrt(sumSq2 / count));
+            }
+
+            ds.rms_ch1 = rms_ch1;
+            ds.rms_ch2 = rms_ch2;
+        }
+
+        function computeFFT(signal, fs) {
+            // Pick power of 2 length for FFT
+            let n = 256;
+            while (n * 2 <= signal.length && n < 2048) {
+                n *= 2;
+            }
+
+            const x = signal.slice(0, n);
+            // Windowing (Hanning)
+            const windowed = [];
+            for (let i = 0; i < n; i++) {
+                const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+                windowed.push(x[i] * w);
+            }
+
+            // DFT
+            const freqs = [];
+            const power = [];
+            const halfN = Math.floor(n / 2);
+
+            let totalPower = 0;
+            let weightedFreqSum = 0;
+
+            for (let k = 0; k < halfN; k++) {
+                let real = 0;
+                let imag = 0;
+                const freq = (k * fs) / n;
+
+                for (let i = 0; i < n; i++) {
+                    const angle = (2 * Math.PI * k * i) / n;
+                    real += windowed[i] * Math.cos(angle);
+                    imag -= windowed[i] * Math.sin(angle);
+                }
+
+                const mag = Math.sqrt(real * real + imag * imag) / n;
+                const p = mag * mag;
+
+                freqs.push(freq);
+                power.push(p);
+
+                // Only consider sEMG band 15Hz - 400Hz for MDF/MNF
+                if (freq >= 15 && freq <= 400) {
+                    totalPower += p;
+                    weightedFreqSum += freq * p;
+                }
+            }
+
+            // Mean Frequency (MNF)
+            const mnf = totalPower > 0 ? (weightedFreqSum / totalPower) : 0;
+
+            // Median Frequency (MDF)
+            let cumPower = 0;
+            let mdf = 0;
+            const halfPower = totalPower / 2.0;
+
+            for (let k = 0; k < freqs.length; k++) {
+                if (freqs[k] >= 15 && freqs[k] <= 400) {
+                    cumPower += power[k];
+                    if (cumPower >= halfPower) {
+                        mdf = freqs[k];
+                        break;
+                    }
+                }
+            }
+
+            return { freqs, power, mnf, mdf };
+        }
+
+        // ====================================================================
+        // RENDER EVERYTHING
+        // ====================================================================
+        function processAndRender(ds) {
+            currentDataset = ds;
+
+            // Compute Sampling Rate
+            let dt = 0.002;
+            if (ds.time_s.length > 1) {
+                dt = (ds.time_s[ds.time_s.length - 1] - ds.time_s[0]) / (ds.time_s.length - 1);
+            }
+            const fs = dt > 0 ? Math.round(1.0 / dt) : 500;
+            ds.fs = fs;
+
+            // Compute RMS & Envelope
+            computeEnvelopeAndRms(ds);
+
+            // Compute Min, Max, Vpp
+            const min1 = Math.min(...ds.emg_ch1);
+            const max1 = Math.max(...ds.emg_ch1);
+            const vpp1 = max1 - min1;
+
+            const min2 = Math.min(...ds.emg_ch2);
+            const max2 = Math.max(...ds.emg_ch2);
+            const vpp2 = max2 - min2;
+
+            const maxRms1 = Math.max(...ds.rms_ch1);
+            const maxRms2 = Math.max(...ds.rms_ch2);
+
+            // Compute Button Events
+            const events = [];
+            let inEvent = false;
+            let startIdx = 0;
+
+            for (let i = 0; i < ds.button.length; i++) {
+                if (ds.button[i] === 1 && !inEvent) {
+                    inEvent = true;
+                    startIdx = i;
+                } else if (ds.button[i] === 0 && inEvent) {
+                    inEvent = false;
+                    events.push({
+                        startIdx,
+                        endIdx: i,
+                        t_start: ds.time_s[startIdx],
+                        t_end: ds.time_s[i - 1],
+                        dur: ds.time_s[i - 1] - ds.time_s[startIdx]
+                    });
+                }
+            }
+            if (inEvent) {
+                events.push({
+                    startIdx,
+                    endIdx: ds.button.length - 1,
+                    t_start: ds.time_s[startIdx],
+                    t_end: ds.time_s[ds.button.length - 1],
+                    dur: ds.time_s[ds.button.length - 1] - ds.time_s[startIdx]
+                });
+            }
+
+            let totalContractionTime = events.reduce((acc, ev) => acc + ev.dur, 0);
+            let btnPct = ds.time_s.length > 0 ? (events.length > 0 ? (totalContractionTime / ds.time_s[ds.time_s.length - 1] * 100) : 0) : 0;
+
+            // Compute FFT
+            const fft1 = computeFFT(ds.emg_ch1, fs);
+            const fft2 = computeFFT(ds.emg_ch2, fs);
+
+            // Update KPI cards
+            document.getElementById('valDuration').innerHTML = `${ds.time_s[ds.time_s.length - 1].toFixed(2)}<span class="metric-unit">giây</span>`;
+            document.getElementById('valTotalSamples').innerText = `${ds.time_s.length.toLocaleString()} mẫu`;
+            document.getElementById('valFs').innerText = `${fs} Hz`;
+            document.getElementById('chipSampleRate').innerText = `${fs} SPS`;
+
+            document.getElementById('valCh1Vpp').innerHTML = `${vpp1.toFixed(2)}<span class="metric-unit">mV</span>`;
+            document.getElementById('valCh1MaxRms').innerText = `${maxRms1.toFixed(3)} mV`;
+
+            document.getElementById('valCh2Vpp').innerHTML = `${vpp2.toFixed(2)}<span class="metric-unit">mV</span>`;
+            document.getElementById('valCh2MaxRms').innerText = `${maxRms2.toFixed(3)} mV`;
+
+            document.getElementById('valButtonEvents').innerHTML = `${events.length}<span class="metric-unit">lần</span>`;
+            document.getElementById('valContractionDuration').innerText = `${totalContractionTime.toFixed(2)} s`;
+            document.getElementById('valButtonPct').innerText = `${btnPct.toFixed(1)}%`;
+
+            document.getElementById('valMDF').innerHTML = `${fft1.mdf.toFixed(1)}<span class="metric-unit">Hz</span>`;
+            document.getElementById('valMNF').innerText = `${fft1.mnf.toFixed(1)} Hz`;
+
+            // Populate Events Table
+            const tbody = document.getElementById('eventsTableBody');
+            if (events.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Không ghi nhận sự kiện bấm nút nào</td></tr>`;
+            } else {
+                tbody.innerHTML = events.map((ev, idx) => {
+                    const slice1 = ds.emg_ch1.slice(ev.startIdx, ev.endIdx);
+                    const slice2 = ds.emg_ch2.slice(ev.startIdx, ev.endIdx);
+                    const peak1 = slice1.length ? Math.max(...slice1.map(Math.abs)) : 0;
+                    const peak2 = slice2.length ? Math.max(...slice2.map(Math.abs)) : 0;
+                    const rmsSlice = ds.rms_ch1.slice(ev.startIdx, ev.endIdx);
+                    const meanRms = rmsSlice.length ? (rmsSlice.reduce((a, b) => a + b, 0) / rmsSlice.length) : 0;
+
+                    return `
+                        <tr>
+                            <td><b>#${idx + 1}</b></td>
+                            <td>${ev.t_start.toFixed(3)} s</td>
+                            <td>${ev.t_end.toFixed(3)} s</td>
+                            <td><span style="color: var(--primary);">${ev.dur.toFixed(3)} s</span></td>
+                            <td>${peak1.toFixed(3)} mV</td>
+                            <td>${peak2.toFixed(3)} mV</td>
+                            <td>${meanRms.toFixed(3)} mV</td>
+                            <td><span class="badge-event">Co Cơ Active</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Render Charts
+            renderRawChart(ds, events);
+            renderEnvelopeChart(ds);
+            renderFFTCharts(fft1, fft2);
+        }
+
+        // ====================================================================
+        // CHART RENDERING (CHART.JS)
+        // ====================================================================
+        function renderRawChart(ds, events) {
+            const ctx = document.getElementById('rawChart').getContext('2d');
+            if (chartInstances.raw) chartInstances.raw.destroy();
+
+            // Downsample for ultra-smooth 60fps rendering if dataset > 4000 points
+            const step = Math.max(1, Math.floor(ds.time_s.length / 2500));
+            const labels = [];
+            const data1 = [];
+            const data2 = [];
+            const btnData = [];
+
+            for (let i = 0; i < ds.time_s.length; i += step) {
+                labels.push(ds.time_s[i].toFixed(3));
+                data1.push(ds.emg_ch1[i]);
+                data2.push(ds.emg_ch2[i]);
+                btnData.push(ds.button[i] === 1 ? 1.5 : null);
+            }
+
+            chartInstances.raw = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'CH1 sEMG (mV)',
+                            data: data1,
+                            borderColor: '#00e599',
+                            borderWidth: 1.4,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'CH2 sEMG (mV)',
+                            data: data2,
+                            borderColor: '#00f2fe',
+                            borderWidth: 1.4,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', font: { family: 'Inter' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(18, 24, 38, 0.95)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#64748b', maxTicksLimit: 12 },
+                            title: { display: true, text: 'Thời gian (giây)', color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                            ticks: { color: '#64748b' },
+                            title: { display: true, text: 'Điện áp (mV)', color: '#64748b' }
+                        }
+                    }
+                }
+            });
+
+            updateRawChartVisibility();
+        }
+
+        function updateRawChartVisibility() {
+            if (!chartInstances.raw) return;
+            if (activeChannelView === 'ch1') {
+                chartInstances.raw.setDatasetVisibility(0, true);
+                chartInstances.raw.setDatasetVisibility(1, false);
+            } else if (activeChannelView === 'ch2') {
+                chartInstances.raw.setDatasetVisibility(0, false);
+                chartInstances.raw.setDatasetVisibility(1, true);
+            } else {
+                chartInstances.raw.setDatasetVisibility(0, true);
+                chartInstances.raw.setDatasetVisibility(1, true);
+            }
+            chartInstances.raw.update();
+        }
+
+        function renderEnvelopeChart(ds) {
+            const ctx = document.getElementById('envelopeChart').getContext('2d');
+            if (chartInstances.envelope) chartInstances.envelope.destroy();
+
+            const step = Math.max(1, Math.floor(ds.time_s.length / 2500));
+            const labels = [];
+            const rms1 = [];
+            const rms2 = [];
+
+            for (let i = 0; i < ds.time_s.length; i += step) {
+                labels.push(ds.time_s[i].toFixed(3));
+                rms1.push(ds.rms_ch1[i]);
+                rms2.push(ds.rms_ch2[i]);
+            }
+
+            chartInstances.envelope = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'CH1 RMS Envelope (mV)',
+                            data: rms1,
+                            borderColor: '#00e599',
+                            backgroundColor: 'rgba(0, 229, 153, 0.1)',
+                            fill: true,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'CH2 RMS Envelope (mV)',
+                            data: rms2,
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            fill: true,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#64748b', maxTicksLimit: 12 },
+                            title: { display: true, text: 'Thời gian (giây)', color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                            ticks: { color: '#64748b' },
+                            title: { display: true, text: 'RMS (mV)', color: '#64748b' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderFFTCharts(fft1, fft2) {
+            // Channel 1 FFT
+            const ctx1 = document.getElementById('fftChart1').getContext('2d');
+            if (chartInstances.fft1) chartInstances.fft1.destroy();
+
+            chartInstances.fft1 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: fft1.freqs.map(f => f.toFixed(1)),
+                    datasets: [{
+                        label: 'PSD (Power)',
+                        data: fft1.power,
+                        borderColor: '#00e599',
+                        backgroundColor: 'rgba(0, 229, 153, 0.15)',
+                        fill: true,
+                        borderWidth: 1.8,
+                        pointRadius: 0,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#64748b', maxTicksLimit: 10 },
+                            title: { display: true, text: 'Tần số (Hz)', color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                            ticks: { color: '#64748b' },
+                            title: { display: true, text: 'Mật độ năng lượng', color: '#64748b' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Channel 2 FFT
+            const ctx2 = document.getElementById('fftChart2').getContext('2d');
+            if (chartInstances.fft2) chartInstances.fft2.destroy();
+
+            chartInstances.fft2 = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: fft2.freqs.map(f => f.toFixed(1)),
+                    datasets: [{
+                        label: 'PSD (Power)',
+                        data: fft2.power,
+                        borderColor: '#00f2fe',
+                        backgroundColor: 'rgba(0, 242, 254, 0.15)',
+                        fill: true,
+                        borderWidth: 1.8,
+                        pointRadius: 0,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#64748b', maxTicksLimit: 10 },
+                            title: { display: true, text: 'Tần số (Hz)', color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                            ticks: { color: '#64748b' },
+                            title: { display: true, text: 'Mật độ năng lượng', color: '#64748b' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // ====================================================================
+        // INITIAL LOAD: Synthetic Data
+        // ====================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSyntheticDataset();
+        });
+    </script>
+</body>
+</html>

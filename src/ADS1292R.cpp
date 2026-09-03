@@ -9,7 +9,7 @@ ADS1292R::ADS1292R()
       _ch2Gain(ADS_GAIN_6X),
       _ch1Scale_mV(0.0f),
       _ch2Scale_mV(0.0f) {
-    _pins = {-1, -1, -1, -1, -1, -1, -1};
+    _pins = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     updateScales();
 }
 
@@ -54,22 +54,39 @@ bool ADS1292R::begin(const ADS1292R_Pins& pins, uint32_t spiSpeed) {
     }
     if (_pins.start >= 0) {
         pinMode(_pins.start, OUTPUT);
-        digitalWrite(_pins.start, LOW);
+        digitalWrite(_pins.start, HIGH); // HIGH = cho phép chuyển đổi, DRDY sẽ phát xung khi chip sẵn sàng
     }
     if (_pins.reset >= 0) {
         pinMode(_pins.reset, OUTPUT);
         digitalWrite(_pins.reset, HIGH);
     }
+    if (_pins.clk >= 0) {
+        // Cấp xung nhịp Master Clock 512kHz cho ADS1292R bằng bộ timer LEDC của ESP32-S3
+        double actualFreq = ledcSetup(0, 512000, 4); // channel 0, 512kHz, 4-bit resolution
+        ledcAttachPin(_pins.clk, 0);
+        ledcWrite(0, 8); // 50% duty cycle (4-bit: 0-15, 8 = 50%)
+        Serial.printf("[ADS1292R] LEDC Clock Output tren GPIO %d: %.1f Hz\n", _pins.clk, actualFreq);
+        delay(50); // Chờ clock ổn định trước khi reset chip
+    }
+    if (_pins.gpio1 >= 0) {
+        pinMode(_pins.gpio1, INPUT_PULLDOWN);
+    }
+    if (_pins.gpio2 >= 0) {
+        pinMode(_pins.gpio2, INPUT_PULLDOWN);
+    }
 
     // 2. Khởi tạo SPI bus trên ESP32-S3 với các chân được chọn
     _spi->begin(_pins.sck, _pins.miso, _pins.mosi, -1);
 
-    // 3. Chu trình Reset phần cứng
+    // 3. Chu trình Reset phần cứng (phải có clock trước khi reset)
     hardwareReset();
 
     // 4. Dừng chế độ đọc liên tục (RDATAC) để có thể ghi/đọc thanh ghi
+    delay(10);
     sendCommand(ADS1292R_CMD_SDATAC);
-    delayMicroseconds(100);
+    delay(10);
+    sendCommand(ADS1292R_CMD_SDATAC);
+    delay(20);
     _isContinuousMode = false;
 
     // 5. Đọc Device ID để kiểm tra kết nối phần cứng
@@ -123,29 +140,44 @@ bool ADS1292R::begin(const ADS1292R_Pins& pins, uint32_t spiSpeed) {
 
 void ADS1292R::hardwareReset() {
     if (_pins.reset >= 0) {
+        // === Power-Up Sequence theo Datasheet TI ADS1292R (Section 10.1) ===
+        // Bước 1: Giữ PWDN/RESET = HIGH liên tục ≥ 1 giây sau khi cấp nguồn + clock
+        //         để nội bộ ADS ổn định oscillator và các tham chiếu analog.
         digitalWrite(_pins.reset, HIGH);
-        delay(20);
+        delay(1000);
+
+        // Bước 2: Kéo RESET xuống LOW ≥ 2 tCLK (≈ 4 µs @512 kHz). Dùng 1 ms cho chắc.
         digitalWrite(_pins.reset, LOW);
-        delay(2); // Giữ mức thấp ít nhất 2*tCLK (~4us)
+        delay(1);
+
+        // Bước 3: Thả RESET lên HIGH. Chip cần 2^18 tCLK để hoàn tất reset nội bộ.
+        //         Với fCLK = 512 kHz: 2^18 / 512000 ≈ 0.51 giây → dùng 600 ms.
         digitalWrite(_pins.reset, HIGH);
-        delay(100); // Chờ 18*tCLK (~35us) sau reset
+        delay(600);
     } else {
+        // Reset bằng lệnh SPI (0x06). Vẫn cần chờ 2^18 tCLK sau lệnh.
         sendCommand(ADS1292R_CMD_RESET);
-        delay(100);
+        delay(600);
     }
 }
 
 void ADS1292R::sendCommand(uint8_t cmd) {
     _spi->beginTransaction(_spiSettings);
-    if (_pins.cs >= 0) digitalWrite(_pins.cs, LOW);
+    if (_pins.cs >= 0) {
+        digitalWrite(_pins.cs, LOW);
+        delayMicroseconds(5);
+    }
 
     _spi->transfer(cmd);
-    delayMicroseconds(10); // Đảm bảo timing tSDECODE
+    delayMicroseconds(15); // Đảm bảo timing tSDECODE >= 4*tCLK
 
-    if (_pins.cs >= 0) digitalWrite(_pins.cs, HIGH);
+    if (_pins.cs >= 0) {
+        digitalWrite(_pins.cs, HIGH);
+        delayMicroseconds(5);
+    }
     _spi->endTransaction();
 
-    delayMicroseconds(10);
+    delayMicroseconds(25);
 }
 
 uint8_t ADS1292R::readRegister(uint8_t reg) {
@@ -163,28 +195,35 @@ void ADS1292R::readRegisters(uint8_t startReg, uint8_t count, uint8_t* buffer) {
     if (wasContinuous) {
         sendCommand(ADS1292R_CMD_SDATAC);
         _isContinuousMode = false;
-        delayMicroseconds(20);
+        delayMicroseconds(25);
     }
 
     _spi->beginTransaction(_spiSettings);
-    if (_pins.cs >= 0) digitalWrite(_pins.cs, LOW);
+    if (_pins.cs >= 0) {
+        digitalWrite(_pins.cs, LOW);
+        delayMicroseconds(5);
+    }
 
     _spi->transfer(ADS1292R_CMD_RREG | (startReg & 0x1F));
+    delayMicroseconds(15);
     _spi->transfer((count - 1) & 0x1F);
 
-    delayMicroseconds(10);
+    delayMicroseconds(15); // Timing tSDECODE >= 4 tCLK (8us)
 
     for (uint8_t i = 0; i < count; i++) {
         buffer[i] = _spi->transfer(0x00);
     }
 
+    delayMicroseconds(5);
     if (_pins.cs >= 0) digitalWrite(_pins.cs, HIGH);
     _spi->endTransaction();
+
+    delayMicroseconds(20);
 
     if (wasContinuous) {
         sendCommand(ADS1292R_CMD_RDATAC);
         _isContinuousMode = true;
-        delayMicroseconds(20);
+        delayMicroseconds(25);
     }
 }
 
@@ -193,28 +232,35 @@ void ADS1292R::writeRegisters(uint8_t startReg, uint8_t count, const uint8_t* da
     if (wasContinuous) {
         sendCommand(ADS1292R_CMD_SDATAC);
         _isContinuousMode = false;
-        delayMicroseconds(20);
+        delayMicroseconds(25);
     }
 
     _spi->beginTransaction(_spiSettings);
-    if (_pins.cs >= 0) digitalWrite(_pins.cs, LOW);
+    if (_pins.cs >= 0) {
+        digitalWrite(_pins.cs, LOW);
+        delayMicroseconds(5);
+    }
 
     _spi->transfer(ADS1292R_CMD_WREG | (startReg & 0x1F));
+    delayMicroseconds(15);
     _spi->transfer((count - 1) & 0x1F);
+
+    delayMicroseconds(15);
 
     for (uint8_t i = 0; i < count; i++) {
         _spi->transfer(data[i]);
     }
 
-    delayMicroseconds(10);
-
+    delayMicroseconds(5);
     if (_pins.cs >= 0) digitalWrite(_pins.cs, HIGH);
     _spi->endTransaction();
+
+    delayMicroseconds(20);
 
     if (wasContinuous) {
         sendCommand(ADS1292R_CMD_RDATAC);
         _isContinuousMode = true;
-        delayMicroseconds(20);
+        delayMicroseconds(25);
     }
 }
 

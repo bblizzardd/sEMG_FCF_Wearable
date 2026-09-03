@@ -76,7 +76,10 @@ struct ADS1292R_Pins {
     int8_t cs;      // Chip Select (Active LOW)
     int8_t drdy;    // Data Ready (Active LOW ngắt ngõ vào)
     int8_t start;   // START pin (-1 nếu nối thẳng 3.3V)
-    int8_t reset;   // RESET pin (-1 nếu nối qua tụ/trở pull-up)
+    int8_t reset;   // RESET / PWDN pin (-1 nếu nối qua tụ/trở pull-up)
+    int8_t clk;     // CLK pin (-1 nếu không dùng)
+    int8_t gpio1;   // GPIO1 trên module ADS (-1 nếu không dùng)
+    int8_t gpio2;   // GPIO2 trên module ADS (-1 nếu không dùng)
 };
 
 // ============================================================================

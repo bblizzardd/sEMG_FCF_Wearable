@@ -6,17 +6,22 @@
 #include <SPI.h>
 
 // ============================================================================
-// CẤU HÌNH PHẦN CỨNG CHÂN GPIO (ESP32-S3)
+// CẤU HÌNH PHẦN CỨNG CHÂN GPIO (ESP32-S3 kết nối ADS1292R)
 // ============================================================================
-#define ADS_PIN_SCK 12  // SPI Clock
-#define ADS_PIN_MOSI 11 // SPI MOSI (DIN trên module ADS1292R)
-#define ADS_PIN_MISO 13 // SPI MISO (DOUT trên module ADS1292R)
-#define ADS_PIN_CS 10   // Chip Select (Active LOW)
-#define ADS_PIN_DRDY 4  // Data Ready (Ngắt phần cứng ngõ vào)
-#define ADS_PIN_START 6 // START pin (hoặc nối thẳng 3.3V)
-#define ADS_PIN_RESET 7 // RESET pin (hoặc nối qua tụ/trở pull-up)
+#define ADS_PIN_CLK -1   // Không dùng external clock (module mặc định CLKSEL=HIGH, dùng internal oscillator)
+#define ADS_PIN_GPIO2 8  // GPIO2 phụ của ADS1292R, kéo thấp nếu không dùng
+#define ADS_PIN_GPIO1 18 // GPIO1 phụ của ADS1292R, kéo thấp nếu không dùng
+#define ADS_PIN_SCK 17   // SCK / SCLK (SPI Clock)
+#define ADS_PIN_MISO 16  // MISO / DOUT (SPI Master In Slave Out)
+#define ADS_PIN_MOSI 15  // MOSI / DIN (SPI Master Out Slave In)
+#define ADS_PIN_CS 7     // CS / SS (Chip Select, Active LOW)
+#define ADS_PIN_DRDY 6   // DRDY (Data Ready, ngắt phần cứng ngõ vào)
+#define ADS_PIN_START 5  // START pin (kích hoạt chuyển đổi)
+#define ADS_PIN_RESET 4  // PWDN / RESET pin (Active LOW)
 
-#define BUTTON_PIN 5 // Nút bấm đánh dấu sự kiện
+#define BUTTON_PIN                                                             \
+  -1 // Đặt -1 nếu không dùng nút ngoài (tránh dùng GPIO 0 vì là chân BOOT
+     // strapping)
 
 // ============================================================================
 // CẤU HÌNH TÙY CHỌN HOẠT ĐỘNG
@@ -31,6 +36,25 @@ ADS1292R ads;
 // FreeRTOS Task và Đồng bộ ngắt
 static TaskHandle_t adsTaskHandle = NULL;
 volatile unsigned long isrCount = 0;
+
+static const char *logicLevelName(int pin) {
+  if (pin < 0) {
+    return "NC";
+  }
+  return digitalRead(pin) == HIGH ? "HIGH" : "LOW";
+}
+
+static void printAdsPinLevels() {
+  Serial.println("  -> Muc logic hien tai tren ESP32:");
+  Serial.printf("     CLK=%s, CS=%s, DRDY=%s, START=%s, RESET=%s\n",
+                logicLevelName(ADS_PIN_CLK), logicLevelName(ADS_PIN_CS),
+                logicLevelName(ADS_PIN_DRDY), logicLevelName(ADS_PIN_START),
+                logicLevelName(ADS_PIN_RESET));
+  Serial.printf("     SCK=%s, MISO=%s, MOSI=%s, GPIO1=%s, GPIO2=%s\n",
+                logicLevelName(ADS_PIN_SCK), logicLevelName(ADS_PIN_MISO),
+                logicLevelName(ADS_PIN_MOSI), logicLevelName(ADS_PIN_GPIO1),
+                logicLevelName(ADS_PIN_GPIO2));
+}
 
 // Ngắt phần cứng chân DRDY (khi chân DRDY kéo xuống mức LOW = có mẫu mới)
 void IRAM_ATTR drdyISR() {
@@ -48,8 +72,8 @@ void adsAcquisitionTask(void *pvParameters) {
     // Chờ thông báo từ ngắt DRDY (không tốn CPU khi đang chờ)
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)) == pdPASS) {
       if (ads.readSample(sample)) {
-        int buttonState = digitalRead(BUTTON_PIN);
-        int isButtonPressed = (buttonState == LOW) ? 1 : 0;
+        int isButtonPressed =
+            (BUTTON_PIN >= 0 && digitalRead(BUTTON_PIN) == LOW) ? 1 : 0;
 
         // Xuất dòng dữ liệu chuẩn CSV tốc độ cao (921600 baud)
         // Định dạng: timestamp_ms,raw_ch1,raw_ch2,emg_ch1_mv,emg_ch2_mv,button
@@ -57,6 +81,9 @@ void adsAcquisitionTask(void *pvParameters) {
                       sample.ch2_raw, sample.ch1_mv, sample.ch2_mv,
                       isButtonPressed);
       }
+    } else {
+      // Yield CPU để không chiếm dụng watchdog khi chưa có ngắt DRDY
+      vTaskDelay(pdMS_TO_TICKS(10));
     }
   }
 }
@@ -74,9 +101,12 @@ void setup() {
   Serial.println("\n==================================================");
   Serial.println("   ESP32-S3 + ADS1292R 24-bit sEMG Acquisition    ");
   Serial.println("==================================================");
+  Serial.flush();
 
-  // Cấu hình nút bấm
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  // Cấu hình nút bấm (nếu có sử dụng)
+  if (BUTTON_PIN >= 0) {
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+  }
 
   // Thiết lập sơ đồ chân cho ADS1292R
   ADS1292R_Pins pins;
@@ -87,14 +117,84 @@ void setup() {
   pins.drdy = ADS_PIN_DRDY;
   pins.start = ADS_PIN_START;
   pins.reset = ADS_PIN_RESET;
+  pins.clk = ADS_PIN_CLK;
+  pins.gpio1 = ADS_PIN_GPIO1;
+  pins.gpio2 = ADS_PIN_GPIO2;
 
-  // Khởi tạo ADS1292R với SPI tốc độ 2MHz
-  if (!ads.begin(pins, 2000000)) {
-    Serial.println("[!] LOI: Khoi tao ADS1292R that bai! Dung chuong trinh.");
-    while (1) {
-      delay(1000);
+  // Khởi tạo ADS1292R với SPI tốc độ thấp để debug chắc chắn trên dây cắm
+  // breadboard. Với clock ADS 512kHz, SCLK đọc/ghi thanh ghi không nên chạy sát
+  // giới hạn.
+  int attempt = 1;
+  while (!ads.begin(pins, 250000)) {
+    uint8_t id = ads.getDeviceID();
+    Serial.printf("\n[ADS1292R] Lan thu %d: Doc duoc ID = 0x%02X\n", attempt++,
+                  id);
+
+    // Đọc thử 4 thanh ghi đầu tiên để kiểm tra đường truyền SPI
+    uint8_t regs[4] = {0};
+    ads.readRegisters(0x00, 4, regs);
+    Serial.printf(
+        "  -> Gia tri 4 thanh ghi [0..3]: 0x%02X 0x%02X 0x%02X 0x%02X\n",
+        regs[0], regs[1], regs[2], regs[3]);
+
+    // Chẩn đoán dựa trên giá trị ID đọc được qua SPI (CS=LOW)
+    if (id == 0xFF) {
+      Serial.println("  -> ID=0xFF: ADS KHONG LAI MISO (MISO float HIGH do pull-up).");
+      Serial.println("     Kiem tra: day MISO (GPIO16->DOUT), day CS (GPIO7->CS).");
+    } else if (id == 0x00) {
+      Serial.println("  -> ID=0x00: ADS tra toan bit 0 qua SPI. Chip khong dap ung lenh.");
+      Serial.println("     Co the: chua co clock (CLKSEL?), reset chua xong, hoac mat nguon.");
+    } else {
+      Serial.printf("  -> ID doc duoc: 0x%02X (Ky vong ADS1292R: 0x73 hoac "
+                    "ADS1292: 0x53)\n",
+                    id);
     }
+    printAdsPinLevels();
+
+    // Kiểm tra xem chân DRDY (GPIO 6) có đang phát xung chuyển đổi hay không.
+    // Lưu ý: START=HIGH trong begin(), nên nếu chip đã boot xong → DRDY phải
+    // phát xung.
+    int drdyTransitions = 0;
+    int lastDrdyState = digitalRead(ADS_PIN_DRDY);
+    unsigned long tCheck = millis();
+    while (millis() - tCheck < 100) {
+      int s = digitalRead(ADS_PIN_DRDY);
+      if (s != lastDrdyState) {
+        drdyTransitions++;
+        lastDrdyState = s;
+      }
+    }
+
+    if (drdyTransitions > 5) {
+      Serial.printf("  [*] DRDY DANG PHAT XUNG! (%d canh/100ms)\n",
+                    drdyTransitions);
+      Serial.println(
+          "      => Chip DA HOAT DONG. Loi nam o duong SPI (MISO/MOSI/SCK/CS):");
+      Serial.println(
+          "         - Thu doi cheo MOSI (15) va MISO (16) cho nhau.");
+      Serial.println("         - Kiem tra day SCK (17) va CS (7).");
+    } else {
+      Serial.printf(
+          "  [!] DRDY KHONG CO XUNG (treo %s, 0 canh/100ms)\n",
+          lastDrdyState == HIGH ? "HIGH" : "LOW");
+      Serial.println(
+          "      => Chip chua boot hoac chua nhan clock. Kiem tra:");
+      Serial.println(
+          "         1. Nguon 3.3V (AVDD + DVDD) tren module ADS");
+      Serial.println(
+          "         2. Chan CLKSEL tren module phai = GND/LOW de dung clock ngoai");
+      Serial.println(
+          "         3. Noi PWDN/RESET truc tiep vao 3.3V de loai tru reset bi keo LOW");
+      Serial.println(
+          "         4. Day CLK tu GPIO 3 -> chan CLK tren ADS");
+    }
+
+    Serial.println("  -> Dang thu lai sau 3 giay...\n");
+    Serial.flush();
+    delay(3000);
   }
+
+  Serial.println("[ADS1292R] >> KET NOI PHAN CUNG THANH CONG! <<");
 
   // Thiết lập tốc độ lấy mẫu: 500 SPS (hoặc ADS_DR_1000SPS)
   ads.setSampleRate(ADS_DR_500SPS);
@@ -108,9 +208,9 @@ void setup() {
     Serial.println("[*] Che do: DO DIEN CUC sEMG THUC TE (NORMAL ELECTRODE)");
   }
 
-  // Tạo FreeRTOS Task thu thập dữ liệu sEMG trên Core 1 (độ ưu tiên cao)
-  xTaskCreatePinnedToCore(adsAcquisitionTask, "ADSTask", 4096, NULL,
-                          configMAX_PRIORITIES - 1, &adsTaskHandle, 1);
+  // Tạo FreeRTOS Task thu thập dữ liệu sEMG trên Core 1
+  xTaskCreatePinnedToCore(adsAcquisitionTask, "ADSTask", 4096, NULL, 2,
+                          &adsTaskHandle, 1);
 
   // Kích hoạt ngắt chân DRDY sườn xuống (FALLING)
   pinMode(ADS_PIN_DRDY, INPUT_PULLUP);
