@@ -1,167 +1,145 @@
-// ESP32-S3 MPU6050 Driver & Silent I2C Error Handling
+// ESP32-S3 ADS1292R High-Precision 24-bit sEMG Acquisition Firmware
+// Tương thích PlatformIO & ESP32-S3 DevKitC-1
 
+#include "ADS1292R.h"
 #include <Arduino.h>
-#include <Wire.h>
+#include <SPI.h>
 
-// --- CẤU HÌNH PHẦN CỨNG ---
-// Bạn có thể chọn GPIO 16 hoặc GPIO 17 cho chân SDA
-#define I2C_SDA_PIN 18
-#define I2C_SCL_PIN 17
-#define BUTTON_PIN 5
-#define MPU_ADDR 0x68
+// ============================================================================
+// CẤU HÌNH PHẦN CỨNG CHÂN GPIO (ESP32-S3)
+// ============================================================================
+#define ADS_PIN_SCK 12  // SPI Clock
+#define ADS_PIN_MOSI 11 // SPI MOSI (DIN trên module ADS1292R)
+#define ADS_PIN_MISO 13 // SPI MISO (DOUT trên module ADS1292R)
+#define ADS_PIN_CS 10   // Chip Select (Active LOW)
+#define ADS_PIN_DRDY 4  // Data Ready (Ngắt phần cứng ngõ vào)
+#define ADS_PIN_START 6 // START pin (hoặc nối thẳng 3.3V)
+#define ADS_PIN_RESET 7 // RESET pin (hoặc nối qua tụ/trở pull-up)
 
-// Thanh ghi MPU6050
-#define MPU6050_SMPLRT_DIV 0x19
-#define MPU6050_CONFIG 0x1A
-#define MPU6050_GYRO_CONFIG 0x1B
-#define MPU6050_ACCEL_CONFIG 0x1C
-#define MPU6050_ACCEL_XOUT_H 0x3B
-#define MPU6050_PWR_MGMT_1 0x6B
-#define MPU6050_PWR_MGMT_2 0x6C
-#define MPU6050_WHO_AM_I 0x75
-#define MPU6050_SIG_RESET 0x68
+#define BUTTON_PIN 5 // Nút bấm đánh dấu sự kiện
 
-const unsigned long SAMPLE_INTERVAL_US = 10000; // 100Hz (10ms)
-unsigned long previousMicros = 0;
+// ============================================================================
+// CẤU HÌNH TÙY CHỌN HOẠT ĐỘNG
+// ============================================================================
+// Đặt là true nếu muốn khởi động ở chế độ phát xung vuông nội 1Hz để kiểm tra
+// phần cứng Đặt là false để đo tín hiệu điện cơ thực tế từ điện cực dán sEMG
+bool testSignalMode = false;
 
-uint8_t readReg(uint8_t reg) {
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(reg);
-  if (Wire.endTransmission(true) != 0)
-    return 0xFF;
-  if (Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)1, (uint8_t)true) != 1)
-    return 0xFF;
-  return Wire.read();
+// Đối tượng Driver ADS1292R
+ADS1292R ads;
+
+// FreeRTOS Task và Đồng bộ ngắt
+static TaskHandle_t adsTaskHandle = NULL;
+volatile unsigned long isrCount = 0;
+
+// Ngắt phần cứng chân DRDY (khi chân DRDY kéo xuống mức LOW = có mẫu mới)
+void IRAM_ATTR drdyISR() {
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  vTaskNotifyGiveFromISR(adsTaskHandle, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-uint8_t writeReg(uint8_t reg, uint8_t val) {
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(reg);
-  Wire.write(val);
-  return Wire.endTransmission(true); // 0 = ACK thành công
-}
+// Tác vụ FreeRTOS chạy độc lập trên Core 1 để đọc dữ liệu SPI với độ trễ tối
+// thiểu
+void adsAcquisitionTask(void *pvParameters) {
+  ADS1292R_Sample sample;
 
-// Khởi tạo và đánh thức MPU6050
-bool initMPU6050() {
-  // 1. Device Reset
-  writeReg(MPU6050_PWR_MGMT_1, 0x80);
-  delay(100);
+  while (true) {
+    // Chờ thông báo từ ngắt DRDY (không tốn CPU khi đang chờ)
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)) == pdPASS) {
+      if (ads.readSample(sample)) {
+        int buttonState = digitalRead(BUTTON_PIN);
+        int isButtonPressed = (buttonState == LOW) ? 1 : 0;
 
-  // 2. Reset Signal Path
-  writeReg(MPU6050_SIG_RESET, 0x07);
-  delay(50);
-
-  // 3. Đánh thức bằng Internal 8MHz (0x00)
-  writeReg(MPU6050_PWR_MGMT_1, 0x00);
-  delay(50);
-
-  uint8_t pwr1 = readReg(MPU6050_PWR_MGMT_1);
-  if (pwr1 & 0x40) {
-    // Thử chuyển sang PLL Gyro X
-    writeReg(MPU6050_PWR_MGMT_1, 0x01);
-    delay(50);
+        // Xuất dòng dữ liệu chuẩn CSV tốc độ cao (921600 baud)
+        // Định dạng: timestamp_ms,raw_ch1,raw_ch2,emg_ch1_mv,emg_ch2_mv,button
+        Serial.printf("%lu,%ld,%ld,%.4f,%.4f,%d\n", millis(), sample.ch1_raw,
+                      sample.ch2_raw, sample.ch1_mv, sample.ch2_mv,
+                      isButtonPressed);
+      }
+    }
   }
-
-  // 4. Bật tất cả các trục
-  writeReg(MPU6050_PWR_MGMT_2, 0x00);
-  delay(20);
-
-  // 5. Cấu hình bộ lọc & dải đo
-  writeReg(MPU6050_CONFIG, 0x03);       // DLPF 44Hz
-  writeReg(MPU6050_GYRO_CONFIG, 0x08);  // Gyro +/- 500 dps (65.5 LSB/dps)
-  writeReg(MPU6050_ACCEL_CONFIG, 0x08); // Accel +/- 4g (8192 LSB/g)
-  writeReg(MPU6050_SMPLRT_DIV, 0x00);   // 1kHz
-  delay(50);
-
-  return ((readReg(MPU6050_PWR_MGMT_1) & 0x40) == 0);
-}
-
-// Đọc 14 byte dữ liệu - trả về false nếu mất kết nối I2C hoặc chip chưa sẵn
-// sàng
-bool readSensorData(float &acc_x, float &acc_y, float &acc_z, float &gyro_x,
-                    float &gyro_y, float &gyro_z, float &temperature) {
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(MPU6050_ACCEL_XOUT_H);
-  if (Wire.endTransmission(true) != 0) {
-    return false; // Lỗi truyền I2C -> Dừng in
-  }
-
-  if (Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)14, (uint8_t)true) != 14) {
-    return false; // Không nhận đủ 14 byte -> Dừng in
-  }
-
-  int16_t raw_ax = (Wire.read() << 8) | Wire.read();
-  int16_t raw_ay = (Wire.read() << 8) | Wire.read();
-  int16_t raw_az = (Wire.read() << 8) | Wire.read();
-  int16_t raw_temp = (Wire.read() << 8) | Wire.read();
-  int16_t raw_gx = (Wire.read() << 8) | Wire.read();
-  int16_t raw_gy = (Wire.read() << 8) | Wire.read();
-  int16_t raw_gz = (Wire.read() << 8) | Wire.read();
-
-  // Kiểm tra nếu chip đang bị Sleep (tất cả giá trị thô bằng 0) -> Dừng in
-  if (raw_ax == 0 && raw_ay == 0 && raw_az == 0 && raw_gx == 0 && raw_gy == 0 &&
-      raw_gz == 0) {
-    return false;
-  }
-
-  // Quy đổi: Accel +/-4g (8192 LSB/g)
-  acc_x = (float)raw_ax / 8192.0f;
-  acc_y = (float)raw_ay / 8192.0f;
-  acc_z = (float)raw_az / 8192.0f;
-
-  // Gyro +/-500 dps (65.5 LSB/dps)
-  gyro_x = (float)raw_gx / 65.5f;
-  gyro_y = (float)raw_gy / 65.5f;
-  gyro_z = (float)raw_gz / 65.5f;
-
-  // Nhiệt độ °C
-  temperature = ((float)raw_temp / 340.0f) + 36.53f;
-
-  return true;
 }
 
 void setup() {
   Serial.begin(921600);
 
+  // Chờ cổng USB CDC trên ESP32-S3 ổn định
   unsigned long startWait = millis();
   while (!Serial && (millis() - startWait < 1500)) {
     delay(10);
   }
   delay(200);
 
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN, 100000);
+  Serial.println("\n==================================================");
+  Serial.println("   ESP32-S3 + ADS1292R 24-bit sEMG Acquisition    ");
+  Serial.println("==================================================");
+
+  // Cấu hình nút bấm
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  delay(100);
 
-  initMPU6050();
+  // Thiết lập sơ đồ chân cho ADS1292R
+  ADS1292R_Pins pins;
+  pins.sck = ADS_PIN_SCK;
+  pins.mosi = ADS_PIN_MOSI;
+  pins.miso = ADS_PIN_MISO;
+  pins.cs = ADS_PIN_CS;
+  pins.drdy = ADS_PIN_DRDY;
+  pins.start = ADS_PIN_START;
+  pins.reset = ADS_PIN_RESET;
 
-  Serial.print("timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button\n");
+  // Khởi tạo ADS1292R với SPI tốc độ 2MHz
+  if (!ads.begin(pins, 2000000)) {
+    Serial.println("[!] LOI: Khoi tao ADS1292R that bai! Dung chuong trinh.");
+    while (1) {
+      delay(1000);
+    }
+  }
+
+  // Thiết lập tốc độ lấy mẫu: 500 SPS (hoặc ADS_DR_1000SPS)
+  ads.setSampleRate(ADS_DR_500SPS);
+
+  // Thiết lập chế độ kiểm tra xung nếu được kích hoạt
+  if (testSignalMode) {
+    ads.setTestSignal(true);
+    Serial.println("[*] Che do: XUNG VUONG NOI BO 1Hz (TEST SIGNAL)");
+  } else {
+    ads.setTestSignal(false);
+    Serial.println("[*] Che do: DO DIEN CUC sEMG THUC TE (NORMAL ELECTRODE)");
+  }
+
+  // Tạo FreeRTOS Task thu thập dữ liệu sEMG trên Core 1 (độ ưu tiên cao)
+  xTaskCreatePinnedToCore(adsAcquisitionTask, "ADSTask", 4096, NULL,
+                          configMAX_PRIORITIES - 1, &adsTaskHandle, 1);
+
+  // Kích hoạt ngắt chân DRDY sườn xuống (FALLING)
+  pinMode(ADS_PIN_DRDY, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(ADS_PIN_DRDY), drdyISR, FALLING);
+
+  // Tiêu đề CSV tương thích với record_data.py và Serial Plotter
+  Serial.println("timestamp_ms,raw_ch1,raw_ch2,emg_ch1_mv,emg_ch2_mv,button");
   Serial.flush();
-
-  previousMicros = micros();
 }
 
 void loop() {
-  unsigned long currentMicros = micros();
-
-  // Chu kỳ lấy mẫu cố định 10.0 ms (100 Hz)
-  if (currentMicros - previousMicros >= SAMPLE_INTERVAL_US) {
-    previousMicros += SAMPLE_INTERVAL_US;
-
-    float acc_x = 0, acc_y = 0, acc_z = 0;
-    float gyro_x = 0, gyro_y = 0, gyro_z = 0;
-    float temp = 0;
-
-    // CHỈ IN RA SERIAL KHI ĐỌC I2C THÀNH CÔNG (NẾU MẤT I2C HOẶC KHÔNG NHẬN SẼ
-    // TỰ ĐỘNG DỪNG IN HOÀN TOÀN)
-    if (readSensorData(acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, temp)) {
-      int buttonState = digitalRead(BUTTON_PIN);
-      int isButtonPressed = (buttonState == LOW) ? 1 : 0;
-
-      // Xuất dữ liệu CSV 9 cột qua Serial
-      Serial.printf("%lu,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f,%d\n",
-                    millis(), acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z,
-                    temp, isButtonPressed);
+  // Xử lý các phím lệnh qua Serial Monitor để tương tác thời gian thực
+  if (Serial.available()) {
+    char cmd = Serial.read();
+    if (cmd == 't' || cmd == 'T') {
+      testSignalMode = !testSignalMode;
+      ads.setTestSignal(testSignalMode);
+      if (testSignalMode) {
+        Serial.println("# [COMMAND] Da CHUYEN sang che do test xung 1Hz");
+      } else {
+        Serial.println("# [COMMAND] Da CHUYEN sang che do do dien cuc sEMG");
+      }
+    } else if (cmd == 'h' || cmd == 'H' || cmd == '?') {
+      Serial.println("\n--- BANG LENH DIEU KHIEN ---");
+      Serial.println(" 't' : Bat/tat xung kiem tra 1Hz noi bo");
+      Serial.println(" 'h' : Hien thi huong dan nay");
+      Serial.println("---------------------------\n");
     }
   }
+
+  vTaskDelay(pdMS_TO_TICKS(100));
 }
