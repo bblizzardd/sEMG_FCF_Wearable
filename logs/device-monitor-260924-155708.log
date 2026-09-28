@@ -1,0 +1,407 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0xb (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+
+==================================================
+     ESP32-S3 KIỂM TRA PROTOCENTRAL ADS1292R     
+==================================================
+ Cấu hình chân SPI:
+   - CS   (SS)  : GPIO 10
+   - SCK  (CLK) : GPIO 12
+   - MOSI (DIN) : GPIO 11
+   - MISO (DOUT): GPIO 13
+   - PWDN/RESET : GPIO 9
+   - START      : GPIO 8
+   - DRDY       : GPIO 4
+==================================================
+-> Đang thiết lập phần cứng ADS1292R...
+-> Mã Device ID đọc được: 0x73
+>>> [THÀNH CÔNG RỰC RỠ] ĐÃ NHẬN DIỆN CHÍNH XÁC CHIP ADS1292R! <<<
+
+--- BẢNG THANH GHI ADS1292R ---
+  [00] ID       (0x00)  = 0x73
+  [01] CONFIG1  (0x01)  = 0x03
+  [02] CONFIG2  (0x02)  = 0x80
+  [03] LOFF     (0x03)  = 0x10
+  [04] CH1SET   (0x04)  = 0x00
+  [05] CH2SET   (0x05)  = 0x00
+  [06] RLDSENS  (0x06)  = 0x2F
+  [07] LOFFSENS (0x07)  = 0x00
+  [08] LOFFSTAT (0x08)  = 0x00
+  [09] RESP1    (0x09)  = 0x32
+  [10] RESP2    (0x0A)  = 0x02
+  [11] GPIO     (0x0B)  = 0x0C
+-------------------------------
+
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:    0 | Luc:[                    ]   0% | THA LONG
+Raw:   928 | Env:  479 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:  404 | Luc:[                    ]   0% | THA LONG
+Raw:     0 | Env:  688 | Luc:[                    ]   2% | THA LONG
+Raw:  3283 | Env: 1720 | Luc:[======              ]  30% | GONG VUA
+Raw:  8656 | Env: 3865 | Luc:[=================   ]  88% | GONG MANH!
+Raw:  7943 | Env: 7481 | Luc:[====================] 100% | GONG MANH!
+Raw: 19122 | Env: 8418 | Luc:[====================] 100% | GONG MANH!
+Raw:368004 | Env:46265 | Luc:[====================] 100% | GONG MANH!
+Raw:208906 | Env:84672 | Luc:[====================] 100% | GONG MANH!
+Raw:   766 | Env:90191 | Luc:[====================] 100% | GONG MANH!
+Raw: 91623 | Env:68065 | Luc:[====================] 100% | GONG MANH!
+Raw:136864 | Env:81304 | Luc:[====================] 100% | GONG MANH!
+Raw:120919 | Env:148394 | Luc:[====================] 100% | GONG MANH!
+Raw:423788 | Env:135494 | Luc:[====================] 100% | GONG MANH!
+Raw:158956 | Env:131801 | Luc:[====================] 100% | GONG MANH!
+Raw:686362 | Env:235993 | Luc:[====================] 100% | GONG MANH!
+Raw:372540 | Env:167701 | Luc:[====================] 100% | GONG MANH!
+Raw:516548 | Env:137701 | Luc:[====================] 100% | GONG MANH!
+Raw:342464 | Env:99767 | Luc:[====================] 100% | GONG MANH!
+Raw:509411 | Env:149832 | Luc:[====================] 100% | GONG MANH!
+Raw:519559 | Env:120442 | Luc:[====================] 100% | GONG MANH!
+Raw:563924 | Env:114802 | Luc:[====================] 100% | GONG MANH!
+Raw:610863 | Env:96113 | Luc:[====================] 100% | GONG MANH!
+Raw:605533 | Env:91084 | Luc:[====================] 100% | GONG MANH!
+Raw:602508 | Env:81832 | Luc:[====================] 100% | GONG MANH!
+Raw:668788 | Env:81220 | Luc:[====================] 100% | GONG MANH!
+Raw:646153 | Env:71091 | Luc:[====================] 100% | GONG MANH!
+Raw:668898 | Env:64467 | Luc:[====================] 100% | GONG MANH!
+Raw:616335 | Env:50271 | Luc:[====================] 100% | GONG MANH!
+Raw:2586273 | Env:826986 | Luc:[====================] 100% | GONG MANH!
+Raw:1528478 | Env:969249 | Luc:[====================] 100% | GONG MANH!
+Raw:858553 | Env:300623 | Luc:[====================] 100% | GONG MANH!
+Raw:945308 | Env:241243 | Luc:[====================] 100% | GONG MANH!
+Raw:690404 | Env:205938 | Luc:[====================] 100% | GONG MANH!
+Raw:-1051290 | Env:1122379 | Luc:[====================] 100% | GONG MANH!
+Raw:808918 | Env:379827 | Luc:[====================] 100% | GONG MANH!
+Raw:1147076 | Env:554846 | Luc:[====================] 100% | GONG MANH!
+Raw:1494163 | Env:622509 | Luc:[====================] 100% | GONG MANH!
+Raw:1648965 | Env:644534 | Luc:[====================] 100% | GONG MANH!
+Raw:1855663 | Env:596194 | Luc:[====================] 100% | GONG MANH!
+Raw:2114296 | Env:620814 | Luc:[====================] 100% | GONG MANH!
+Raw:1982654 | Env:508349 | Luc:[====================] 100% | GONG MANH!
+Raw:2412694 | Env:454921 | Luc:[====================] 100% | GONG MANH!
+Raw:2362816 | Env:399392 | Luc:[====================] 100% | GONG MANH!
+Raw:2322164 | Env:311292 | Luc:[====================] 100% | GONG MANH!
+Raw:2240296 | Env:247228 | Luc:[====================] 100% | GONG MANH!
+Raw:2489234 | Env:235264 | Luc:[====================] 100% | GONG MANH!
+Raw:2430343 | Env:172589 | Luc:[====================] 100% | GONG MANH!
+Raw:2463566 | Env:199733 | Luc:[====================] 100% | GONG MANH!
+Raw:2440306 | Env:154057 | Luc:[====================] 100% | GONG MANH!
+Raw:2528783 | Env:175381 | Luc:[====================] 100% | GONG MANH!
+Raw:2586634 | Env:130395 | Luc:[====================] 100% | GONG MANH!
+Raw:2605831 | Env:95837 | Luc:[====================] 100% | GONG MANH!
+Raw:2635332 | Env:122732 | Luc:[====================] 100% | GONG MANH!
+Raw:2658998 | Env:183768 | Luc:[====================] 100% | GONG MANH!
+Raw:2995276 | Env:219062 | Luc:[====================] 100% | GONG MANH!
+Raw:3832146 | Env:264738 | Luc:[====================] 100% | GONG MANH!
+Raw:3065683 | Env:116534 | Luc:[====================] 100% | GONG MANH!
+Raw:2437466 | Env:161984 | Luc:[====================] 100% | GONG MANH!
+Raw:3067339 | Env:151802 | Luc:[====================] 100% | GONG MANH!
+Raw:3064406 | Env:191470 | Luc:[====================] 100% | GONG MANH!
+Raw:2798719 | Env:217628 | Luc:[====================] 100% | GONG MANH!
+Raw:2973224 | Env:294201 | Luc:[====================] 100% | GONG MANH!
+Raw:3054069 | Env:340064 | Luc:[====================] 100% | GONG MANH!
+Raw:4633879 | Env:397116 | Luc:[====================] 100% | GONG MANH!
+Raw:4422103 | Env:649492 | Luc:[====================] 100% | GONG MANH!
+Raw:3357523 | Env:475608 | Luc:[====================] 100% | GONG MANH!
+Raw:3674373 | Env:660451 | Luc:[====================] 100% | GONG MANH!
+Raw:4452933 | Env:667198 | Luc:[====================] 100% | GONG MANH!
+Raw:5113886 | Env:895461 | Luc:[====================] 100% | GONG MANH!
+Raw:5405085 | Env:1023455 | Luc:[====================] 100% | GONG MANH!
+Raw:4907437 | Env:1029972 | Luc:[====================] 100% | GONG MANH!
+Raw:5609914 | Env:826496 | Luc:[====================] 100% | GONG MANH!
+Raw:6086399 | Env:909207 | Luc:[====================] 100% | GONG MANH!
+Raw:5969517 | Env:743915 | Luc:[====================] 100% | GONG MANH!
+Raw:6454046 | Env:674829 | Luc:[====================] 100% | GONG MANH!
+Raw:6429059 | Env:712714 | Luc:[====================] 100% | GONG MANH!
+Raw:6436101 | Env:586450 | Luc:[====================] 100% | GONG MANH!
+Raw:6461763 | Env:467431 | Luc:[====================] 100% | GONG MANH!
+Raw:6650478 | Env:429887 | Luc:[====================] 100% | GONG MANH!
+Raw:6786124 | Env:426295 | Luc:[====================] 100% | GONG MANH!
+Raw:6949764 | Env:348282 | Luc:[====================] 100% | GONG MANH!
+Raw:6830934 | Env:341739 | Luc:[====================] 100% | GONG MANH!
+Raw:7352348 | Env:400692 | Luc:[====================] 100% | GONG MANH!
+Raw:7324004 | Env:406831 | Luc:[====================] 100% | GONG MANH!
+Raw:7402624 | Env:380730 | Luc:[====================] 100% | GONG MANH!
+Raw:7629260 | Env:314871 | Luc:[====================] 100% | GONG MANH!
+Raw:7560939 | Env:452556 | Luc:[====================] 100% | GONG MANH!
+Raw:7867031 | Env:418700 | Luc:[====================] 100% | GONG MANH!
+Raw:7773774 | Env:376699 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:413099 | Luc:[====================] 100% | GONG MANH!
+Raw:8274305 | Env:433267 | Luc:[====================] 100% | GONG MANH!
+Raw:8326625 | Env:403424 | Luc:[====================] 100% | GONG MANH!
+Raw:8291750 | Env:401843 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:310080 | Luc:[====================] 100% | GONG MANH!
+Raw:8349020 | Env:267230 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:228135 | Luc:[====================] 100% | GONG MANH!
+Raw:8145861 | Env:159598 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:142341 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:106836 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:79152 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:58593 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:43372 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:32105 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:23765 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:17501 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:12953 | Luc:[=================   ]  85% | GONG MANH!
+Raw:8388607 | Env: 9587 | Luc:[============        ]  62% | GONG VUA
+Raw:8388607 | Env: 7094 | Luc:[=========           ]  45% | GONG VUA
+Raw:8388607 | Env: 5249 | Luc:[======              ]  32% | GONG VUA
+Raw:8388607 | Env: 3883 | Luc:[====                ]  22% | THA LONG
+Raw:8388607 | Env: 2872 | Luc:[===                 ]  15% | THA LONG
+Raw:8388607 | Env: 2123 | Luc:[==                  ]  10% | THA LONG
+Raw:8388607 | Env: 1570 | Luc:[=                   ]   6% | THA LONG
+Raw:8388607 | Env: 1160 | Luc:[                    ]   3% | THA LONG
+Raw:8388607 | Env:  856 | Luc:[                    ]   1% | THA LONG
+Raw:8388607 | Env:  631 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  465 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  343 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  251 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  186 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  135 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  103 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   73 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   45 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:210991 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:59992 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:40222 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:29579 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:21885 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:17630 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:12454 | Luc:[================    ]  82% | GONG MANH!
+Raw:8388607 | Env: 9189 | Luc:[===========         ]  59% | GONG VUA
+Raw:8388607 | Env: 6799 | Luc:[========            ]  43% | GONG VUA
+Raw:8388607 | Env: 5031 | Luc:[======              ]  30% | GONG VUA
+Raw:8388607 | Env: 3723 | Luc:[====                ]  21% | THA LONG
+Raw:8388607 | Env: 2754 | Luc:[===                 ]  15% | THA LONG
+Raw:8388607 | Env: 2037 | Luc:[==                  ]  10% | THA LONG
+Raw:8388607 | Env: 1506 | Luc:[=                   ]   6% | THA LONG
+Raw:8388607 | Env: 1112 | Luc:[                    ]   3% | THA LONG
+Raw:8388607 | Env:  822 | Luc:[                    ]   1% | THA LONG
+Raw:8388607 | Env:  606 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  447 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  328 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  240 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  177 | Luc:[                    ]   0% | THA LONG
+Raw:6048704 | Env:491843 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:347724 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:169834 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:121685 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:89890 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:66531 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:49248 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:36454 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:26983 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:19972 | Luc:[====================] 100% | GONG MANH!
+Raw:8388607 | Env:14782 | Luc:[=================== ]  98% | GONG MANH!
+Raw:8388607 | Env:10941 | Luc:[==============      ]  71% | GONG MANH!
+Raw:8388607 | Env: 8096 | Luc:[==========          ]  52% | GONG VUA
+Raw:8388607 | Env: 5992 | Luc:[=======             ]  37% | GONG VUA
+Raw:8388607 | Env: 4411 | Luc:[=====               ]  26% | GONG VUA
+Raw:8388607 | Env: 3263 | Luc:[===                 ]  18% | THA LONG
+Raw:8388607 | Env: 2413 | Luc:[==                  ]  12% | THA LONG
+Raw:8388607 | Env: 1784 | Luc:[=                   ]   8% | THA LONG
+Raw:8388607 | Env: 1319 | Luc:[=                   ]   5% | THA LONG
+Raw:8388607 | Env:  974 | Luc:[                    ]   2% | THA LONG
+Raw:8388607 | Env:  720 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  531 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  391 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  288 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  213 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  153 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:  117 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   87 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   57 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   42 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
+Raw:8388607 | Env:   41 | Luc:[                    ]   0% | THA LONG
