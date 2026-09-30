@@ -177,6 +177,8 @@ uint8_t ads1292r::ads1292GetDeviceID(const int chipSelect)
   ads1292StopReadDataContinuous(chipSelect);
   delayMicroseconds(50);
   uint8_t id = ads1292RegRead(ADS1292_REG_ID, chipSelect);
+  delayMicroseconds(50);
+  ads1292StartReadDataContinuous(chipSelect); // Resume continuous read mode
   return id;
 }
 
@@ -205,9 +207,9 @@ void ads1292r::ads1292Init(const int chipSelect, const int pwdnPin, const int st
   delay(50);
 
   // 5. Configure ADS1292 registers
-  ads1292RegWrite(ADS1292_REG_CONFIG1, 0x03, chipSelect);         // Sampling rate 1 kSPS (EMG)
+  ads1292RegWrite(ADS1292_REG_CONFIG1, 0x04, chipSelect);         // Sampling rate 2 kSPS (2000 SPS EMG)
   delay(10);
-  ads1292RegWrite(ADS1292_REG_CONFIG2, 0b10100000, chipSelect);   // Lead-off comp off, test signal disabled
+  ads1292RegWrite(ADS1292_REG_CONFIG2, 0b10100000, chipSelect);   // VREF buffer ON (2.42V), Lead-off comp off (0xA0)
   delay(10);
   ads1292RegWrite(ADS1292_REG_LOFF, 0b00010000, chipSelect);      // Lead-off defaults
   delay(10);
@@ -215,13 +217,13 @@ void ads1292r::ads1292Init(const int chipSelect, const int pwdnPin, const int st
   delay(10);
   ads1292RegWrite(ADS1292_REG_CH2SET, 0b01000000, chipSelect);    // Ch 2 enabled, gain 4, normal electrode input (0x40)
   delay(10);
-  ads1292RegWrite(ADS1292_REG_RLDSENS, 0b00101100, chipSelect);   // RLD buffer ON, RLD from Ch2 (0x2C)
+  ads1292RegWrite(ADS1292_REG_RLDSENS, 0b10111100, chipSelect);   // PDB_RLD ON (Bit 7=1), RLD from Ch1 & Ch2 (0xBC)
   delay(10);
   ads1292RegWrite(ADS1292_REG_LOFFSENS, 0x00, chipSelect);        // LOFF settings: all disabled
   delay(10);
-  ads1292RegWrite(ADS1292_REG_RESP1, 0b00110010, chipSelect);     // Disable respiration modulation/demodulation for EMG
+  ads1292RegWrite(ADS1292_REG_RESP1, 0b00000010, chipSelect);     // Disable respiration demodulation/modulation for pure EMG
   delay(10);
-  ads1292RegWrite(ADS1292_REG_RESP2, 0b00000011, chipSelect);     // Respiration calibration off, RLDREF internal
+  ads1292RegWrite(ADS1292_REG_RESP2, 0b00000011, chipSelect);     // Respiration calibration off, RLDREF internal (0x03)
   delay(10);
 }
 

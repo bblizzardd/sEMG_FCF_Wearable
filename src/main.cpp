@@ -49,7 +49,6 @@ void printMsg(const char *format, ...) {
 
 // In danh sách các thanh ghi quan trọng của ADS1292 và khởi động ADC
 void dumpRegisters() {
-
   printMsg("\n--- BẢNG THANH GHI ADS1292R ---\n");
   const char *regNames[] = {
       "ID       (0x00)", "CONFIG1  (0x01)", "CONFIG2  (0x02)",
@@ -57,25 +56,51 @@ void dumpRegisters() {
       "RLDSENS  (0x06)", "LOFFSENS (0x07)", "LOFFSTAT (0x08)",
       "RESP1    (0x09)", "RESP2    (0x0A)", "GPIO     (0x0B)"};
 
-  // Đảm bảo thanh ghi CONFIG2 (bật VREF buffer), RLDSENS và CH1SET/CH2SET chuẩn xác
+  // BẮT BUỘC THEO DATASHEET TI: Gửi SDATAC (0x11) để chip chấp nhận đọc/ghi thanh ghi
+  ads1292r::ads1292StopReadDataContinuous(PIN_ADS_CS);
+  delay(10);
+
+  // Đảm bảo các thanh ghi chuẩn xác:
+  // - CONFIG1 (0x04): 2000 SPS
+  // - CONFIG2 (0xA0): Bật Reference Buffer nội (VREF = 2.42V)
+  // - RLDSENS (0xBC): BẬT RLD BUFFER (Bit 7=1) + RLD từ Ch1 & Ch2 (0xBC)
+  // - CH1SET  (0x40): Kênh 1 bật, Gain 4x, normal electrode
+  // - CH2SET  (0x40): Kênh 2 bật, Gain 4x (kết nối trực tiếp với jack 3.5mm điện cực)
+  // - RESP1   (0x02): Tắt điều chế hô hấp
+  // - RESP2   (0x03): RLDREF nội (AVDD+AVSS)/2
+  uint8_t cfg1 = ads1292r::ads1292RegRead(ADS1292_REG_CONFIG1, PIN_ADS_CS);
+  if (cfg1 != 0x04) {
+    ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG1, 0x04, PIN_ADS_CS);
+    delay(10);
+  }
   uint8_t cfg2 = ads1292r::ads1292RegRead(ADS1292_REG_CONFIG2, PIN_ADS_CS);
   if (cfg2 != 0xA0) {
-    ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xA0, PIN_ADS_CS); // Bật Reference Buffer (VREF = 2.42V)
+    ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xA0, PIN_ADS_CS);
     delay(10);
   }
   uint8_t rldVal = ads1292r::ads1292RegRead(ADS1292_REG_RLDSENS, PIN_ADS_CS);
-  if (rldVal != 0x2C) {
-    ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0x2C, PIN_ADS_CS);
+  if (rldVal != 0xBC) {
+    ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0xBC, PIN_ADS_CS);
     delay(10);
   }
   uint8_t ch1Val = ads1292r::ads1292RegRead(ADS1292_REG_CH1SET, PIN_ADS_CS);
   if (ch1Val != 0x40) {
-    ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x40, PIN_ADS_CS); // Gain = 4x chuẩn
+    ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x40, PIN_ADS_CS);
     delay(10);
   }
   uint8_t ch2Val = ads1292r::ads1292RegRead(ADS1292_REG_CH2SET, PIN_ADS_CS);
   if (ch2Val != 0x40) {
-    ads1292r::ads1292RegWrite(ADS1292_REG_CH2SET, 0x40, PIN_ADS_CS); // Gain = 4x chuẩn
+    ads1292r::ads1292RegWrite(ADS1292_REG_CH2SET, 0x40, PIN_ADS_CS);
+    delay(10);
+  }
+  uint8_t resp1Val = ads1292r::ads1292RegRead(ADS1292_REG_RESP1, PIN_ADS_CS);
+  if (resp1Val != 0x02) {
+    ads1292r::ads1292RegWrite(ADS1292_REG_RESP1, 0x02, PIN_ADS_CS);
+    delay(10);
+  }
+  uint8_t resp2Val = ads1292r::ads1292RegRead(ADS1292_REG_RESP2, PIN_ADS_CS);
+  if (resp2Val != 0x03) {
+    ads1292r::ads1292RegWrite(ADS1292_REG_RESP2, 0x03, PIN_ADS_CS);
     delay(10);
   }
 
@@ -114,12 +139,14 @@ void setup() {
   printMsg("   - DRDY       : GPIO %d\n", PIN_ADS_DRDY);
   printMsg("==================================================\n");
 
+  pinMode(PIN_ADS_CS, OUTPUT);
+  digitalWrite(PIN_ADS_CS, HIGH);
   pinMode(PIN_ADS_DRDY, INPUT_PULLUP);
   pinMode(PIN_ADS_START, OUTPUT);
   digitalWrite(PIN_ADS_START, LOW);
 
-  // 1. Khởi động SPI bus cho ESP32-S3 với chân tùy chỉnh
-  adsSpiBus.begin(PIN_ADS_SCK, PIN_ADS_MISO, PIN_ADS_MOSI, PIN_ADS_CS);
+  // 1. Khởi động SPI bus cho ESP32-S3 (dùng -1 cho SS để manual digitalWrite CS 100% tin cậy)
+  adsSpiBus.begin(PIN_ADS_SCK, PIN_ADS_MISO, PIN_ADS_MOSI, -1);
 
   // 2. Khởi tạo chip ADS1292R với SPI bus và cấu hình thanh ghi mặc định
   printMsg("-> Đang thiết lập phần cứng ADS1292R...\n");
@@ -155,28 +182,35 @@ unsigned long lastSamplePrint = 0;
 uint32_t sampleCounter = 0;
 
 // ============================================================================
-// CÁC BỘ LỌC XỬ LÝ TÍN HIỆU sEMG (Fs = 1000 Hz)
+// CÁC BỘ LỌC XỬ LÝ TÍN HIỆU sEMG (Fs = 2000 Hz / 2 kSPS)
 // ============================================================================
 
-// 1. Bộ lọc High-Pass 20Hz (Bậc 1) khử trôi DC và nhiễu cử động chậm
+// 1. Bộ lọc High-Pass 20Hz (Butterworth Bậc 2, Fs=2000Hz) khử triệt để trôi DC và nhiễu cử động cáp/da
 float filterHighPass20Hz(float input) {
-  const float alpha = 0.888365f; // Fs=1000Hz, fc=20Hz
-  static float prevIn = 0.0f;
-  static float prevOut = 0.0f;
+  const float b0 =  0.956543f;
+  const float b1 = -1.913086f;
+  const float b2 =  0.956543f;
+  const float a1 = -1.911197f;
+  const float a2 =  0.914976f;
 
-  float output = alpha * (prevOut + input - prevIn);
-  prevIn = input;
-  prevOut = output;
+  static float x1 = 0.0f, x2 = 0.0f;
+  static float y1 = 0.0f, y2 = 0.0f;
+
+  float output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+  x2 = x1;
+  x1 = input;
+  y2 = y1;
+  y1 = output;
   return output;
 }
 
-// 2. Bộ lọc IIR Notch 50Hz (Bậc 2, r=0.96) triệt tiêu sóng điện lưới 50Hz
+// 2. Bộ lọc IIR Notch 50Hz (Bậc 2, r=0.98) triệt tiêu sóng điện lưới 50Hz (Fs=2000Hz)
 float filterNotch50Hz(float input) {
-  const float b0 =  0.976345f;
-  const float b1 = -1.857119f;
-  const float b2 =  0.976345f;
-  const float a1 = -1.826029f;
-  const float a2 =  0.921600f;
+  const float b0 =  0.996245f;
+  const float b1 = -1.967959f;
+  const float b2 =  0.996245f;
+  const float a1 = -1.935869f;
+  const float a2 =  0.960400f;
 
   static float x1 = 0.0f, x2 = 0.0f;
   static float y1 = 0.0f, y2 = 0.0f;
@@ -189,13 +223,13 @@ float filterNotch50Hz(float input) {
   return output;
 }
 
-// 3. Bộ lọc IIR Notch 100Hz (Bậc 2, r=0.96) triệt tiêu sóng hài 100Hz (từ sạc laptop, nguồn xung)
+// 3. Bộ lọc IIR Notch 100Hz (Bậc 2, r=0.98) triệt tiêu sóng hài 100Hz (Fs=2000Hz)
 float filterNotch100Hz(float input) {
-  const float b0 =  0.964189f;
-  const float b1 = -1.560090f;
-  const float b2 =  0.964189f;
-  const float a1 = -1.553313f;
-  const float a2 =  0.921600f;
+  const float b0 =  0.984086f;
+  const float b1 = -1.871843f;
+  const float b2 =  0.984086f;
+  const float a1 = -1.864071f;
+  const float a2 =  0.960400f;
 
   static float x1 = 0.0f, x2 = 0.0f;
   static float y1 = 0.0f, y2 = 0.0f;
@@ -208,13 +242,13 @@ float filterNotch100Hz(float input) {
   return output;
 }
 
-// 4. Bộ lọc Low-Pass 150Hz (Butterworth Bậc 2) cắt sạch nhiễu cao tần (RF, WiFi, Switching Noise)
-float filterLowPass150Hz(float input) {
-  const float b0 =  0.131106f;
-  const float b1 =  0.262213f;
-  const float b2 =  0.131106f;
-  const float a1 = -0.747789f;
-  const float a2 =  0.272215f;
+// 4. Bộ lọc Low-Pass 450Hz (Butterworth Bậc 2, Fs=2000Hz) - Chuẩn SENIAM (Dải tần mỏi cơ 20 - 450 Hz)
+float filterLowPass450Hz(float input) {
+  const float b0 =  0.248341f;
+  const float b1 =  0.496682f;
+  const float b2 =  0.248341f;
+  const float a1 = -0.184214f;
+  const float a2 =  0.177578f;
 
   static float x1 = 0.0f, x2 = 0.0f;
   static float y1 = 0.0f, y2 = 0.0f;
@@ -229,111 +263,179 @@ float filterLowPass150Hz(float input) {
 
 // Biến lưu trữ bao hình lực cơ (Envelope) và tự động thích ứng dải lực
 float emgEnvelope = 0.0f;
-float baselineNoise = 800.0f; // Tự động bám mức nghỉ thấp nhất thực tế
-float mvcPeak = 3000.0f;      // Tự động bám mức đỉnh khi gồng
+float baselineNoise = 10.0f; // Mức nghỉ thực tế sau lọc DSP (thang 16-bit thường ~5-15)
+float mvcPeak = 120.0f;       // Mức đỉnh danh định khi gồng (DSP ON: ~100-200, DSP OFF: ~500)
 float sensitivityMultiplier = 1.0f; // Hệ số nhạy (+/- từ bàn phím)
+float noiseThreshold = 5.0f;  // Ngưỡng Noise Gate tự thích ứng: triệt tiêu dao động sàn khi thả lỏng về chuẩn 0%
+
+bool filterEnabled = true; // BẬT GIẢM NHIỄU mặc định để triệt tiêu điện lưới 50Hz và nhiễu sóng hài
+float dcOffset = 0.0f;
 
 void resetCalibration() {
   baselineNoise = emgEnvelope;
-  mvcPeak = baselineNoise + 2000.0f;
+  if (baselineNoise < 1.0f) baselineNoise = 1.0f;
+  float defaultSpan = filterEnabled ? 80.0f : 400.0f;
+  mvcPeak = baselineNoise + defaultSpan;
+  noiseThreshold = (baselineNoise * 0.25f < 2.5f) ? 2.5f : (baselineNoise * 0.25f);
+  if (noiseThreshold > 20.0f) noiseThreshold = 20.0f;
   sensitivityMultiplier = 1.0f;
-  printMsg("\n>>> [CÂN CHỈNH LẠI] Đã gán Mức nghỉ = %.0f | Đỉnh = %.0f | Độ nhạy = x1.00 <<<\n\n",
-           baselineNoise, mvcPeak);
+  printMsg("\n>>> [CÂN CHỈNH LẠI] Mức nghỉ = %.0f | Đỉnh = %.0f | Ngưỡng ồn = %.1f | Độ nhạy = x1.00 <<<\n\n",
+           baselineNoise, mvcPeak, noiseThreshold);
 }
 
 void loop() {
-  // Lắng nghe lệnh từ bàn phím qua Serial Monitor
+  // Lắng nghe lệnh từ bàn phím qua Serial Monitor hoặc Web Visualizer
   if (Serial.available()) {
     char cmd = Serial.read();
-    if (cmd == 'c' || cmd == 'C' || cmd == 'r' || cmd == 'R') {
+    if (cmd == 'c' || cmd == 'C') {
       resetCalibration();
+    } else if (cmd == 'r' || cmd == 'R') {
+      printMsg("\n[ADS1292R] Đang khởi tạo lại chip phần cứng...\n");
+      ads1292r::ads1292Init(adsSpiBus, PIN_ADS_CS, PIN_ADS_PWDN, PIN_ADS_START);
+      dumpRegisters();
+      resetCalibration();
+    } else if (cmd == 'd' || cmd == 'D') {
+      dumpRegisters();
+    } else if (cmd == 'f' || cmd == 'F') {
+      filterEnabled = !filterEnabled;
+      resetCalibration();
+      printMsg("\n[DSP FILTER] Đã chuyển sang: %s\n\n",
+               filterEnabled ? "BẬT (Khử nhiễu 4 tầng)" : "TẮT (RAW PASSTHROUGH - Không giảm nhiễu)");
     } else if (cmd == '+' || cmd == '=') {
-      sensitivityMultiplier *= 1.25f;
-      if (sensitivityMultiplier > 10.0f) sensitivityMultiplier = 10.0f;
+      sensitivityMultiplier *= 1.40f; // Tăng nhạy 40% mỗi lần bấm
+      if (sensitivityMultiplier > 50.0f) sensitivityMultiplier = 50.0f;
       printMsg("\n[ĐỘ NHẠY] Tăng nhạy lên x%.2f (Dễ đạt 100%% hơn)\n\n", sensitivityMultiplier);
     } else if (cmd == '-' || cmd == '_') {
-      sensitivityMultiplier *= 0.8f;
-      if (sensitivityMultiplier < 0.2f) sensitivityMultiplier = 0.2f;
+      sensitivityMultiplier *= 0.70f;
+      if (sensitivityMultiplier < 0.1f) sensitivityMultiplier = 0.1f;
       printMsg("\n[ĐỘ NHẠY] Giảm nhạy xuống x%.2f\n\n", sensitivityMultiplier);
-    } else if (cmd == 's' || cmd == 'S' || cmd == '?') {
+    } else if (cmd == 's' || cmd == '?') {
+      uint8_t currentId = ads1292r::ads1292GetDeviceID(PIN_ADS_CS);
+      float effG = noiseThreshold / sensitivityMultiplier;
+      if (effG < 0.8f) effG = 0.8f;
       printMsg("\n=======================================================\n");
       printMsg(">>> THÔNG TIN ĐỘ NHẠY & CÂN CHỈNH HIỆN TẠI <<<\n");
+      printMsg("   - Chip Device ID             : 0x%02X\n", currentId);
+      printMsg("   - Chế độ Giảm nhiễu (DSP)    : %s\n", filterEnabled ? "BẬT" : "TẮT (RAW)");
       printMsg("   - Hệ số độ nhạy (Sensitivity): x%.2f\n", sensitivityMultiplier);
-      printMsg("   - Mức nghỉ (Baseline)       : %.0f\n", baselineNoise);
-      printMsg("   - Mức gồng đỉnh (Peak)      : %.0f\n", mvcPeak);
-      printMsg("   - Dải lực hiệu dụng (Span)   : %.0f\n", (mvcPeak - baselineNoise) / sensitivityMultiplier);
+      printMsg("   - Mức nghỉ (Baseline)       : %.1f\n", baselineNoise);
+      printMsg("   - Ngưỡng ồn hiệu dụng (Gate) : %.1f\n", effG);
+      printMsg("   - Mức gồng đỉnh (Peak)      : %.1f\n", mvcPeak);
+      printMsg("   - Dải lực hiệu dụng (Span)   : %.1f\n", (mvcPeak - (baselineNoise + effG)) / sensitivityMultiplier);
       printMsg("=======================================================\n\n");
     }
   }
 
-  // Đọc một mẫu mới mỗi khi DRDY báo dữ liệu sẵn sàng (1 kSPS).
+  // Đọc một mẫu mới mỗi khi DRDY báo dữ liệu sẵn sàng (2000 SPS / 2 kSPS).
   if (ads1292.getAds1292EcgAndRespirationSamples(PIN_ADS_DRDY, PIN_ADS_CS,
                                                  &ecgData)) {
     sampleCounter++;
 
-    int32_t ch1Raw = ecgData.sDaqVals[0];
-    int32_t ch2Raw = ecgData.sDaqVals[1];
-    // Jack 3.5mm của ProtoCentral ADS1292R nối vào Channel 2 (IN2P/IN2N).
-    // Tự động chọn kênh có biên độ dao động lớn hơn giữa Ch1 và Ch2:
-    int32_t emgRaw = (labs(ch2Raw) > labs(ch1Raw)) ? ch2Raw : ch1Raw;
+    // Đọc đồng thời 2 kênh (giữ cả 24-bit gốc cho dataset và 16-bit cho DSP)
+    int32_t ch1_raw24 = ecgData.sDaqVals[0];
+    int32_t ch2_raw24 = ecgData.sDaqVals[1];
+    int32_t ch1_16 = (int32_t)(ch1_raw24 >> 8);
+    int32_t ch2_16 = (int32_t)(ch2_raw24 >> 8);
 
-    // CHUỖI LỌC SỐ ĐA TẦNG (DSP CASCADE FILTER CHAIN):
-    // 1. High-Pass 20Hz (khử DC, drift, cử động dây)
-    // 2. Notch 50Hz (triệt sóng điện lưới 50Hz)
-    // 3. Notch 100Hz (triệt sóng hài 100Hz từ sạc laptop/nguồn xung)
-    // 4. Low-Pass 150Hz (cắt nhiễu cao tần RF/WiFi/Clock)
-    float emgHp = filterHighPass20Hz((float)emgRaw);
-    float emgN50 = filterNotch50Hz(emgHp);
-    float emgN100 = filterNotch100Hz(emgN50);
-    float emgClean = filterLowPass150Hz(emgN100);
+    // KÊNH ĐIỆN CƠ CHÍNH: Cố định cứng Kênh 2 (Kênh gắn điện cực Biceps), không chuyển kênh động
+    // Loại bỏ hoàn toàn hiện tượng pha giật (phase discontinuity) do chuyển kênh
+    int32_t emgRaw = ch2_16;
 
-    // 5. Tính bao hình lực cơ (Chỉnh lưu Rectify + Lọc làm mượt ~75ms)
-    float emgRectified = fabsf(emgClean);
-    emgEnvelope = 0.985f * emgEnvelope + 0.015f * emgRectified;
+    float emgSignal = 0.0f;
+    if (filterEnabled) {
+      // CHUỖI LỌC SỐ ĐA TẦNG CHUẨN SENIAM (20 - 450 Hz @ Fs=2000Hz):
+      // 1. High-Pass 20Hz (Butterworth Bậc 2: Khử triệt để trôi DC và nhiễu cử động cáp)
+      // 2. Notch 50Hz (IIR Bậc 2: Triệt tiêu sóng điện lưới 50Hz)
+      // 3. Notch 100Hz (IIR Bậc 2: Triệt tiêu sóng hài 100Hz)
+      // 4. Low-Pass 450Hz (Butterworth Bậc 2: Bảo toàn 100% phổ mỏi cơ 20-450Hz cho tính MDF/MNF)
+      float emgHp = filterHighPass20Hz((float)emgRaw);
+      float emgN50 = filterNotch50Hz(emgHp);
+      float emgN100 = filterNotch100Hz(emgN50);
+      emgSignal = filterLowPass450Hz(emgN100);
+    } else {
+      // TẮT GIẢM NHIỄU (RAW PASSTHROUGH):
+      if (sampleCounter < 100) {
+        dcOffset = (float)emgRaw;
+      } else {
+        dcOffset = 0.999f * dcOffset + 0.001f * (float)emgRaw;
+      }
+      emgSignal = (float)emgRaw - dcOffset;
+    }
 
-    // Tự động khởi tạo mức nghỉ ban đầu khi tín hiệu đã có mẫu thực
+    // Thời gian lấy mẫu phần cứng chính xác tới microgiây (Hardware Timestamp)
+    uint32_t sampleTimeUs = (uint32_t)esp_timer_get_time();
+
+    // 1. STREAM TOÀN BỘ MẪU DATASET 2000 SPS VỚI TIMESTAMP PHẦN CỨNG VI GIÂY CHÍNH XÁC
+    // Định dạng: $D,sampleIndex,timestampUs,ch1_raw24,ch2_raw24,ch2_raw16,filtered16,leadOff
+    Serial.printf("$D,%u,%lu,%ld,%ld,%ld,%ld,%d\n",
+                  sampleCounter, (unsigned long)sampleTimeUs, (long)ch1_raw24, (long)ch2_raw24, (long)emgRaw, (long)emgSignal, ecgData.leadoffDetected ? 1 : 0);
+
+    // 5. Tính bao hình lực cơ (Chỉnh lưu Rectify + Lọc làm mượt ~75ms @ Fs=2000Hz)
+    float emgRectified = fabsf(emgSignal);
+    emgEnvelope = 0.993356f * emgEnvelope + 0.006644f * emgRectified;
+
+    // Tự động khởi tạo mức nghỉ ban đầu khi bộ lọc đã ổn định (sau 400 mẫu = 0.2s)
     static bool baselineInitialized = false;
-    if (!baselineInitialized && sampleCounter > 300 && emgEnvelope > 50.0f) {
+    if (!baselineInitialized && sampleCounter > 400) {
       baselineNoise = emgEnvelope;
-      mvcPeak = baselineNoise + 2000.0f;
+      if (baselineNoise < 1.0f) baselineNoise = 1.0f;
+      float defaultSpan = filterEnabled ? 80.0f : 400.0f;
+      mvcPeak = baselineNoise + defaultSpan;
+      noiseThreshold = (baselineNoise * 0.25f < 2.5f) ? 2.5f : (baselineNoise * 0.25f);
+      if (noiseThreshold > 20.0f) noiseThreshold = 20.0f;
       baselineInitialized = true;
     }
 
-    // 3. Thuật toán tự động bám mức nghỉ (Continuous Adaptive Baseline)
+    // 3. Thuật toán tự động bám mức nghỉ nhanh hơn khi nhả cơ
     if (baselineInitialized) {
       if (emgEnvelope < baselineNoise) {
-        // Nếu đo được mức êm hơn, lập tức hạ mức nghỉ xuống
-        baselineNoise = 0.98f * baselineNoise + 0.02f * emgEnvelope;
-      } else {
-        // Tăng cực kỳ chậm để chống trôi khi đang nghỉ
+        // Hạ mức nghỉ nhanh hơn để dập tắt nhiễu sau khi gồng
+        baselineNoise = 0.85f * baselineNoise + 0.15f * emgEnvelope;
+      } else if (emgEnvelope < baselineNoise + noiseThreshold * 1.5f) {
+        // Chỉ bám tăng nhẹ mức nghỉ khi cơ thực sự đang thả lỏng
         baselineNoise = baselineNoise + 0.00005f * (emgEnvelope - baselineNoise);
       }
 
+      // Giữ noiseThreshold tự thích ứng nhẹ theo mức nghỉ
+      float targetGate = baselineNoise * 0.25f;
+      if (targetGate < 2.5f) targetGate = 2.5f;
+      if (targetGate > 20.0f) targetGate = 20.0f;
+      noiseThreshold = 0.999f * noiseThreshold + 0.001f * targetGate;
+
       // Tự động bám mức gồng tối đa (Dynamic Peak Tracking)
       if (emgEnvelope > mvcPeak) {
-        mvcPeak = 0.95f * mvcPeak + 0.05f * emgEnvelope; // Mở rộng trần khi gồng mạnh hơn
+        mvcPeak = 0.90f * mvcPeak + 0.10f * emgEnvelope; // Mở rộng trần khi gồng mạnh hơn
       } else {
         // Thu hẹp trần từ từ nếu lâu không gồng
-        float minSpan = 700.0f;
+        float minSpan = filterEnabled ? 20.0f : 80.0f;
         if (mvcPeak > baselineNoise + minSpan) {
-          mvcPeak *= 0.99995f;
+          mvcPeak *= 0.99998f;
         }
       }
     }
 
-    // 4. In kết quả định kỳ mỗi 60ms (~16 dòng/giây)
-    if (millis() - lastSamplePrint >= 60) {
+    // 4. In kết quả định kỳ mỗi 20ms (50 mẫu/giây = 50 Hz, dành riêng cho UI Preview)
+    if (millis() - lastSamplePrint >= 20) {
       lastSamplePrint = millis();
 
-      // Dải lực động thực tế
-      float rawSpan = (mvcPeak - baselineNoise);
-      if (rawSpan < 600.0f) rawSpan = 600.0f;
-      float span = rawSpan / sensitivityMultiplier;
+      // Ngưỡng chết chống rung sàn (Noise Gate) thích ứng theo hệ số độ nhạy
+      // Tăng nhạy => gate thu nhỏ tỷ lệ thuận, phát hiện ngay các co thắt cơ nhẹ nhất
+      float effectiveGate = noiseThreshold / sensitivityMultiplier;
+      if (effectiveGate < 0.8f) effectiveGate = 0.8f; // Giữ tối thiểu 0.8 để triệt tiêu nhiễu ADC quantization
 
-      float rawPercent = (emgEnvelope - baselineNoise) / span * 100.0f;
-      int percent = (int)rawPercent;
-      if (percent < 0) percent = 0;
-      if (percent > 100) percent = 100;
+      float effectiveEnvelope = emgEnvelope - (baselineNoise + effectiveGate);
+
+      int percent = 0;
+      if (effectiveEnvelope > 0.0f) {
+        float minSpan = filterEnabled ? 15.0f : 50.0f;
+        float rawSpan = mvcPeak - (baselineNoise + effectiveGate);
+        if (rawSpan < minSpan) rawSpan = minSpan;
+        float span = rawSpan / sensitivityMultiplier;
+
+        float rawPercent = (effectiveEnvelope / span) * 100.0f;
+        percent = (int)rawPercent;
+        if (percent > 100) percent = 100;
+      }
 
       // Vẽ thanh hiển thị lực gồm 20 vạch
       int barLength = percent / 5; // 0 -> 20
@@ -352,8 +454,9 @@ void loop() {
         trangThai = "GONG NHE";
       }
 
-      printMsg("Raw:%6ld | Env:%4ld | Base:%4ld | x%.2f | Luc:[%-20s] %3d%% | %s | C1:%ld C2:%ld\n",
-               (long)emgRaw, (long)emgEnvelope, (long)baselineNoise, sensitivityMultiplier, bar, percent, trangThai, (long)ch1Raw, (long)ch2Raw);
+      // In đầy đủ cả Raw (chưa lọc) và Filt (đã lọc DSP)
+      printMsg("Raw:%6ld | Filt:%6ld | Env:%4ld | Base:%4ld | x%.2f | Luc:[%-20s] %3d%% | %s | %s\n",
+               (long)emgRaw, (long)emgSignal, (long)emgEnvelope, (long)baselineNoise, sensitivityMultiplier, bar, percent, trangThai, filterEnabled ? "DSP:ON" : "DSP:OFF");
     }
   }
 
