@@ -10,6 +10,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import serial
 import serial.tools.list_ports
+from sample_timing import SampleClock
 
 # Đảm bảo terminal Windows không bị lỗi Unicode khi in tiếng Việt
 if hasattr(sys.stdout, 'reconfigure'):
@@ -19,8 +20,9 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 PORT_HTTP = 8765
-SERIAL_BAUD = 115200
-DEFAULT_COM = sys.argv[1] if len(sys.argv) > 1 else "COM14"
+SERIAL_BAUD = 2000000
+REQUESTED_COM = sys.argv[1] if len(sys.argv) > 1 else None
+DEFAULT_COM = REQUESTED_COM or "COM14"
 
 # ==============================================================================
 # TRẠNG THÁI TOÀN CỤC & BIẾN ĐO LƯỜNG CHẤT LƯỢNG DỮ LIỆU (DATA HEALTH)
@@ -39,13 +41,13 @@ latest_data = {
     "connected": False,
     "timestamp": 0,
     "health": {
-        "sps": 2000.0,
+        "sps": 0.0,
         "received": 0,
         "dropped": 0,
         "max_gap_us": 500,
         "clipping_pct": 0.0,
         "lead_off": False,
-        "healthy": True
+        "healthy": False
     }
 }
 
@@ -67,9 +69,7 @@ last_timestamp_ns = 0
 max_gap_us = 500
 lead_off_state = False
 
-sps_window_start = time.perf_counter()
-sps_sample_count = 0
-current_measured_sps = 2000.0
+current_measured_sps = 0.0
 
 # Min/Max bucket accumulator cho QC Preview (bảo toàn 100% gai nhiễu / spike)
 BUCKET_SIZE = 10  # 2000 SPS / 10 = 200 Hz preview
@@ -82,6 +82,8 @@ latest_qc_raw = 0
 latest_qc_filt = 0
 
 def find_serial_port():
+    if REQUESTED_COM:
+        return REQUESTED_COM
     ports = list(serial.tools.list_ports.comports())
     for p in ports:
         desc = (p.description or "").upper()
@@ -112,16 +114,24 @@ def broadcast_data(data_obj):
 def serial_worker():
     global ser_instance, latest_data, recording, record_file, record_count, serial_status
     global total_samples_received, last_sample_seq, total_dropped_samples, clipped_sample_count
-    global last_timestamp_ns, max_gap_us, lead_off_state, sps_window_start, sps_sample_count, current_measured_sps
+    global last_timestamp_ns, max_gap_us, lead_off_state, current_measured_sps
     global bucket_counter, b_min_raw, b_max_raw, b_min_filt, b_max_filt, latest_qc_raw, latest_qc_filt
+
+    record_last_timestamp_us = None
+    record_elapsed_us = 0
 
     while True:
         port_name = find_serial_port()
         serial_status = f"Đang mở cổng {port_name}..."
         print(f"[*] Đang kết nối Serial: {port_name} @ {SERIAL_BAUD}...")
 
+        ser = None
         try:
             ser = serial.Serial(port_name, SERIAL_BAUD, timeout=0.05)
+            try:
+                ser.set_buffer_size(rx_size=65536)
+            except (AttributeError, OSError):
+                pass
             ser.dtr = True
             ser.rts = True
             with ser_lock:
@@ -130,6 +140,9 @@ def serial_worker():
             print(f"[+] KẾT NỐI THÀNH CÔNG VỚI {port_name}! Tối ưu hóa bộ đệm I/O (Chunked buffer)...")
 
             byte_buf = bytearray()
+            sample_clock = SampleClock()
+            current_measured_sps = 0.0
+            last_data_received = time.monotonic()
             empty_cycles = 0
             last_stat_log = time.perf_counter()
 
@@ -138,6 +151,12 @@ def serial_worker():
                 waiting = ser.in_waiting
                 chunk = ser.read(max(waiting, 1024))
                 if not chunk:
+                    if time.monotonic() - last_data_received > 1.5:
+                        current_measured_sps = 0.0
+                        if latest_data["health"]["sps"] != 0.0:
+                            latest_data["health"]["sps"] = 0.0
+                            latest_data["health"]["healthy"] = False
+                            broadcast_data(latest_data)
                     empty_cycles += 1
                     if empty_cycles > 50:
                         current_ports = [p.device for p in serial.tools.list_ports.comports()]
@@ -179,22 +198,23 @@ def serial_worker():
                                 filt16 = int(parts[5])
                                 loff = int(parts[6])
 
-                                # 1. Phát hiện mất mẫu bằng sample_idx liên tục
-                                if last_sample_seq is not None:
-                                    diff = s_idx - (last_sample_seq + 1)
-                                    if diff > 0:
-                                        total_dropped_samples += diff
+                                # Rate and loss from DRDY sequence/timestamps, not USB bursts.
+                                restarted = sample_clock.update(s_idx, hw_us)
+                                last_data_received = time.monotonic()
+                                if restarted:
+                                    total_samples_received = total_dropped_samples = clipped_sample_count = 0
+                                    max_gap_us = 0
+                                    if recording and record_file:
+                                        recording = False
+                                        record_file.close()
+                                        record_file = None
+                                        print("[ESP32] Khởi động lại: đã đóng file CSV; hãy bắt đầu phiên ghi mới.")
+                                total_dropped_samples += sample_clock.last_missing
                                 last_sample_seq = s_idx
                                 total_samples_received += 1
-                                sps_sample_count += 1
 
                                 # 2. Đo khoảng cách thời gian giữa 2 mẫu bằng Hardware Timestamp thực tế
-                                if last_timestamp_ns > 0:
-                                    gap_us = hw_us - last_timestamp_ns
-                                    if gap_us < 0:
-                                        gap_us += 4294967296
-                                    if gap_us > max_gap_us and total_samples_received > 200:
-                                        max_gap_us = gap_us
+                                max_gap_us = max(max_gap_us, sample_clock.last_gap_us)
                                 last_timestamp_ns = hw_us
 
                                 # 3. Phát hiện bão hòa tín hiệu (Clipping / Saturation)
@@ -203,18 +223,17 @@ def serial_worker():
 
                                 lead_off_state = (loff == 1)
 
-                                # 4. Tính toán tốc độ lấy mẫu thực tế (SPS) mỗi 1 giây
-                                if total_samples_received % 1000 == 0:
-                                    now_perf = time.perf_counter()
-                                    elapsed_sps = now_perf - sps_window_start
-                                    if elapsed_sps >= 0.8:
-                                        current_measured_sps = sps_sample_count / elapsed_sps
-                                        sps_sample_count = 0
-                                        sps_window_start = now_perf
+                                # 4. Đo SPS trong cửa sổ timestamp ít nhất 1 giây.
+                                current_measured_sps = sample_clock.sps
 
                                 # 5. Ghi Dataset nghiên cứu 2000 SPS vào file CSV với Hardware Timestamp chuẩn xác
                                 if recording and record_file:
-                                    record_file.write(f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff}\n")
+                                    if record_count == 0:
+                                        record_elapsed_us = 0
+                                    elif record_last_timestamp_us is not None:
+                                        record_elapsed_us += (hw_us - record_last_timestamp_us) % (1 << 32)
+                                    record_last_timestamp_us = hw_us
+                                    record_file.write(f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff},{record_elapsed_us / 1_000_000:.6f}\n")
                                     record_count += 1
                                     if record_count % 1000 == 0:
                                         record_file.flush()
@@ -281,7 +300,7 @@ def serial_worker():
                                 elif "DSP:OFF" in p:
                                     dsp_val = "DSP:OFF"
 
-                            is_healthy = (total_dropped_samples == 0 and 1500 <= current_measured_sps <= 2200 and not lead_off_state)
+                            is_healthy = (total_dropped_samples == 0 and 1960 <= current_measured_sps <= 2040 and not lead_off_state)
 
                             data_point = {
                                 "raw": raw_val,
@@ -319,9 +338,23 @@ def serial_worker():
         except Exception as e:
             serial_status = f"Lỗi cổng ({port_name}): {e}"
             print(f"[!] Lỗi Serial ({port_name}): {e}. Đang thử kết nối lại sau 2s...")
-            with ser_lock:
-                ser_instance = None
             time.sleep(2)
+        finally:
+            # Reconnecting starts a new timing segment; do not join CSV sessions.
+            if recording and record_file:
+                recording = False
+                record_file.close()
+                record_file = None
+                print("[ESP32] Mất kết nối: đã đóng phiên ghi CSV.")
+            with ser_lock:
+                if ser is not None:
+                    ser.close()
+                ser_instance = None
+            current_measured_sps = 0.0
+            latest_data["connected"] = False
+            latest_data["health"]["sps"] = 0.0
+            latest_data["health"]["healthy"] = False
+            broadcast_data(latest_data)
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="vi">
@@ -709,11 +742,11 @@ HTML_PAGE = """<!DOCTYPE html>
                 <div class="logo-pulse"></div>
                 <div>
                     <h1>sEMG Dual-Stream Visualizer &amp; Dataset QC</h1>
-                    <div class="subtitle">ADS1292R 2000 SPS Biopotential Acquisition &bull; Zero-Loss Engine</div>
+                    <div class="subtitle">ADS1292R 2000 SPS Biopotential Acquisition &bull; Timing &amp; Loss Monitoring</div>
                 </div>
             </div>
             <div class="btn-group">
-                <div class="port-pill" id="lblPortPill">COM14</div>
+                <div class="port-pill" id="lblPortPill">Đang dò cổng...</div>
                 <button class="btn" id="btnFilter" onclick="sendCmd('f')">🛡️ Giảm Nhiễu: BẬT (F)</button>
                 <button class="btn" id="btnSensDown" onclick="sendCmd('-')">➖ Giảm Nhạy (-)</button>
                 <button class="btn" id="btnSensUp" onclick="sendCmd('+')">➕ Tăng Nhạy (+)</button>
@@ -734,7 +767,7 @@ HTML_PAGE = """<!DOCTYPE html>
             <div class="health-grid">
                 <div class="health-item">
                     <span class="health-label">Tốc độ thực tế</span>
-                    <span class="health-value" id="valSps">2000.0 SPS</span>
+                    <span class="health-value" id="valSps">0.0 SPS</span>
                     <span class="h-check h-ok" id="chkSps">✓</span>
                 </div>
                 <div class="health-item">
@@ -1097,8 +1130,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
                 const chkSps = document.getElementById('chkSps');
                 if (chkSps) {
-                    chkSps.innerText = h.sps >= 1500 ? "✓" : "✗";
-                    chkSps.className = h.sps >= 1500 ? "h-check h-ok" : "h-check h-warn";
+                    chkSps.innerText = h.sps >= 1960 && h.sps <= 2040 ? "✓" : "✗";
+                    chkSps.className = h.sps >= 1960 && h.sps <= 2040 ? "h-check h-ok" : "h-check h-warn";
                 }
 
                 const chkDropped = document.getElementById('chkDropped');
@@ -1351,11 +1384,11 @@ class VisualizerHTTPHandler(BaseHTTPRequestHandler):
                 fn = os.path.join("data", f"sEMG_2000SPS_{time.strftime('%Y%m%d_%H%M%S')}.csv")
                 record_file = open(fn, "w", encoding="utf-8")
                 # Header chuẩn 2000 SPS: Kênh 2 cố định chuẩn nghiên cứu y sinh
-                record_file.write("sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off\n")
-                recording = True
+                record_file.write("sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off,time_s\n")
                 record_count = 0
                 total_dropped_samples = 0
                 max_gap_us = 500
+                recording = True
                 resp = {"status": "started", "filename": fn}
             elif action == "stop":
                 recording = False

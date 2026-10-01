@@ -2,6 +2,7 @@
 #include "protocentralAds1292r.h"
 #include <Arduino.h>
 #include <SPI.h>
+#include "SampleAcquisition.h"
 
 /**
  * ============================================================================
@@ -33,9 +34,8 @@
 #define PIN_ADS_START 8
 #define PIN_ADS_DRDY 4
 
-ads1292r ads1292;
-ads1292OutputValues ecgData;
 SPIClass adsSpiBus(FSPI);
+uint8_t cachedDeviceId = 0;
 
 void printMsg(const char *format, ...) {
   char locBuf[256];
@@ -123,7 +123,8 @@ void dumpRegisters() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.setTxBufferSize(8192);
+  Serial.begin(2000000);
   delay(1000);
 
   printMsg("\n==================================================\n");
@@ -154,6 +155,7 @@ void setup() {
 
   // 3. Đọc mã định danh Device ID
   uint8_t devId = ads1292r::ads1292GetDeviceID(PIN_ADS_CS);
+  cachedDeviceId = devId;
   printMsg("-> Mã Device ID đọc được: 0x%02X\n", devId);
 
   if (devId == 0x73) {
@@ -176,6 +178,10 @@ void setup() {
 
   // In toàn bộ giá trị thanh ghi sau khi cấu hình và kích hoạt chuyển đổi
   dumpRegisters();
+  if (!beginAcquisition(PIN_ADS_DRDY, PIN_ADS_CS)) {
+    printMsg("[ERROR] Cannot start ADC acquisition task/queue.\n");
+    while (true) delay(1000);
+  }
 }
 
 unsigned long lastSamplePrint = 0;
@@ -291,11 +297,16 @@ void loop() {
       resetCalibration();
     } else if (cmd == 'r' || cmd == 'R') {
       printMsg("\n[ADS1292R] Đang khởi tạo lại chip phần cứng...\n");
+      lockAcquisitionSpi();
       ads1292r::ads1292Init(adsSpiBus, PIN_ADS_CS, PIN_ADS_PWDN, PIN_ADS_START);
+      cachedDeviceId = ads1292r::ads1292GetDeviceID(PIN_ADS_CS);
       dumpRegisters();
+      unlockAcquisitionSpi();
       resetCalibration();
     } else if (cmd == 'd' || cmd == 'D') {
+      lockAcquisitionSpi();
       dumpRegisters();
+      unlockAcquisitionSpi();
     } else if (cmd == 'f' || cmd == 'F') {
       filterEnabled = !filterEnabled;
       resetCalibration();
@@ -310,7 +321,7 @@ void loop() {
       if (sensitivityMultiplier < 0.1f) sensitivityMultiplier = 0.1f;
       printMsg("\n[ĐỘ NHẠY] Giảm nhạy xuống x%.2f\n\n", sensitivityMultiplier);
     } else if (cmd == 's' || cmd == '?') {
-      uint8_t currentId = ads1292r::ads1292GetDeviceID(PIN_ADS_CS);
+      uint8_t currentId = cachedDeviceId;
       float effG = noiseThreshold / sensitivityMultiplier;
       if (effG < 0.8f) effG = 0.8f;
       printMsg("\n=======================================================\n");
@@ -327,14 +338,13 @@ void loop() {
   }
 
   // Đọc một mẫu mới mỗi khi DRDY báo dữ liệu sẵn sàng (2000 SPS / 2 kSPS).
-  if (ads1292.getAds1292EcgAndRespirationSamples(PIN_ADS_DRDY, PIN_ADS_CS,
-                                                 &ecgData)) {
-    sampleCounter++;
+  AcquiredSample sample;
+  if (receiveSample(sample)) {
+    sampleCounter = sample.sequence;
 
     // Đọc đồng thời 2 kênh (giữ cả 24-bit gốc cho dataset và 16-bit cho DSP)
-    int32_t ch1_raw24 = ecgData.sDaqVals[0];
-    int32_t ch2_raw24 = ecgData.sDaqVals[1];
-    int32_t ch1_16 = (int32_t)(ch1_raw24 >> 8);
+    int32_t ch1_raw24 = sample.ch1;
+    int32_t ch2_raw24 = sample.ch2;
     int32_t ch2_16 = (int32_t)(ch2_raw24 >> 8);
 
     // KÊNH ĐIỆN CƠ CHÍNH: Cố định cứng Kênh 2 (Kênh gắn điện cực Biceps), không chuyển kênh động
@@ -362,13 +372,13 @@ void loop() {
       emgSignal = (float)emgRaw - dcOffset;
     }
 
-    // Thời gian lấy mẫu phần cứng chính xác tới microgiây (Hardware Timestamp)
-    uint32_t sampleTimeUs = (uint32_t)esp_timer_get_time();
+    // Timestamp captured in the DRDY ISR, before SPI, DSP and UART delays.
+    uint32_t sampleTimeUs = sample.timestampUs;
 
     // 1. STREAM TOÀN BỘ MẪU DATASET 2000 SPS VỚI TIMESTAMP PHẦN CỨNG VI GIÂY CHÍNH XÁC
     // Định dạng: $D,sampleIndex,timestampUs,ch1_raw24,ch2_raw24,ch2_raw16,filtered16,leadOff
     Serial.printf("$D,%u,%lu,%ld,%ld,%ld,%ld,%d\n",
-                  sampleCounter, (unsigned long)sampleTimeUs, (long)ch1_raw24, (long)ch2_raw24, (long)emgRaw, (long)emgSignal, ecgData.leadoffDetected ? 1 : 0);
+                  sampleCounter, (unsigned long)sampleTimeUs, (long)ch1_raw24, (long)ch2_raw24, (long)emgRaw, (long)emgSignal, sample.leadOff ? 1 : 0);
 
     // 5. Tính bao hình lực cơ (Chỉnh lưu Rectify + Lọc làm mượt ~75ms @ Fs=2000Hz)
     float emgRectified = fabsf(emgSignal);
@@ -460,12 +470,27 @@ void loop() {
     }
   }
 
+  // Independent ADC statistics: rates over the actual elapsed interval.
+  static uint32_t statsTime = millis();
+  static AcquisitionStats previousStats = acquisitionStats();
+  const uint32_t nowMs = millis();
+  if (nowMs - statsTime >= 1000) {
+    const AcquisitionStats current = acquisitionStats();
+    const float scale = 1000.0f / (nowMs - statsTime);
+    printMsg("[SPS] DRDY=%.1f READ=%.1f ADC_MISSED=%lu QUEUE_DROP=%lu\n",
+             (current.edges - previousStats.edges) * scale,
+             (current.captured - previousStats.captured) * scale,
+             (unsigned long)current.missed, (unsigned long)current.queueDrops);
+    previousStats = current;
+    statsTime = nowMs;
+  }
+
   // Nếu chân DRDY chưa được nối hoặc kiểm tra định kỳ mỗi 3 giây
   static unsigned long lastCheckTime = 0;
   if (millis() - lastCheckTime > 3000) {
     lastCheckTime = millis();
     if (sampleCounter == 0) {
-      uint8_t currentId = ads1292r::ads1292GetDeviceID(PIN_ADS_CS);
+      uint8_t currentId = cachedDeviceId;
       printMsg(
           "[Chờ mẫu] Chưa thấy xung DRDY (GPIO %d = %d) | Device ID = 0x%02X\n",
           PIN_ADS_DRDY, digitalRead(PIN_ADS_DRDY), currentId);

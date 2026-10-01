@@ -289,6 +289,9 @@ boolean ads1292r::getAds1292EcgAndRespirationSamples(const int dataReady, const 
     digitalWrite(chipSelect, HIGH);
     _spi->endTransaction();
 
+    // Reject corrupt/misaligned frames (ADS1292 status begins with 1100).
+    if ((rxBuf[0] & 0xF0) != 0xC0) return false;
+
     // 1. Channel 1 (Respiration / Ch1): Bytes 3, 4, 5 (24-bit signed 2's complement)
     int32_t ch1 = ((uint32_t)rxBuf[3] << 16) | ((uint32_t)rxBuf[4] << 8) | rxBuf[5];
     if (ch1 & 0x00800000) {
