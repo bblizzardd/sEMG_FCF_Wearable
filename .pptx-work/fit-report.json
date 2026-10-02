@@ -1,0 +1,1631 @@
+﻿[
+    {
+        "slide":  52,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  52,
+        "name":  "TextBox 4",
+        "text":  "TIẾN ĐỘ MPU6050 VÀ ADS1292R · 02/10/2026",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  379.875031
+    },
+    {
+        "slide":  52,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "52",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  52,
+        "name":  "table-1-1",
+        "text":  "Hạng mục",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  124,
+        "boundWidth":  75.87504
+    },
+    {
+        "slide":  52,
+        "name":  "table-1-2",
+        "text":  "MPU6050 · dev-mpu",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  254,
+        "boundWidth":  153.5
+    },
+    {
+        "slide":  52,
+        "name":  "table-1-3",
+        "text":  "ADS1292R · binhdev-ads",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  254.39999389648438,
+        "boundWidth":  182.875046
+    },
+    {
+        "slide":  52,
+        "name":  "table-2-1",
+        "text":  "Tín hiệu",
+        "height":  63,
+        "boundHeight":  19.2,
+        "width":  124,
+        "boundWidth":  60.62504
+    },
+    {
+        "slide":  52,
+        "name":  "table-2-2",
+        "text":  "Gia tốc, vận tốc góc, nhiệt độ; nút bấm",
+        "height":  63,
+        "boundHeight":  38.4,
+        "width":  254,
+        "boundWidth":  240.75
+    },
+    {
+        "slide":  52,
+        "name":  "table-2-3",
+        "text":  "Hai kênh điện thế sinh học 24 bit",
+        "height":  63,
+        "boundHeight":  19.2,
+        "width":  254.39999389648438,
+        "boundWidth":  236.125046
+    },
+    {
+        "slide":  52,
+        "name":  "table-3-1",
+        "text":  "Thu dữ liệu",
+        "height":  63,
+        "boundHeight":  19.2,
+        "width":  124,
+        "boundWidth":  83.75
+    },
+    {
+        "slide":  52,
+        "name":  "table-3-2",
+        "text":  "I²C; đọc định kỳ 100 Hz",
+        "height":  63,
+        "boundHeight":  19.2,
+        "width":  254,
+        "boundWidth":  169.5
+    },
+    {
+        "slide":  52,
+        "name":  "table-3-3",
+        "text":  "SPI; ngắt DRDY, mục tiêu 2.000 SPS",
+        "height":  63,
+        "boundHeight":  38.4,
+        "width":  254.39999389648438,
+        "boundWidth":  227.875046
+    },
+    {
+        "slide":  52,
+        "name":  "table-4-1",
+        "text":  "Công cụ đã có",
+        "height":  63,
+        "boundHeight":  19.2,
+        "width":  124,
+        "boundWidth":  103.875038
+    },
+    {
+        "slide":  52,
+        "name":  "table-4-2",
+        "text":  "CSV, 4 hình PNG, dashboard HTML tương tác",
+        "height":  63,
+        "boundHeight":  38.4,
+        "width":  254,
+        "boundWidth":  254.25
+    },
+    {
+        "slide":  52,
+        "name":  "table-4-3",
+        "text":  "CSV đầy đủ, web trực tiếp, DSP và phân tích offline",
+        "height":  63,
+        "boundHeight":  38.4,
+        "width":  254.39999389648438,
+        "boundWidth":  246.875046
+    },
+    {
+        "slide":  52,
+        "name":  "TextBox 2",
+        "text":  "Hai nhánh đã có luồng thu và quan sát dữ liệu riêng. Chưa tích hợp thu đồng thời MPU + ADS, đồng bộ timestamp, đếm rep tự động hoặc model FCF/RIR trên ESP32.",
+        "height":  80,
+        "boundHeight":  40.8,
+        "width":  662.4,
+        "boundWidth":  665.375061
+    },
+    {
+        "slide":  53,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  53,
+        "name":  "TextBox 4",
+        "text":  "MPU6050 · THU CHUYỂN ĐỘNG VÀ ĐÁNH DẤU THAO TÁC",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  477.875031
+    },
+    {
+        "slide":  53,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "53",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  53,
+        "name":  "table-1-1",
+        "text":  "Phần đã làm",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  153,
+        "boundWidth":  90.37504
+    },
+    {
+        "slide":  53,
+        "name":  "table-1-2",
+        "text":  "Cấu hình hiện tại",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  175,
+        "boundWidth":  123.25
+    },
+    {
+        "slide":  53,
+        "name":  "table-1-3",
+        "text":  "Vì sao cần",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  304.39999389648438,
+        "boundWidth":  76.12504
+    },
+    {
+        "slide":  53,
+        "name":  "table-2-1",
+        "text":  "Giao tiếp trực tiếp",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  153,
+        "boundWidth":  132.875046
+    },
+    {
+        "slide":  53,
+        "name":  "table-2-2",
+        "text":  "ESP32-S3; I²C 100 kHz; địa chỉ 0x68",
+        "height":  44,
+        "boundHeight":  38.4,
+        "width":  175,
+        "boundWidth":  170.625046
+    },
+    {
+        "slide":  53,
+        "name":  "table-2-3",
+        "text":  "Đọc 14 byte chứa accel, gyro và nhiệt độ",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  304.39999389648438,
+        "boundWidth":  291.75
+    },
+    {
+        "slide":  53,
+        "name":  "table-3-1",
+        "text":  "Dải đo, quy đổi",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  153,
+        "boundWidth":  110.375038
+    },
+    {
+        "slide":  53,
+        "name":  "table-3-2",
+        "text":  "Accel ±4 g; gyro ±500 °/s",
+        "height":  44,
+        "boundHeight":  38.4,
+        "width":  175,
+        "boundWidth":  158.625046
+    },
+    {
+        "slide":  53,
+        "name":  "table-3-3",
+        "text":  "Chuyển số nguyên ADC thành g và °/s",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  304.39999389648438,
+        "boundWidth":  274.375031
+    },
+    {
+        "slide":  53,
+        "name":  "table-4-1",
+        "text":  "Nhịp đọc",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  153,
+        "boundWidth":  68
+    },
+    {
+        "slide":  53,
+        "name":  "table-4-2",
+        "text":  "100 Hz; chu kỳ 10 ms",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  175,
+        "boundWidth":  156.375046
+    },
+    {
+        "slide":  53,
+        "name":  "table-4-3",
+        "text":  "Tạo chuỗi chuyển động theo thời gian",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  304.39999389648438,
+        "boundWidth":  269.875031
+    },
+    {
+        "slide":  53,
+        "name":  "table-5-1",
+        "text":  "Nút đánh dấu",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  153,
+        "boundWidth":  99.87504
+    },
+    {
+        "slide":  53,
+        "name":  "table-5-2",
+        "text":  "GPIO 5; nhấn = 1",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  175,
+        "boundWidth":  125.75
+    },
+    {
+        "slide":  53,
+        "name":  "table-5-3",
+        "text":  "Đối chiếu tín hiệu với thao tác thủ công",
+        "height":  44,
+        "boundHeight":  19.2,
+        "width":  304.39999389648438,
+        "boundWidth":  281.25
+    },
+    {
+        "slide":  53,
+        "name":  "TextBox 2",
+        "text":  "SDA = GPIO 18, SCL = GPIO 17; Serial = 921.600 baud. Khởi tạo cảm biến, đặt dải đo và đọc thanh ghi trong main.cpp. Chỉ xuất một dòng CSV khi đọc dữ liệu thành công.",
+        "height":  90,
+        "boundHeight":  40.8,
+        "width":  662.4,
+        "boundWidth":  664.125061
+    },
+    {
+        "slide":  54,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  54,
+        "name":  "TextBox 4",
+        "text":  "MPU6050 · DỮ LIỆU VÀ CÔNG CỤ TRỰC QUAN HÓA",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  423.375031
+    },
+    {
+        "slide":  54,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "54",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  54,
+        "name":  "TextBox 5",
+        "text":  "Trục X trong dữ liệu có sẵn: gia tốc (xanh) và vận tốc góc (cam); khoảng thời gian 0–60,65 s.",
+        "height":  38,
+        "boundHeight":  16.8,
+        "width":  662.4,
+        "boundWidth":  564
+    },
+    {
+        "slide":  54,
+        "name":  "table-1-1",
+        "text":  "6.066 mẫu",
+        "height":  54,
+        "boundHeight":  20.4,
+        "width":  210.80000305175781,
+        "boundWidth":  84.25
+    },
+    {
+        "slide":  54,
+        "name":  "table-1-2",
+        "text":  "60,65 giây",
+        "height":  54,
+        "boundHeight":  20.4,
+        "width":  210.80000305175781,
+        "boundWidth":  82.75
+    },
+    {
+        "slide":  54,
+        "name":  "table-1-3",
+        "text":  "Δtimestamp = 10 ms",
+        "height":  54,
+        "boundHeight":  20.4,
+        "width":  210.80000305175781,
+        "boundWidth":  160.25
+    },
+    {
+        "slide":  54,
+        "name":  "TextBox 7",
+        "text":  "Recorder lưu CSV 9 cột. Bộ phân tích tạo 4 PNG và dashboard Plotly: xem từng trục, độ lớn vector, nút bấm, phân bố, tương quan và phổ tần số.",
+        "height":  52,
+        "boundHeight":  38.4,
+        "width":  662.4,
+        "boundWidth":  646.75
+    },
+    {
+        "slide":  55,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  55,
+        "name":  "TextBox 4",
+        "text":  "MPU6050 · VAI TRÒ VÀ GIỚI HẠN HIỆN TẠI",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  350.375031
+    },
+    {
+        "slide":  55,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "55",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  55,
+        "name":  "TextBox 1",
+        "text":  "Luồng IMU giúp quan sát chuyển động và đối chiếu dấu nút bấm; là nền để phát triển tách rep và rep-count baseline.\rChưa có thuật toán đếm rep, tính velocity loss, hiệu chuẩn IMU hoặc loại trọng lực trong firmware này.\rKalmanFilter.h đã có trong repo nhưng chưa được gọi trong main của cả hai nhánh.\rĐồ thị 3D biểu diễn vector gia tốc, chưa phải quỹ đạo vị trí. Dashboard là phân tích file đã ghi.\rChưa có FIFO, sequence hay bộ đếm mất mẫu cho MPU; cần bổ sung trước khi đồng bộ với ADS.",
+        "height":  327,
+        "boundHeight":  268,
+        "width":  662.4,
+        "boundWidth":  633.625061
+    },
+    {
+        "slide":  56,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  56,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · CẤU HÌNH VÀ LUỒNG DỮ LIỆU",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  350.125031
+    },
+    {
+        "slide":  56,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "56",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  56,
+        "name":  "Rectangle 1",
+        "text":  "ADS1292R\n2 kênh 24 bit",
+        "height":  72,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  85.12496
+    },
+    {
+        "slide":  56,
+        "name":  "Rectangle 5",
+        "text":  "DRDY + SPI\nthu mẫu",
+        "height":  72,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  77.62496
+    },
+    {
+        "slide":  56,
+        "name":  "Rectangle 7",
+        "text":  "Hàng đợi\n512 mẫu",
+        "height":  72,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  59.87504
+    },
+    {
+        "slide":  56,
+        "name":  "Rectangle 9",
+        "text":  "DSP trên ESP\nSerial 2 Mbaud",
+        "height":  72,
+        "boundHeight":  33.6,
+        "width":  121.280075,
+        "boundWidth":  96.25
+    },
+    {
+        "slide":  56,
+        "name":  "Rectangle 11",
+        "text":  "Máy tính\nCSV / web",
+        "height":  72,
+        "boundHeight":  33.6,
+        "width":  121.279922,
+        "boundWidth":  70
+    },
+    {
+        "slide":  56,
+        "name":  "table-1-1",
+        "text":  "Hạng mục",
+        "height":  29,
+        "boundHeight":  20.4,
+        "width":  150,
+        "boundWidth":  80.75
+    },
+    {
+        "slide":  56,
+        "name":  "table-1-2",
+        "text":  "Thiết lập trong code",
+        "height":  29,
+        "boundHeight":  20.4,
+        "width":  492.39999389648438,
+        "boundWidth":  156.625046
+    },
+    {
+        "slide":  56,
+        "name":  "table-2-1",
+        "text":  "ADC",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  150,
+        "boundWidth":  40.12504
+    },
+    {
+        "slide":  56,
+        "name":  "table-2-2",
+        "text":  "2.000 SPS; PGA gain 4; lưu raw của cả hai kênh",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  492.39999389648438,
+        "boundWidth":  358.25
+    },
+    {
+        "slide":  56,
+        "name":  "table-3-1",
+        "text":  "SPI",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  150,
+        "boundWidth":  28.62504
+    },
+    {
+        "slide":  56,
+        "name":  "table-3-2",
+        "text":  "1 MHz, MODE1; CS 10, SCK 12, MOSI 11, MISO 13",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  492.39999389648438,
+        "boundWidth":  394.625031
+    },
+    {
+        "slide":  56,
+        "name":  "table-4-1",
+        "text":  "Điều khiển",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  150,
+        "boundWidth":  85.25
+    },
+    {
+        "slide":  56,
+        "name":  "table-4-2",
+        "text":  "PWDN 9, START 8, DRDY 4",
+        "height":  31.333305358886719,
+        "boundHeight":  20.4,
+        "width":  492.39999389648438,
+        "boundWidth":  215.75
+    },
+    {
+        "slide":  56,
+        "name":  "TextBox 13",
+        "text":  "Giữ raw 24 bit để có thể xử lý lại. Kênh 2 được dịch phải 8 bit rồi qua DSP; giá trị raw/filtered trong CSV là ADC counts, chưa phải mV đã hiệu chuẩn.",
+        "height":  70,
+        "boundHeight":  40.8,
+        "width":  662.4,
+        "boundWidth":  607.375061
+    },
+    {
+        "slide":  57,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  57,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · VÌ SAO CÓ SAMPLEACQUISITION?",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  375.5
+    },
+    {
+        "slide":  57,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "57",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  57,
+        "name":  "Rectangle 1",
+        "text":  "Ngắt DRDY\nsequence + μs",
+        "height":  75,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  91.5
+    },
+    {
+        "slide":  57,
+        "name":  "Rectangle 5",
+        "text":  "Task core 0\nđọc SPI",
+        "height":  75,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  74.5
+    },
+    {
+        "slide":  57,
+        "name":  "Rectangle 7",
+        "text":  "Kiểm frame\nhợp lệ",
+        "height":  75,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  74.62496
+    },
+    {
+        "slide":  57,
+        "name":  "Rectangle 9",
+        "text":  "Queue 512\nkhông chờ",
+        "height":  75,
+        "boundHeight":  33.6,
+        "width":  121.280075,
+        "boundWidth":  73.12496
+    },
+    {
+        "slide":  57,
+        "name":  "Rectangle 11",
+        "text":  "main.cpp\nlọc / xuất",
+        "height":  75,
+        "boundHeight":  33.6,
+        "width":  121.279922,
+        "boundWidth":  61.87504
+    },
+    {
+        "slide":  57,
+        "name":  "TextBox 12",
+        "text":  "Tách việc đọc ADC khỏi lọc và gửi Serial để giảm nguy cơ đọc trễ mẫu kế tiếp.\rISR chỉ ghi sequence, timestamp và đánh thức task; tác vụ thu mẫu đọc SPI dưới mutex.\rHàng đợi 512 mẫu tương đương 256 ms ở 2.000 SPS; khi đầy, ghi nhận QUEUE_DROP.\rADC_MISSED đếm cạnh bị bỏ qua hoặc frame không hợp lệ; [SPS] báo nhịp DRDY và nhịp đọc.\rCó thể phát hiện mất mẫu; hàng đợi không phục hồi mẫu ADC đã bị bỏ lỡ.",
+        "height":  231,
+        "boundHeight":  212.8,
+        "width":  662.4,
+        "boundWidth":  654.25
+    },
+    {
+        "slide":  58,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  58,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · CHUỖI LỌC SỐ ĐÃ TRIỂN KHAI",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  350.125031
+    },
+    {
+        "slide":  58,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "58",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  58,
+        "name":  "Rectangle 1",
+        "text":  "Kênh 2",
+        "height":  62,
+        "boundHeight":  16.8,
+        "width":  121.28,
+        "boundWidth":  47.5
+    },
+    {
+        "slide":  58,
+        "name":  "Rectangle 5",
+        "text":  "High-pass\n20 Hz",
+        "height":  62,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  64.87504
+    },
+    {
+        "slide":  58,
+        "name":  "Rectangle 7",
+        "text":  "Notch\n50 Hz",
+        "height":  62,
+        "boundHeight":  33.6,
+        "width":  121.28,
+        "boundWidth":  41.75
+    },
+    {
+        "slide":  58,
+        "name":  "Rectangle 9",
+        "text":  "Notch\n100 Hz",
+        "height":  62,
+        "boundHeight":  33.6,
+        "width":  121.280075,
+        "boundWidth":  48.75
+    },
+    {
+        "slide":  58,
+        "name":  "Rectangle 11",
+        "text":  "Low-pass\n450 Hz",
+        "height":  62,
+        "boundHeight":  33.6,
+        "width":  121.279922,
+        "boundWidth":  62
+    },
+    {
+        "slide":  58,
+        "name":  "table-1-1",
+        "text":  "Tầng",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  140,
+        "boundWidth":  39.12504
+    },
+    {
+        "slide":  58,
+        "name":  "table-1-2",
+        "text":  "Thiết kế",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  160,
+        "boundWidth":  62
+    },
+    {
+        "slide":  58,
+        "name":  "table-1-3",
+        "text":  "Tác dụng",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  332.39999389648438,
+        "boundWidth":  68.87504
+    },
+    {
+        "slide":  58,
+        "name":  "table-2-1",
+        "text":  "High-pass",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  140,
+        "boundWidth":  74.25
+    },
+    {
+        "slide":  58,
+        "name":  "table-2-2",
+        "text":  "Butterworth bậc 2",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  160,
+        "boundWidth":  133.625046
+    },
+    {
+        "slide":  58,
+        "name":  "table-2-3",
+        "text":  "Giảm DC và thành phần chậm dưới dải mục tiêu",
+        "height":  43,
+        "boundHeight":  38.4,
+        "width":  332.39999389648438,
+        "boundWidth":  309
+    },
+    {
+        "slide":  58,
+        "name":  "table-3-1",
+        "text":  "Notch 50 / 100",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  140,
+        "boundWidth":  113.625038
+    },
+    {
+        "slide":  58,
+        "name":  "table-3-2",
+        "text":  "Hai biquad; r = 0,98",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  160,
+        "boundWidth":  143.125046
+    },
+    {
+        "slide":  58,
+        "name":  "table-3-3",
+        "text":  "Giảm thành phần quanh điện lưới và hài 100 Hz",
+        "height":  43,
+        "boundHeight":  38.4,
+        "width":  332.39999389648438,
+        "boundWidth":  315.125031
+    },
+    {
+        "slide":  58,
+        "name":  "table-4-1",
+        "text":  "Low-pass",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  140,
+        "boundWidth":  70.87504
+    },
+    {
+        "slide":  58,
+        "name":  "table-4-2",
+        "text":  "Butterworth bậc 2",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  160,
+        "boundWidth":  133.625046
+    },
+    {
+        "slide":  58,
+        "name":  "table-4-3",
+        "text":  "Giảm thành phần cao tần trên dải mục tiêu",
+        "height":  43,
+        "boundHeight":  19.2,
+        "width":  332.39999389648438,
+        "boundWidth":  302.875031
+    },
+    {
+        "slide":  58,
+        "name":  "TextBox 13",
+        "text":  "Fs = 2.000 Hz; mỗi tầng giữ lịch sử mẫu riêng. Lọc giảm cả phần tín hiệu thật quanh tần số chặn; chưa có phép đo SNR trước/sau để kết luận ADS đã hết nhiễu.",
+        "height":  54,
+        "boundHeight":  38.4,
+        "width":  662.4,
+        "boundWidth":  634
+    },
+    {
+        "slide":  59,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  59,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · DỌN MAIN VÀ TẬP TRUNG THAM SỐ",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  401.5
+    },
+    {
+        "slide":  59,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "59",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  59,
+        "name":  "table-1-1",
+        "text":  "Biến cấu hình",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  99.75
+    },
+    {
+        "slide":  59,
+        "name":  "table-1-2",
+        "text":  "Mặc định",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  70
+    },
+    {
+        "slide":  59,
+        "name":  "table-1-3",
+        "text":  "Khi thay đổi",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  89.87504
+    },
+    {
+        "slide":  59,
+        "name":  "table-2-1",
+        "text":  "fs",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  16.62504
+    },
+    {
+        "slide":  59,
+        "name":  "table-2-2",
+        "text":  "2.000 Hz",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  68.5
+    },
+    {
+        "slide":  59,
+        "name":  "table-2-3",
+        "text":  "Cập nhật tốc độ ADC và hệ số DSP",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  250.75
+    },
+    {
+        "slide":  59,
+        "name":  "table-3-1",
+        "text":  "f0 / fc",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  47.75
+    },
+    {
+        "slide":  59,
+        "name":  "table-3-2",
+        "text":  "20 / 450 Hz",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  89.5
+    },
+    {
+        "slide":  59,
+        "name":  "table-3-3",
+        "text":  "Tần số cắt high-pass / low-pass",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  224.75
+    },
+    {
+        "slide":  59,
+        "name":  "table-4-1",
+        "text":  "DC_filter_50",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  93.62504
+    },
+    {
+        "slide":  59,
+        "name":  "table-4-2",
+        "text":  "50 Hz",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  46.25
+    },
+    {
+        "slide":  59,
+        "name":  "table-4-3",
+        "text":  "Tâm notch thứ nhất",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  143.625046
+    },
+    {
+        "slide":  59,
+        "name":  "table-5-1",
+        "text":  "DC_filter_100",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  102.875038
+    },
+    {
+        "slide":  59,
+        "name":  "table-5-2",
+        "text":  "100 Hz",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  55.5
+    },
+    {
+        "slide":  59,
+        "name":  "table-5-3",
+        "text":  "Tâm notch thứ hai",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  132.875046
+    },
+    {
+        "slide":  59,
+        "name":  "table-6-1",
+        "text":  "NOTCH_RADIUS",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  189,
+        "boundWidth":  126.875038
+    },
+    {
+        "slide":  59,
+        "name":  "table-6-2",
+        "text":  "0,98",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  109,
+        "boundWidth":  35.5
+    },
+    {
+        "slide":  59,
+        "name":  "table-6-3",
+        "text":  "Điều chỉnh độ hẹp của notch",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  334.39999389648438,
+        "boundWidth":  205.625046
+    },
+    {
+        "slide":  59,
+        "name":  "TextBox 2",
+        "text":  "Tính b0, b1, b2, a1, a2 một lần từ tham số; dùng chung lớp Biquad để giảm lặp code.\rThêm ghi chú trước hàm; kiểm tra cấu hình bằng static_assert; bỏ dump thanh ghi và thông báo khởi tạo Serial theo yêu cầu.\rĐổi fs rồi build/nạp lại; cần đối chiếu baud, QC Python và thời gian đáp ứng các EMA.",
+        "height":  118,
+        "boundHeight":  96.8,
+        "width":  662.4,
+        "boundWidth":  640.5
+    },
+    {
+        "slide":  60,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  60,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · GHI ĐẦY ĐỦ VÀ HIỂN THỊ TRỰC TIẾP",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  397.875031
+    },
+    {
+        "slide":  60,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "60",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  60,
+        "name":  "table-1-1",
+        "text":  "Thành phần",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  180,
+        "boundWidth":  87.75
+    },
+    {
+        "slide":  60,
+        "name":  "table-1-2",
+        "text":  "Đã triển khai",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  240,
+        "boundWidth":  95.5
+    },
+    {
+        "slide":  60,
+        "name":  "table-1-3",
+        "text":  "Vì sao cần",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  212.39999389648438,
+        "boundWidth":  76.12504
+    },
+    {
+        "slide":  60,
+        "name":  "table-2-1",
+        "text":  "Luồng $D → CSV",
+        "height":  42.75,
+        "boundHeight":  19.2,
+        "width":  180,
+        "boundWidth":  127.625038
+    },
+    {
+        "slide":  60,
+        "name":  "table-2-2",
+        "text":  "Sequence, timestamp μs, raw 2 kênh, filtered, lead-off",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  240,
+        "boundWidth":  222.5
+    },
+    {
+        "slide":  60,
+        "name":  "table-2-3",
+        "text":  "Lưu mọi mẫu nhận hợp lệ; giữ dữ liệu để xử lý lại",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  212.39999389648438,
+        "boundWidth":  213.25
+    },
+    {
+        "slide":  60,
+        "name":  "table-3-1",
+        "text":  "SampleClock",
+        "height":  42.75,
+        "boundHeight":  19.2,
+        "width":  180,
+        "boundWidth":  94.5
+    },
+    {
+        "slide":  60,
+        "name":  "table-3-2",
+        "text":  "Phát hiện gap, duplicate, wrap uint32 và reboot",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  240,
+        "boundWidth":  215.5
+    },
+    {
+        "slide":  60,
+        "name":  "table-3-3",
+        "text":  "Phân biệt mất mẫu với tràn timestamp",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  212.39999389648438,
+        "boundWidth":  194.5
+    },
+    {
+        "slide":  60,
+        "name":  "table-4-1",
+        "text":  "Web localhost:8765",
+        "height":  42.75,
+        "boundHeight":  19.2,
+        "width":  180,
+        "boundWidth":  146.25
+    },
+    {
+        "slide":  60,
+        "name":  "table-4-2",
+        "text":  "Raw/filtered, envelope, mức nền, SPS, ghi CSV và lệnh",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  240,
+        "boundWidth":  237.75
+    },
+    {
+        "slide":  60,
+        "name":  "table-4-3",
+        "text":  "Theo dõi tín hiệu trong lúc thu",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  212.39999389648438,
+        "boundWidth":  189.625046
+    },
+    {
+        "slide":  60,
+        "name":  "table-5-1",
+        "text":  "Telemetry / UI",
+        "height":  42.75,
+        "boundHeight":  19.2,
+        "width":  180,
+        "boundWidth":  107.625038
+    },
+    {
+        "slide":  60,
+        "name":  "table-5-2",
+        "text":  "Telemetry khoảng 50 Hz; vẽ khoảng 25 Hz",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  240,
+        "boundWidth":  202.625046
+    },
+    {
+        "slide":  60,
+        "name":  "table-5-3",
+        "text":  "Giảm tải hiển thị so với luồng mẫu đầy đủ",
+        "height":  42.75,
+        "boundHeight":  38.4,
+        "width":  212.39999389648438,
+        "boundWidth":  208.75
+    },
+    {
+        "slide":  60,
+        "name":  "TextBox 2",
+        "text":  "Recorder và web dùng dữ liệu mẫu để tính tốc độ thực nhận. Đồ thị xem nhanh đã giảm số điểm; CSV giữ mọi dòng $D hợp lệ nhận được. Cần xem sequence để kiểm tra tính liên tục.",
+        "height":  89,
+        "boundHeight":  61.2,
+        "width":  662.4,
+        "boundWidth":  657.125061
+    },
+    {
+        "slide":  61,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 4",
+        "text":  "ADS1292R · MỨC KÍCH HOẠT VÀ PHÂN TÍCH OFFLINE",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  439.5
+    },
+    {
+        "slide":  61,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "61",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 1",
+        "text":  "Trên ESP32",
+        "height":  30,
+        "boundHeight":  21.6,
+        "width":  307,
+        "boundWidth":  98.37504
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 2",
+        "text":  "Chỉnh lưu |filtered| rồi EMA để tạo đường bao dễ quan sát.\rƯớc lượng mức nghỉ, ngưỡng nhiễu và peak; chuẩn hóa thành mức kích hoạt 0–100%.\rCó hiệu chuẩn mức nghỉ và chỉnh độ nhạy; phần trăm chưa phải lực hoặc %MVC.",
+        "height":  268,
+        "boundHeight":  183.2,
+        "width":  307,
+        "boundWidth":  292.375031
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 5",
+        "text":  "Trên máy tính",
+        "height":  30,
+        "boundHeight":  21.6,
+        "width":  320,
+        "boundWidth":  115.75
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 6",
+        "text":  "analyze_semg.py xử lý lại raw, lọc offline và xuất CSV đã lọc.\rTính RMS, MAV, WL, ZC, SSC, SSI; xem MDF và MNF theo cửa sổ.\rCông cụ khảo sát; ngưỡng suy luận mỏi và xử lý gap cần kiểm định trước khi dùng nghiên cứu.",
+        "height":  268,
+        "boundHeight":  162.8,
+        "width":  320,
+        "boundWidth":  306.375031
+    },
+    {
+        "slide":  61,
+        "name":  "TextBox 7",
+        "text":  "Chưa triển khai 54 đặc trưng + Random Forest hoặc baseline suy luận trên chip.",
+        "height":  24,
+        "boundHeight":  16.8,
+        "width":  662.4,
+        "boundWidth":  491.625031
+    },
+    {
+        "slide":  62,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  62,
+        "name":  "TextBox 4",
+        "text":  "KIỂM TRA ĐÃ LÀM · BUILD VÀ LOGIC THU DỮ LIỆU",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  412.25
+    },
+    {
+        "slide":  62,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "62",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  62,
+        "name":  "table-1-1",
+        "text":  "Hạng mục",
+        "height":  29,
+        "boundHeight":  20.4,
+        "width":  225,
+        "boundWidth":  80.75
+    },
+    {
+        "slide":  62,
+        "name":  "table-1-2",
+        "text":  "MPU6050",
+        "height":  29,
+        "boundHeight":  20.4,
+        "width":  197,
+        "boundWidth":  82.87504
+    },
+    {
+        "slide":  62,
+        "name":  "table-1-3",
+        "text":  "ADS1292R",
+        "height":  29,
+        "boundHeight":  20.4,
+        "width":  210.39999389648438,
+        "boundWidth":  88.5
+    },
+    {
+        "slide":  62,
+        "name":  "table-2-1",
+        "text":  "Biên dịch PlatformIO",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  225,
+        "boundWidth":  161.125046
+    },
+    {
+        "slide":  62,
+        "name":  "table-2-2",
+        "text":  "SUCCESS",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  197,
+        "boundWidth":  77.25
+    },
+    {
+        "slide":  62,
+        "name":  "table-2-3",
+        "text":  "SUCCESS sau sửa bộ lọc",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  210.39999389648438,
+        "boundWidth":  187.625046
+    },
+    {
+        "slide":  62,
+        "name":  "table-3-1",
+        "text":  "RAM tĩnh báo bởi build",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  225,
+        "boundWidth":  177.25
+    },
+    {
+        "slide":  62,
+        "name":  "table-3-2",
+        "text":  "18.928 byte",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  197,
+        "boundWidth":  95.5
+    },
+    {
+        "slide":  62,
+        "name":  "table-3-3",
+        "text":  "19.652 byte",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  210.39999389648438,
+        "boundWidth":  95.5
+    },
+    {
+        "slide":  62,
+        "name":  "table-4-1",
+        "text":  "Flash báo bởi build",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  225,
+        "boundWidth":  144.75
+    },
+    {
+        "slide":  62,
+        "name":  "table-4-2",
+        "text":  "271.937 byte",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  197,
+        "boundWidth":  105.375038
+    },
+    {
+        "slide":  62,
+        "name":  "table-4-3",
+        "text":  "288.893 byte",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  210.39999389648438,
+        "boundWidth":  105.375038
+    },
+    {
+        "slide":  62,
+        "name":  "table-5-1",
+        "text":  "Kiểm thử Python",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  225,
+        "boundWidth":  131.625046
+    },
+    {
+        "slide":  62,
+        "name":  "table-5-2",
+        "text":  "Chưa có test riêng MPU",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  197,
+        "boundWidth":  184.625046
+    },
+    {
+        "slide":  62,
+        "name":  "table-5-3",
+        "text":  "7/7 đạt: clock và recorder",
+        "height":  34,
+        "boundHeight":  20.4,
+        "width":  210.39999389648438,
+        "boundWidth":  197.375046
+    },
+    {
+        "slide":  62,
+        "name":  "TextBox 2",
+        "text":  "Test ADS kiểm tốc độ, mất mẫu, mẫu trùng, tràn uint32, reboot và ghi luồng xen telemetry.\rRAM/Flash thuộc hai cấu hình board khác nhau; chưa phải chi phí model.\rChưa đo jitter, SNR, CMRR, năng lượng, thời lượng pin hoặc checkpoint G3.",
+        "height":  123,
+        "boundHeight":  77.6,
+        "width":  662.4,
+        "boundWidth":  641
+    },
+    {
+        "slide":  63,
+        "name":  "Title 3",
+        "text":  "GIAI ĐOẠN PHẦN CỨNG",
+        "height":  35.57,
+        "boundHeight":  25.92,
+        "width":  682.98,
+        "boundWidth":  285.875031
+    },
+    {
+        "slide":  63,
+        "name":  "TextBox 4",
+        "text":  "VIỆC CÒN LẠI · NHIỄU, ĐỒNG BỘ VÀ CHECKPOINT G3",
+        "height":  30.24,
+        "boundHeight":  20.4,
+        "width":  676.8,
+        "boundWidth":  437.75
+    },
+    {
+        "slide":  63,
+        "name":  "Slide Number Placeholder 5",
+        "text":  "63",
+        "height":  28.75,
+        "boundHeight":  14.4,
+        "width":  162,
+        "boundWidth":  16.87504
+    },
+    {
+        "slide":  63,
+        "name":  "table-1-1",
+        "text":  "Việc tiếp theo",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  192,
+        "boundWidth":  103.625038
+    },
+    {
+        "slide":  63,
+        "name":  "table-1-2",
+        "text":  "Mục đích / bằng chứng cần có",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  276,
+        "boundWidth":  217.875046
+    },
+    {
+        "slide":  63,
+        "name":  "table-1-3",
+        "text":  "Trạng thái",
+        "height":  29,
+        "boundHeight":  19.2,
+        "width":  164.39999389648438,
+        "boundWidth":  76.25
+    },
+    {
+        "slide":  63,
+        "name":  "table-2-1",
+        "text":  "Đo nguồn nhiễu ADS",
+        "height":  57.599998474121094,
+        "boundHeight":  19.2,
+        "width":  192,
+        "boundWidth":  152.625046
+    },
+    {
+        "slide":  63,
+        "name":  "table-2-2",
+        "text":  "Raw/filtered, phổ 50/100 Hz, clip và mất mẫu; đối chiếu điện cực, dây và nguồn",
+        "height":  57.599998474121094,
+        "boundHeight":  57.6,
+        "width":  276,
+        "boundWidth":  261.25
+    },
+    {
+        "slide":  63,
+        "name":  "table-2-3",
+        "text":  "ADS còn nhiễu; chưa định lượng",
+        "height":  57.599998474121094,
+        "boundHeight":  38.4,
+        "width":  164.39999389648438,
+        "boundWidth":  151.5
+    },
+    {
+        "slide":  63,
+        "name":  "table-3-1",
+        "text":  "Kiểm đáp ứng mạch + DSP",
+        "height":  55.5,
+        "boundHeight":  19.2,
+        "width":  192,
+        "boundWidth":  191.5
+    },
+    {
+        "slide":  63,
+        "name":  "table-3-2",
+        "text":  "Đo gain, dải tần, pha và nhiễu bằng tín hiệu tham chiếu",
+        "height":  55.5,
+        "boundHeight":  38.4,
+        "width":  276,
+        "boundWidth":  272.25
+    },
+    {
+        "slide":  63,
+        "name":  "table-3-3",
+        "text":  "Chưa thực hiện G3",
+        "height":  55.5,
+        "boundHeight":  19.2,
+        "width":  164.39999389648438,
+        "boundWidth":  137.75
+    },
+    {
+        "slide":  63,
+        "name":  "table-4-1",
+        "text":  "Đồng bộ MPU + ADS",
+        "height":  55.5,
+        "boundHeight":  19.2,
+        "width":  192,
+        "boundWidth":  154.5
+    },
+    {
+        "slide":  63,
+        "name":  "table-4-2",
+        "text":  "Thu chung clock, gắn sự kiện, tách rep; kiểm sai số thời gian",
+        "height":  55.5,
+        "boundHeight":  38.4,
+        "width":  276,
+        "boundWidth":  275.75
+    },
+    {
+        "slide":  63,
+        "name":  "table-4-3",
+        "text":  "Hai nhánh đang độc lập",
+        "height":  55.5,
+        "boundHeight":  38.4,
+        "width":  164.39999389648438,
+        "boundWidth":  144.125046
+    },
+    {
+        "slide":  63,
+        "name":  "table-5-1",
+        "text":  "Đưa model lên ESP32",
+        "height":  55.5,
+        "boundHeight":  19.2,
+        "width":  192,
+        "boundWidth":  157.5
+    },
+    {
+        "slide":  63,
+        "name":  "table-5-2",
+        "text":  "Chuẩn hóa đặc trưng; đo trễ, RAM, Flash, năng lượng cùng cấu hình",
+        "height":  55.5,
+        "boundHeight":  38.4,
+        "width":  276,
+        "boundWidth":  249.25
+    },
+    {
+        "slide":  63,
+        "name":  "table-5-3",
+        "text":  "Chưa triển khai",
+        "height":  55.5,
+        "boundHeight":  19.2,
+        "width":  164.39999389648438,
+        "boundWidth":  111.875038
+    },
+    {
+        "slide":  63,
+        "name":  "TextBox 2",
+        "text":  "Ưu tiên có bản ghi sạch và liên tục trước khi đánh giá mỏi cơ. Khóa ngưỡng G3 trước lần phát lại đầu tiên theo kế hoạch của nhóm.",
+        "height":  44,
+        "boundHeight":  38.4,
+        "width":  662.4,
+        "boundWidth":  660.25
+    }
+]

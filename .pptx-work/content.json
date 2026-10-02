@@ -1,0 +1,104 @@
+[
+  {
+    "subtitle": "TIẾN ĐỘ MPU6050 VÀ ADS1292R · 02/10/2026",
+    "blocks": [
+      {"type":"table","x":28.8,"y":143,"w":662.4,"h":242,"widths":[134,264,264.4],"size":16,"rows":[["Hạng mục","MPU6050 · dev-mpu","ADS1292R · binhdev-ads"],["Tín hiệu","Gia tốc, vận tốc góc, nhiệt độ; nút bấm","Hai kênh điện thế sinh học 24 bit"],["Thu dữ liệu","I²C; đọc định kỳ 100 Hz","SPI; ngắt DRDY, mục tiêu 2.000 SPS"],["Công cụ đã có","CSV, 4 hình PNG, dashboard HTML tương tác","CSV đầy đủ, web trực tiếp, DSP và phân tích offline"]]},
+      {"type":"text","x":28.8,"y":406,"w":662.4,"h":80,"size":17,"text":"Hai nhánh đã có luồng thu và quan sát dữ liệu riêng. Chưa tích hợp thu đồng thời MPU + ADS, đồng bộ timestamp, đếm rep tự động hoặc model FCF/RIR trên ESP32."}
+    ],
+    "notes":"Phạm vi: code local ngày 02/10/2026. MPU: dev-mpu tại d2aaa81 (finished visualization). ADS: binhdev-ads tại f7ecb98 (update data collecting), cộng các thay đổi local trong src/main.cpp về bộ lọc và dọn debug. Mốc Git: MPU firmware 20/08, thêm button 22/08, hoàn thiện visualization 27/08; ADS tích hợp 28/09, 2000 SPS và offline 30/09, SampleAcquisition 01/10. Đây là báo cáo chức năng từ repo, không xác nhận mọi chức năng đã chạy trên phần cứng. Hai firmware khác nhau, chưa có thu đồng thời. Không suy luận kết quả ML trong phần nghiên cứu cũ từ repo phần cứng này."
+  },
+  {
+    "subtitle": "MPU6050 · THU CHUYỂN ĐỘNG VÀ ĐÁNH DẤU THAO TÁC",
+    "blocks": [
+      {"type":"table","x":28.8,"y":143,"w":662.4,"h":235,"widths":[163,185,314.4],"size":16,"rows":[["Phần đã làm","Cấu hình hiện tại","Vì sao cần"],["Giao tiếp trực tiếp","ESP32-S3; I²C 100 kHz; địa chỉ 0x68","Đọc 14 byte chứa accel, gyro và nhiệt độ"],["Dải đo, quy đổi","Accel ±4 g; gyro ±500 °/s","Chuyển số nguyên ADC thành g và °/s"],["Nhịp đọc","100 Hz; chu kỳ 10 ms","Tạo chuỗi chuyển động theo thời gian"],["Nút đánh dấu","GPIO 5; nhấn = 1","Đối chiếu tín hiệu với thao tác thủ công"]]},
+      {"type":"text","x":28.8,"y":393,"w":662.4,"h":90,"size":17,"text":"SDA = GPIO 18, SCL = GPIO 17; Serial = 921.600 baud. Khởi tạo cảm biến, đặt dải đo và đọc thanh ghi trong main.cpp. Chỉ xuất một dòng CSV khi đọc dữ liệu thành công."}
+    ],
+    "notes":"Nguồn: git show dev-mpu:src/main.cpp; dev-mpu:platformio.ini. Board esp32-s3-devkitc-1, Arduino, USB CDC on boot. Accel raw/8192; gyro raw/65.5; nhiệt độ raw/340 + 36.53 °C là nhiệt độ cảm biến. CONFIG 0x03: DLPF; SMPLRT_DIV=0 cho nhịp nội bộ 1 kHz, nhưng ESP đọc 100 Hz nên không lưu toàn bộ mẫu nội bộ. previousMicros += 10000 duy trì lịch đọc danh định. Timestamp millis được lấy sau lần đọc. Bỏ dòng nếu lỗi I²C hoặc sáu trục raw cùng bằng 0; code chưa chứng minh trường hợp bằng 0 luôn là sleep."
+  },
+  {
+    "subtitle": "MPU6050 · DỮ LIỆU VÀ CÔNG CỤ TRỰC QUAN HÓA",
+    "blocks": [
+      {"type":"mpuPlot","x":28.8,"y":141,"w":662.4,"h":150},
+      {"type":"text","x":28.8,"y":309,"w":662.4,"h":38,"size":14,"text":"Trục X trong dữ liệu có sẵn: gia tốc (xanh) và vận tốc góc (cam); khoảng thời gian 0–60,65 s."},
+      {"type":"table","x":28.8,"y":365,"w":662.4,"h":60,"widths":[220.8,220.8,220.8],"size":17,"rows":[["6.066 mẫu","60,65 giây","Δtimestamp = 10 ms"]]},
+      {"type":"text","x":28.8,"y":437,"w":662.4,"h":52,"size":16,"text":"Recorder lưu CSV 9 cột. Bộ phân tích tạo 4 PNG và dashboard Plotly: xem từng trục, độ lớn vector, nút bấm, phân bố, tương quan và phổ tần số."}
+    ],
+    "notes":"Nguồn số liệu: dev-mpu:data/data.csv, 6066 dòng; timestamp đầu 19114 ms, cuối 79764 ms; 6065 khoảng cách đều 10 ms, 264 dòng button=1. Đây là file mẫu sẵn trong repo, không phải phép đo mới trong phiên này và không chứng minh độ jitter của thời điểm đọc thực. Ảnh: dev-mpu:data/plot_axes_xyz_breakdown.png, chỉ crop panel đầu, giữ nguyên dữ liệu của hình. CSV: timestamp_ms,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,temp,button. dev-mpu:data/record_data.py tự tìm COM hoặc nhận cổng, ghi file theo thời gian. data/visualize_data.py tạo axes_xyz_breakdown, sensor_overview, distributions_correlation, 3d_trajectory_fft. data/generate_dashboard.py tạo dashboard HTML snapshot, có zoom đồng bộ, cửa sổ thời gian, auto-Y, điều hướng sự kiện, fullscreen; cần tải Plotly CDN. HTML không đọc Serial trực tiếp."
+  },
+  {
+    "subtitle": "MPU6050 · VAI TRÒ VÀ GIỚI HẠN HIỆN TẠI",
+    "blocks": [
+      {"type":"bullets","x":28.8,"y":150,"w":662.4,"h":327,"size":19,"items":["Luồng IMU giúp quan sát chuyển động và đối chiếu dấu nút bấm; là nền để phát triển tách rep và rep-count baseline.","Chưa có thuật toán đếm rep, tính velocity loss, hiệu chuẩn IMU hoặc loại trọng lực trong firmware này.","KalmanFilter.h đã có trong repo nhưng chưa được gọi trong main của cả hai nhánh.","Đồ thị 3D biểu diễn vector gia tốc, chưa phải quỹ đạo vị trí. Dashboard là phân tích file đã ghi.","Chưa có FIFO, sequence hay bộ đếm mất mẫu cho MPU; cần bổ sung trước khi đồng bộ với ADS."]}
+    ],
+    "notes":"Nguồn: dev-mpu:src/main.cpp; include/KalmanFilter.h; data/generate_dashboard.py; data/visualize_data.py. Vai trò hỗ trợ rep-count và velocity loss là hướng phát triển gắn với kế hoạch trong deck gốc, chưa phải chức năng đã thực hiện. Không có tích phân vị trí, calibration, gravity removal hay Kalman trong main. Plotly 3D dùng trực tiếp acc_x/y/z. PNG FFT dùng NumPy rFFT nhưng chưa xử lý gap/windowing; phần 'FFT' HTML tính DFT giới hạn số bin và cần sửa để đọc phổ đầy đủ trên bản ghi dài. Các thư mục models/features/preprocessing/evaluation trong repo phần cứng còn là placeholder; không đánh đồng với pipeline nghiên cứu của slide cũ."
+  },
+  {
+    "subtitle": "ADS1292R · CẤU HÌNH VÀ LUỒNG DỮ LIỆU",
+    "blocks": [
+      {"type":"flow","x":28.8,"y":148,"w":662.4,"h":72,"labels":["ADS1292R\n2 kênh 24 bit","DRDY + SPI\nthu mẫu","Hàng đợi\n512 mẫu","DSP trên ESP\nSerial 2 Mbaud","Máy tính\nCSV / web"]},
+      {"type":"table","x":28.8,"y":245,"w":662.4,"h":147,"widths":[160,502.4],"size":17,"rows":[["Hạng mục","Thiết lập trong code"],["ADC","2.000 SPS; PGA gain 4; lưu raw của cả hai kênh"],["SPI","1 MHz, MODE1; CS 10, SCK 12, MOSI 11, MISO 13"],["Điều khiển","PWDN 9, START 8, DRDY 4"]]},
+      {"type":"text","x":28.8,"y":415,"w":662.4,"h":70,"size":17,"text":"Giữ raw 24 bit để có thể xử lý lại. Kênh 2 được dịch phải 8 bit rồi qua DSP; giá trị raw/filtered trong CSV là ADC counts, chưa phải mV đã hiệu chuẩn."}
+    ],
+    "notes":"Nguồn: src/main.cpp; src/SampleAcquisition.cpp; include/SampleAcquisition.h; lib/Ads1292R/protocentralAds1292r.cpp; platformio.ini trên binhdev-ads. Board 4d_systems_esp32s3_gen4_r8n16. Driver đang dùng là ads1292r ProtoCentral; include/ADS1292R.h + src/ADS1292R.cpp là driver khác chưa gọi trong main. CONFIG1=0x04 ở 2000 SPS, CH1SET/CH2SET=0x40 (gain4), CONFIG2=0xA0, RLDSENS=0xBC, RESP1=0x02, RESP2=0x03, LOFFSENS=0. RLD 0xBC chọn IN2P/N; comment cũ trong driver về bit7 và cả hai kênh chưa đúng. Không khẳng định RLD thực tế hoạt động tốt nếu chưa đo mạch. Tham chiếu ADS: https://www.ti.com/lit/ds/symlink/ads1292r.pdf"
+  },
+  {
+    "subtitle": "ADS1292R · VÌ SAO CÓ SAMPLEACQUISITION?",
+    "blocks": [
+      {"type":"flow","x":28.8,"y":147,"w":662.4,"h":75,"labels":["Ngắt DRDY\nsequence + μs","Task core 0\nđọc SPI","Kiểm frame\nhợp lệ","Queue 512\nkhông chờ","main.cpp\nlọc / xuất"]},
+      {"type":"bullets","x":28.8,"y":244,"w":662.4,"h":231,"size":18,"items":["Tách việc đọc ADC khỏi lọc và gửi Serial để giảm nguy cơ đọc trễ mẫu kế tiếp.","ISR chỉ ghi sequence, timestamp và đánh thức task; tác vụ thu mẫu đọc SPI dưới mutex.","Hàng đợi 512 mẫu tương đương 256 ms ở 2.000 SPS; khi đầy, ghi nhận QUEUE_DROP.","ADC_MISSED đếm cạnh bị bỏ qua hoặc frame không hợp lệ; [SPS] báo nhịp DRDY và nhịp đọc.","Có thể phát hiện mất mẫu; hàng đợi không phục hồi mẫu ADC đã bị bỏ lỡ."]}
+    ],
+    "notes":"Nguồn: include/SampleAcquisition.h; src/SampleAcquisition.cpp; src/main.cpp. Task ads_capture pinned core0, priority3, stack4096; ISR FALLING dùng esp_timer_get_time cast uint32_t và task notification. Sequence đếm cạnh ngắt ESP đã quan sát, không phải bộ đếm phần cứng bên trong ADS. Mutex dùng chung để task và lệnh reinit không cùng truy cập SPI. Frame invalid nếu driver báo lỗi hoặc có cạnh DRDY mới trong giao dịch. xQueueSend timeout0 để không block tác vụ ADC; consumer nhận mẫu timeout2 ms. Timestamp thuộc thời điểm ISR chạy, có độ trễ ISR. Bộ đếm không chứng minh tuyệt đối không mất cạnh nếu interrupt không được quan sát."
+  },
+  {
+    "subtitle": "ADS1292R · CHUỖI LỌC SỐ ĐÃ TRIỂN KHAI",
+    "blocks": [
+      {"type":"flow","x":28.8,"y":148,"w":662.4,"h":62,"labels":["Kênh 2","High-pass\n20 Hz","Notch\n50 Hz","Notch\n100 Hz","Low-pass\n450 Hz"]},
+      {"type":"table","x":28.8,"y":233,"w":662.4,"h":182,"widths":[150,170,342.4],"size":16,"rows":[["Tầng","Thiết kế","Tác dụng"],["High-pass","Butterworth bậc 2","Giảm DC và thành phần chậm dưới dải mục tiêu"],["Notch 50 / 100","Hai biquad; r = 0,98","Giảm thành phần quanh điện lưới và hài 100 Hz"],["Low-pass","Butterworth bậc 2","Giảm thành phần cao tần trên dải mục tiêu"]]},
+      {"type":"text","x":28.8,"y":432,"w":662.4,"h":54,"size":16,"text":"Fs = 2.000 Hz; mỗi tầng giữ lịch sử mẫu riêng. Lọc giảm cả phần tín hiệu thật quanh tần số chặn; chưa có phép đo SNR trước/sau để kết luận ADS đã hết nhiễu."}
+    ],
+    "notes":"Nguồn: src/main.cpp local ngày 02/10/2026, makeButterworth, makeNotch, Biquad::process và các wrapper. HP/LP dùng Q=1/sqrt(2), omega=2*pi*cutoff/fs, alpha=sin(omega)/(2Q), chia cho D=1+alpha. Tham chiếu công thức HP/LP: https://www.w3.org/TR/audio-eq-cookbook/ . Biquad y[n]=b0*x[n]+b1*x[n-1]+b2*x[n-2]-a1*y[n-1]-a2*y[n-2]. Notch dùng zero trên vòng đơn vị ở ±omega, pole bán kính r: b0=b2=K,b1=-2Kcos(omega),a1=-2r*cos(omega),a2=r²; K=(1-2r*cos(omega)+r²)/(2-2*cos(omega)) để gain DC=1. Notch là thiết kế pole/zero riêng, không tuyên bố dùng công thức notch-Q của W3C. Bandpass là cascade hai tầng bậc2; cutoff không cắt đứt phổ. Người dùng báo ADS nhiều nhiễu; chưa nhận bản ghi mới để định lượng kết quả."
+  },
+  {
+    "subtitle": "ADS1292R · DỌN MAIN VÀ TẬP TRUNG THAM SỐ",
+    "blocks": [
+      {"type":"table","x":28.8,"y":144,"w":662.4,"h":210,"widths":[199,119,344.4],"size":16,"rows":[["Biến cấu hình","Mặc định","Khi thay đổi"],["fs","2.000 Hz","Cập nhật tốc độ ADC và hệ số DSP"],["f0 / fc","20 / 450 Hz","Tần số cắt high-pass / low-pass"],["DC_filter_50","50 Hz","Tâm notch thứ nhất"],["DC_filter_100","100 Hz","Tâm notch thứ hai"],["NOTCH_RADIUS","0,98","Điều chỉnh độ hẹp của notch"]]},
+      {"type":"bullets","x":28.8,"y":371,"w":662.4,"h":118,"size":16,"items":["Tính b0, b1, b2, a1, a2 một lần từ tham số; dùng chung lớp Biquad để giảm lặp code.","Thêm ghi chú trước hàm; kiểm tra cấu hình bằng static_assert; bỏ dump thanh ghi và thông báo khởi tạo Serial theo yêu cầu.","Đổi fs rồi build/nạp lại; cần đối chiếu baud, QC Python và thời gian đáp ứng các EMA."]}
+    ],
+    "notes":"Nguồn: src/main.cpp local. Các thay đổi mới: thay hệ số cố định HP/LP/notch bằng hàm tính hệ số; tên DC_filter_50/DC_filter_100 do người dùng yêu cầu, thực chất là tần số notch, DC 0 Hz được giảm bởi high-pass. ADC_DATA_RATE map Fs rời rạc125/250/500/1000/2000/4000/8000 vào CONFIG1. static_assert kiểm HP<LP<Nyquist, tần số notch trong (0,Nyquist), r trong (0,1) và Fs hỗ trợ. Bỏ cachedDeviceId, đọc/in DeviceID khi setup, dumpRegisters, lệnh d, thông báo chờ DRDY và lỗi init Serial; bỏ include ecgRespirationAlgo không dùng. Vẫn giữ ADC init, cơ chế thu mẫu, guard init và telemetry hoạt động. EMA/adaptive còn là hệ số theo mẫu, đổi Fs không tự giữ thời gian đáp ứng. Chưa commit, chưa push và chưa flash thay đổi này vào ESP trong phiên."
+  },
+  {
+    "subtitle": "ADS1292R · GHI ĐẦY ĐỦ VÀ HIỂN THỊ TRỰC TIẾP",
+    "blocks": [
+      {"type":"table","x":28.8,"y":146,"w":662.4,"h":230,"widths":[190,250,222.4],"size":16,"rows":[["Thành phần","Đã triển khai","Vì sao cần"],["Luồng $D → CSV","Sequence, timestamp μs, raw 2 kênh, filtered, lead-off","Lưu mọi mẫu nhận hợp lệ; giữ dữ liệu để xử lý lại"],["SampleClock","Phát hiện gap, duplicate, wrap uint32 và reboot","Phân biệt mất mẫu với tràn timestamp"],["Web localhost:8765","Raw/filtered, envelope, mức nền, SPS, ghi CSV và lệnh","Theo dõi tín hiệu trong lúc thu"],["Telemetry / UI","Telemetry khoảng 50 Hz; vẽ khoảng 25 Hz","Giảm tải hiển thị so với luồng mẫu đầy đủ"]]},
+      {"type":"text","x":28.8,"y":397,"w":662.4,"h":89,"size":17,"text":"Recorder và web dùng dữ liệu mẫu để tính tốc độ thực nhận. Đồ thị xem nhanh đã giảm số điểm; CSV giữ mọi dòng $D hợp lệ nhận được. Cần xem sequence để kiểm tra tính liên tục."}
+    ],
+    "notes":"Nguồn: record_emg_csv.py; sample_timing.py; live_emg_visualizer.py; data/record_data.py hiện là wrapper tới recorder ADS. Firmware: $D,sequence,timestampUs,ch1_raw24,ch2_raw24,ch2_raw16,filtered16,leadOff. Recorder CSV: sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,filtered16,lead_off,time_s; web CSV tên cột ch2_filtered16. Serial2M, buffer ESP8192, đọc chunk Python, flush recorder500dòng. SampleClock modulo32 bit, timestamp wrap khoảng71.6phút; reboot tạo segment mới, recorder đóng bản ghi cũ. SPS tính từ timestamp thiết bị, không từ nhịp đến host. Web SSE + canvas; preview không bảo đảm giữ mọi đỉnh ngắn. QC hiện coi1960..2040SPS khỏe khi không drop/lead-off; target này không tự đổi khi Fs firmware đổi. LOFFSENS=0 nên lead_off=0 chưa chứng minh tiếp xúc điện cực tốt. Dashboard HTML EMG cũ dùng schema/gain/nhịp khác, cần cập nhật trước khi dùng với CSV mới."
+  },
+  {
+    "subtitle": "ADS1292R · MỨC KÍCH HOẠT VÀ PHÂN TÍCH OFFLINE",
+    "blocks": [
+      {"type":"heading","x":28.8,"y":150,"w":307,"h":30,"size":18,"text":"Trên ESP32"},
+      {"type":"bullets","x":28.8,"y":190,"w":307,"h":268,"size":17,"items":["Chỉnh lưu |filtered| rồi EMA để tạo đường bao dễ quan sát.","Ước lượng mức nghỉ, ngưỡng nhiễu và peak; chuẩn hóa thành mức kích hoạt 0–100%.","Có hiệu chuẩn mức nghỉ và chỉnh độ nhạy; phần trăm chưa phải lực hoặc %MVC."]},
+      {"type":"heading","x":371,"y":150,"w":320,"h":30,"size":18,"text":"Trên máy tính"},
+      {"type":"bullets","x":371,"y":190,"w":320,"h":268,"size":17,"items":["analyze_semg.py xử lý lại raw, lọc offline và xuất CSV đã lọc.","Tính RMS, MAV, WL, ZC, SSC, SSI; xem MDF và MNF theo cửa sổ.","Công cụ khảo sát; ngưỡng suy luận mỏi và xử lý gap cần kiểm định trước khi dùng nghiên cứu."]},
+      {"type":"text","x":28.8,"y":465,"w":662.4,"h":24,"size":14,"text":"Chưa triển khai 54 đặc trưng + Random Forest hoặc baseline suy luận trên chip."}
+    ],
+    "notes":"Nguồn: src/main.cpp và analyze_semg.py. Envelope EMA0.993356old+0.006644new, xấp xỉ75ms tại2kHz. Lệnh c đặt baseline=max(env,1), peak=baseline+80 khi DSPon hoặc+400 khioff, gate25%baseline clamp2.5..20, sensitivity1; state bộ lọc không reset. Adaptive baseline/gate/peak có hệ số theo mẫu. Mức0..100 chuẩn hóa envelope-baseline-gate theo span và sensitivity, không có hiệu chuẩn MVC/lực. DSPoff vẫn trừDC bằng EMA, không phải raw pass-through. Offline dùng lọc IIR hai chiều, có thể dùng tương lai; không tương đương lọc causal firmware. Fs offline fixed2000, bỏ qua timestamp/gap khi dựngtime; DFT và MDF/MNF chưa có validation phổ/window, thresholdMDFslope -0.5Hz/s heuristic. Không gọi thông báo 'phát hiện mỏi' của script là classifier đã kiểm định. Kalman chưa tích hợp; không có bằng chứng cần bổ sung Kalman để giải quyết nguồn nhiễu ADS."
+  },
+  {
+    "subtitle": "KIỂM TRA ĐÃ LÀM · BUILD VÀ LOGIC THU DỮ LIỆU",
+    "blocks": [
+      {"type":"table","x":28.8,"y":148,"w":662.4,"h":195,"widths":[235,207,220.4],"size":17,"rows":[["Hạng mục","MPU6050","ADS1292R"],["Biên dịch PlatformIO","SUCCESS","SUCCESS sau sửa bộ lọc"],["RAM tĩnh báo bởi build","18.928 byte","19.652 byte"],["Flash báo bởi build","271.937 byte","288.893 byte"],["Kiểm thử Python","Chưa có test riêng MPU","7/7 đạt: clock và recorder"]]},
+      {"type":"bullets","x":28.8,"y":360,"w":662.4,"h":123,"size":16,"items":["Test ADS kiểm tốc độ, mất mẫu, mẫu trùng, tràn uint32, reboot và ghi luồng xen telemetry.","RAM/Flash thuộc hai cấu hình board khác nhau; chưa phải chi phí model.","Chưa đo jitter, SNR, CMRR, năng lượng, thời lượng pin hoặc checkpoint G3."]}
+    ],
+    "notes":"Nguồn: log build trong các lượt làm việc trước, đọc repo đã tổng hợp docs/TONG_HOP_DU_AN.md; ADS gần nhất build SUCCESS3.95s RAM19652/327680, flash288893/6553600. MPU build SUCCESS12.45s RAM18928/327680, flash271937/3342336. Không quy các số firmware acquisition thành cost của RandomForest, rep-count hay các phương án ML: chúng chưa deploy trong firmware. Test được chạy lại ngày02/10/2026: python -m unittest discover -s test -p test_*.py -v,7/7OK. Test host biquad alternateFs1000, HP30, LP350, notch60/120 đã PASS trong phiên trước; testhostdefault bịWindowsAppControl chặn nên không tuyên bố defaulthosttestpassed. CompileSUCCESS không xác nhận board đã nạp hoặc ADC đã đo đúng. Không mới flash trong phiên cập nhật PowerPoint."
+  },
+  {
+    "subtitle": "VIỆC CÒN LẠI · NHIỄU, ĐỒNG BỘ VÀ CHECKPOINT G3",
+    "blocks": [
+      {"type":"table","x":28.8,"y":147,"w":662.4,"h":281,"widths":[202,286,174.4],"size":16,"rows":[["Việc tiếp theo","Mục đích / bằng chứng cần có","Trạng thái"],["Đo nguồn nhiễu ADS","Raw/filtered, phổ 50/100 Hz, clip và mất mẫu; đối chiếu điện cực, dây và nguồn","ADS còn nhiễu; chưa định lượng"],["Kiểm đáp ứng mạch + DSP","Đo gain, dải tần, pha và nhiễu bằng tín hiệu tham chiếu","Chưa thực hiện G3"],["Đồng bộ MPU + ADS","Thu chung clock, gắn sự kiện, tách rep; kiểm sai số thời gian","Hai nhánh đang độc lập"],["Đưa model lên ESP32","Chuẩn hóa đặc trưng; đo trễ, RAM, Flash, năng lượng cùng cấu hình","Chưa triển khai"]]},
+      {"type":"text","x":28.8,"y":445,"w":662.4,"h":44,"size":16,"text":"Ưu tiên có bản ghi sạch và liên tục trước khi đánh giá mỏi cơ. Khóa ngưỡng G3 trước lần phát lại đầu tiên theo kế hoạch của nhóm."}
+    ],
+    "notes":"Phần này là việc đề xuất, không ghi nhận đã hoàn thành. Nguồn trạng thái: repo và yêu cầu người dùng ADS nhiều nhiễu; phần kế hoạch G3 từ slide51 deck gốc. Đối chiếu hướng kiểm nhiễu với datasheet TI ADS1292R https://www.ti.com/lit/ds/symlink/ads1292r.pdf và Delsys Signal Quality Monitor https://delsys.com/support/emgworks/signal-quality-monitor/ . Notch giảm cả tín hiệu trong vùng chặn, phải xem phổ trước/sau và ảnh hưởng tới đặc trưng. Không tự thêm Kalman vào EMG raw; chỉ thử xử lý envelope/RMS nếu có mục tiêu độ trễ/độ ổn định và dữ liệu đối chiếu. G3 chưa tiến hành; không xác nhận mạch đã đạt ngưỡng. Tài liệu chi tiết đã có: docs/TONG_HOP_DU_AN.md (một số nội dung main cũ cần đối chiếu với cập nhật local). Không phát sinh thay đổi code, git commit hay push do tác vụ PPT."
+  }
+]
