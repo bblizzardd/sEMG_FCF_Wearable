@@ -3,6 +3,7 @@
 #include <esp_timer.h>
 
 #include "BMI160.h"
+#include "ImuKalman.h"
 
 #ifndef BMI160_MOSI_PIN
 #define BMI160_MOSI_PIN 5
@@ -24,6 +25,7 @@ constexpr uint32_t STALE_MS = 1000;
 // Dedicated SPI controller; GPIO 4,8,9,10,11,12,13 remain available.
 SPIClass bmiSpi(HSPI);
 BMI160 imu(bmiSpi, BMI160_CS_PIN);
+ImuKalman kalman;
 bool connected = false;
 uint32_t lastAttemptMs = 0;
 uint32_t lastSampleMs = 0;
@@ -37,7 +39,7 @@ uint32_t serialDrops = 0;
 uint8_t consecutiveErrors = 0;
 
 void printHeader() {
-  Serial.println("session,seq,host_us,sensor_ticks,ax_raw,ay_raw,az_raw,gx_raw,gy_raw,gz_raw,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,temp_c");
+  Serial.println("session,seq,host_us,sensor_ticks,ax_raw,ay_raw,az_raw,gx_raw,gy_raw,gz_raw,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,temp_c,ax_kal_g,ay_kal_g,az_kal_g,gx_kal_dps,gy_kal_dps,gz_kal_dps,roll_acc_deg,pitch_acc_deg,roll_kal_deg,pitch_kal_deg,accel_trusted");
 }
 
 void printStatus() {
@@ -51,6 +53,7 @@ void connectSensor() {
   connected = false;
   connected = imu.begin();
   if (connected) {
+    kalman.reset();
     ++session;
     consecutiveErrors = 0;
     lastSampleMs = millis();
@@ -64,17 +67,23 @@ void connectSensor() {
 }
 
 void emitSample(const BMI160::Sample &sample, uint64_t hostUs) {
-  char line[256];
+  const float accel[] = {BMI160::accelG(sample.accel[0]), BMI160::accelG(sample.accel[1]), BMI160::accelG(sample.accel[2])};
+  const float gyro[] = {BMI160::gyroDps(sample.gyro[0]), BMI160::gyroDps(sample.gyro[1]), BMI160::gyroDps(sample.gyro[2])};
+  const ImuKalman::Output filtered = kalman.update(accel, gyro, hostUs);
+  char line[512];
   const int length = snprintf(line, sizeof(line),
-      "%lu,%lu,%llu,%lu,%d,%d,%d,%d,%d,%d,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f\n",
+      "%lu,%lu,%llu,%lu,%d,%d,%d,%d,%d,%d,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f,"
+      "%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%u\n",
       (unsigned long)session, (unsigned long)sequence++,
       (unsigned long long)hostUs, (unsigned long)sample.sensorTime,
       sample.accel[0], sample.accel[1], sample.accel[2],
       sample.gyro[0], sample.gyro[1], sample.gyro[2],
-      BMI160::accelG(sample.accel[0]), BMI160::accelG(sample.accel[1]), BMI160::accelG(sample.accel[2]),
-      BMI160::gyroDps(sample.gyro[0]), BMI160::gyroDps(sample.gyro[1]), BMI160::gyroDps(sample.gyro[2]),
-      BMI160::temperatureC(sample.temperature));
-  // Do not hold up acquisition when the serial TX buffer is full.
+      accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2],
+      BMI160::temperatureC(sample.temperature),
+      filtered.accel[0], filtered.accel[1], filtered.accel[2],
+      filtered.gyro[0], filtered.gyro[1], filtered.gyro[2],
+      filtered.rollAccel, filtered.pitchAccel, filtered.roll, filtered.pitch,
+      unsigned(filtered.accelTrusted));
   if (length <= 0 || size_t(length) >= sizeof(line) || Serial.availableForWrite() < length) {
     ++serialDrops;
     return;
@@ -93,7 +102,7 @@ void setup() {
   Serial.printf("# GY-BMI160 / ESP32-S3: SPI mode 0, 1 MHz; SCK=%d MOSI=%d MISO=%d CS=%d baud=%lu\n",
                 BMI160_SCK_PIN, BMI160_MOSI_PIN, BMI160_MISO_PIN, BMI160_CS_PIN,
                 (unsigned long)SERIAL_BAUD);
-  Serial.println("# Commands: r = reinitialize, s or ? = status. CSV units: g, deg/s, deg C.");
+  Serial.println("# Commands: r = reinitialize, s or ? = status, k = reset Kalman. CSV units: g, deg/s, deg C.");
   connectSensor();
   lastStatsMs = millis();
 }
@@ -104,6 +113,7 @@ void loop() {
     const char command = Serial.read();
     if (command == 'r' || command == 'R') connectSensor();
     else if (command == 's' || command == '?') printStatus();
+    else if (command == 'k' || command == 'K') { kalman.reset(); Serial.println("# Kalman reset"); }
   }
 
   if (!connected) {
