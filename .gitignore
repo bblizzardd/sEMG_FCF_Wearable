@@ -6,3 +6,11 @@
 __pycache__/
 *.pyc
 data/*.csv
+
+# Local build/editor output and preserved files from other firmware branches.
+.cache/
+.local-backup/
+.report-work/
+.pptx-work/
+compile_commands.json
+logs/
