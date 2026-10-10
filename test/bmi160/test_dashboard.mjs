@@ -44,22 +44,26 @@ const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
 const enqueue=row=>fakePort.controller.enqueue(new TextEncoder().encode(row.join(',')+'\n'));
 paint();assert.equal(elements.get('record').disabled,true);
 await elements.get('connect').fire();assert.equal(elements.get('connect').textContent,'× Ngắt kết nối');
-const row=[1,0,1000000,25600,0,0,8192,0,0,0,0,0,1,0,0,0,23,0,0,1,0,0,0,0,0,10,5,1];
+const row=[1,0,1000000,25600,0,0,8192,0,0,0,0,0,1,0,0,0,23,0,0,1,0,0,0,0,0,10,5,1,0];
 enqueue(row);await flush();paint();
 assert.equal(elements.get('record').disabled,false);
 assert.ok(elements.get('roll').innerHTML.startsWith('10.0'));
 assert.ok(strokes>10);
+assert.equal(elements.get('button-state').textContent,'Đã thả · 0');
 await elements.get('pause').fire();
 await elements.get('record').fire();
-const next=row.slice();next[1]=1;next[2]+=10000;next[25]=20;
+const next=row.slice();next[1]=1;next[2]+=10000;next[25]=20;next[28]=1;
 enqueue(next);await flush();paint();
 assert.ok(elements.get('roll').innerHTML.startsWith('10.0')); // Plot frozen, recording continues.
 assert.equal(elements.get('record-count').textContent,'1 mẫu');
+assert.equal(elements.get('button-state').textContent,'Đang nhấn · 1'); // Live state remains live while chart is paused.
+assert.equal(elements.get('button-count').textContent,'1');
 const restarted=next.slice();restarted[0]=2;restarted[1]=2;restarted[2]+=10000;
 enqueue(restarted);await flush();paint();
 assert.equal(downloads.length,1); // Session boundary closes CSV, doesn't mix sessions.
 const csv=await blobs.get(downloads[0].href).text();
 assert.ok(csv.startsWith(FIELDS.join(',')));assert.equal(csv.trim().split('\n').length,2);
+assert.equal(csv.trim().split('\n')[1].split(',')[28],'1');
 await elements.get('connect').fire();paint();assert.equal(fakePort.closed,true);
 await elements.get('demo').fire();paint();assert.equal(elements.get('record').disabled,true);
 await elements.get('demo').fire(); // Stop demo then export: retain DEMO provenance.

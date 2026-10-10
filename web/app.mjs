@@ -1,22 +1,24 @@
 import {FIELDS, parseLine, LineDecoder, SampleStats} from './protocol.mjs';
 const $ = id => document.getElementById(id);
-const ui = Object.fromEntries(['connect','demo','status','status-dot','source','notice','sps','sample-count','lost-count','temp','norm','gravity-caption','rate-caption','session-label','display','window','pause','record','export','record-status','record-count','record-dot','io-errors','serial-drops','invalid','max-gap','reset-filter','device-status','roll','pitch','tilt-note','logs','last-log','serial-port','port-controls'].map(id=>[id,$(id)]));
+const ui = Object.fromEntries(['connect','demo','status','status-dot','source','notice','sps','sample-count','lost-count','temp','norm','gravity-caption','rate-caption','session-label','display','window','pause','record','export','record-status','record-count','record-dot','io-errors','serial-drops','invalid','max-gap','reset-filter','device-status','roll','pitch','tilt-note','logs','last-log','serial-port','port-controls','button-state','button-count'].map(id=>[id,$(id)]));
 let port=null, reader=null, readTask=null, closing=false, connecting=false;
 let bridgeMode=false, bridgeToken='', bridgeStream=null, bridgeDevice=null, bridgeError='';
 let demoTimer=null, demoStart=0, demoSeq=0, demoFiltered=null;
 let sourceKind='none';
 let samples=[], latest=null, stats=new SampleStats(), lastArrival=0, invalid=0;
 let paused=false, frozen=[], recording=false, recorded=[], logLines=[], firmwareCounters=null;
+let buttonPresses=0;
 const COLORS=['#518be5','#24a887','#e5a345'];
 const finite = v => typeof v==='number' && Number.isFinite(v);
 const fmt = (v,d=2) => finite(v) ? v.toFixed(d) : '—';
 function notice(text,warn=false) { ui.notice.textContent=text; ui.notice.classList.toggle('warn',warn); }
 function log(text) { logLines.push(text); if(logLines.length>80)logLines.shift(); ui.logs.textContent=logLines.join('\n');ui['last-log'].textContent=text; }
 function connection(text,color='') { ui.status.textContent=text; ui['status-dot'].className='dot '+color; }
-function resetData() { samples=[]; latest=null;stats.reset();lastArrival=0;invalid=0;firmwareCounters=null;frozen=[];paused=false;ui.pause.textContent='Ⅱ Tạm dừng đồ thị'; }
+function resetData() { samples=[]; latest=null;stats.reset();lastArrival=0;invalid=0;firmwareCounters=null;buttonPresses=0;frozen=[];paused=false;ui.pause.textContent='Ⅱ Tạm dừng đồ thị'; }
 function download(rows,prefix) {
   if(!rows.length)return;
-  const contents=[FIELDS.join(','),...rows.map(row=>FIELDS.map((_,i)=>row[i]===null?'nan':row[i]??'').join(','))].join('\r\n')+'\r\n';
+  const fields=FIELDS.slice(0,rows[0].length);
+  const contents=[fields.join(','),...rows.map(row=>fields.map((_,i)=>row[i]===null?'nan':row[i]??'').join(','))].join('\r\n')+'\r\n';
   const url=URL.createObjectURL(new Blob([contents],{type:'text/csv;charset=utf-8'}));
   const anchor=document.createElement('a');anchor.href=url;anchor.download=prefix+'_'+new Date().toISOString().replace(/[:.]/g,'-')+'.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
@@ -35,10 +37,12 @@ function accept(line) {
   if(event.type==='invalid') { invalid++;return; }
   if(event.type!=='sample')return;
   const values=event.values;
+  const schemaChanged=!!latest && values.length!==latest.length;
   // Never mix old and extended schemas, MCU restarts, or sensor sessions in a recording.
   if(recording && latest && (values[0]!==latest[0] || values[2]<=latest[2] || values.length!==latest.length)) finishRecording('Phiên cảm biến thay đổi: CSV đã được tải. Bắt đầu phiên ghi mới khi sẵn sàng.');
   const restarted=stats.update(values);
-  if(restarted) { samples=[];firmwareCounters=null;frozen=[];log('Bắt đầu session '+values[0]+'.'); }
+  if(restarted || schemaChanged) { samples=[];firmwareCounters=null;buttonPresses=0;frozen=[];log('Bắt đầu session '+values[0]+'.'); }
+  else if(latest?.[28]===0 && values[28]===1)buttonPresses++;
   latest=values;lastArrival=performance.now();samples.push(values);
   if(samples.length>2500)samples.splice(0,samples.length-2500);
   if(recording) {
@@ -143,7 +147,7 @@ ui.demo.addEventListener('click',async()=>{
     const noisy=clean.map((v,i)=>v+(i<3 ? 0.045 : 1.4)*Math.sin(t*(43+i*11)+i));
     if(!demoFiltered)demoFiltered=noisy.slice();else noisy.forEach((v,i)=>demoFiltered[i]+=(i<3 ? 0.245 : 0.358)*(v-demoFiltered[i]));
     const rollA=Math.atan2(noisy[1],noisy[2])*180/Math.PI,pitchA=Math.atan2(-noisy[0],Math.hypot(noisy[1],noisy[2]))*180/Math.PI;
-    const row=[1,demoSeq++,Math.round(t*1e6)+1000000,Math.round(t*25600)%0x1000000,...noisy.map((v,i)=>Math.round(v*(i<3?8192:65.6))),...noisy,26.4+.3*Math.sin(t*.1),...demoFiltered,rollA,pitchA,r,p,1];
+    const row=[1,demoSeq++,Math.round(t*1e6)+1000000,Math.round(t*25600)%0x1000000,...noisy.map((v,i)=>Math.round(v*(i<3?8192:65.6))),...noisy,26.4+.3*Math.sin(t*.1),...demoFiltered,rollA,pitchA,r,p,1,Number(t%3>=2.5 && t%3<2.85)];
     accept(row.join(','));
   };tick();demoTimer=setInterval(tick,10);
 });
@@ -166,6 +170,46 @@ function canvasContext(id) {
   if(canvas.width!==Math.round(w*ratio)||canvas.height!==Math.round(h*ratio)) { canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio); }
   const ctx=canvas.getContext('2d');ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);return {ctx,w,h};
 }
+function pressTimes(data) {
+  const times=[];
+  for(let i=1;i<data.length;i++)if(data[i-1][28]===0 && data[i][28]===1)times.push(data[i][2]);
+  return times;
+}
+function pressMarkers(ctx,data,last,seconds,L,T,pw,ph) {
+  ctx.save();ctx.strokeStyle='#cd6459';ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.globalAlpha=.65;
+  for(const time of pressTimes(data)) {
+    if(time<last-seconds*1e6)continue;
+    const x=L+pw*(1-(last-time)/(seconds*1e6));
+    ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,T+ph);ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawButton(data) {
+  const {ctx,w,h}=canvasContext('button-chart'),L=46,R=16,T=10,B=25,pw=w-L-R,ph=h-T-B;
+  if(pw<=0||ph<=0)return;
+  const seconds=Number(ui.window.value),last=data.at(-1)?.[2]??0,cutoff=last-seconds*1e6;
+  ctx.font='9px Segoe UI';ctx.fillStyle='#96a79c';ctx.textAlign='right';ctx.lineWidth=1;
+  for(const state of [0,1]) {
+    const y=T+ph*(1-state);ctx.fillText(String(state),L-9,y+3);
+    ctx.beginPath();ctx.strokeStyle='#edf1ee';ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();
+  }
+  ctx.textAlign='center';for(let i=0;i<=4;i++)ctx.fillText(String(-(seconds-seconds*i/4)),L+pw*i/4,h-6);
+  const rows=data.filter(row=>row[2]>=cutoff);
+  if(!rows.some(row=>finite(row[28]))) {
+    ctx.fillText('Nạp firmware có button_state để xem mốc nhấn',L+pw/2,T+ph/2);return;
+  }
+  pressMarkers(ctx,data,last,seconds,L,T,pw,ph);
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph+1);ctx.clip();ctx.strokeStyle='#cd6459';ctx.lineWidth=2;ctx.setLineDash([]);ctx.beginPath();
+  let previous=null;
+  for(const row of rows) {
+    if(!finite(row[28])){previous=null;continue;}
+    const x=L+pw*(1-(last-row[2])/(seconds*1e6)),y=T+ph*(1-row[28]);
+    if(!previous || row[2]-previous.time>150000)ctx.moveTo(x,y);
+    else {ctx.lineTo(x,previous.y);ctx.lineTo(x,y);}
+    previous={time:row[2],y};
+  }
+  ctx.stroke();ctx.restore();
+}
 function chart(id,data,series,minRange) {
   const {ctx,w,h}=canvasContext(id),L=46,R=16,T=12,B=28,pw=w-L-R,ph=h-T-B;
   if(pw<=0||ph<=0)return;
@@ -178,6 +222,7 @@ function chart(id,data,series,minRange) {
   for(let i=0;i<5;i++){const y=T+ph*i/4;ctx.beginPath();ctx.strokeStyle='#edf1ee';ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.fillText((hi-range*i/4).toFixed(range<10?2:0),L-9,y+3);}
   ctx.textAlign='center';for(let i=0;i<=4;i++){const x=L+pw*i/4;ctx.fillText((-(seconds-seconds*i/4)).toFixed(0),x,h-8);}
   if(!rows.length){ctx.fillStyle='#a4b2a8';ctx.font='12px Segoe UI';ctx.fillText('Chờ dữ liệu từ cảm biến',L+pw/2,T+ph/2);return;}
+  pressMarkers(ctx,data,last,seconds,L,T,pw,ph);
   ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
   for(const s of series){ctx.beginPath();ctx.strokeStyle=s.color;ctx.lineWidth=s.raw?1.1:1.8;ctx.globalAlpha=s.raw ? 0.42 : 1;ctx.setLineDash(s.raw?[3,4]:[]);let started=false,previous=null;
     for(const row of rows){const v=row[s.index];if(!finite(v)){started=false;continue;}const x=L+pw*(1-(last-row[2])/(seconds*1e6)),y=T+ph*(hi-v)/range;if(!started||previous&&row[2]-previous>150000)ctx.moveTo(x,y);else ctx.lineTo(x,y);started=true;previous=row[2];}ctx.stroke();}
@@ -207,6 +252,10 @@ function render(now) {
   const norm=latest?Math.hypot(...latest.slice(10,13)):null;
   ui.norm.innerHTML=fmt(norm,3)+' <small>g</small>';ui['gravity-caption'].textContent=latest?(norm>=.85&&norm<=1.15?'Gần 1 g · có thể hiệu chỉnh góc':'Có gia tốc chuyển động'):'Chưa có dữ liệu';
   ui['session-label'].textContent='SESSION '+(latest?.[0]??'—');
+  const hasButton=finite(latest?.[28]),buttonFresh=fresh && (!!port || !!demoTimer);
+  ui['button-state'].textContent=!hasButton?'Chưa có dữ liệu nút':!buttonFresh?'Không có mẫu mới':latest[28]?'Đang nhấn · 1':'Đã thả · 0';
+  ui['button-state'].className='button-badge'+(hasButton && buttonFresh && latest[28]===1?' pressed':'');
+  ui['button-count'].textContent=hasButton?buttonPresses.toLocaleString('vi-VN'):'—';
   ui['io-errors'].textContent=firmwareCounters?.io??'—';ui['serial-drops'].textContent=firmwareCounters?.drop??'—';ui.invalid.textContent=invalid;ui['max-gap'].textContent=stats.maxGapUs?fmt(stats.maxGapUs/1000,2)+' ms':'—';
   ui.record.disabled=!recording&&(!port||!fresh);ui.export.disabled=!samples.length;ui['reset-filter'].disabled=!port;ui['device-status'].disabled=!port;
   const data=paused?frozen:samples,row=data.at(-1),mode=ui.display.value;
@@ -214,6 +263,7 @@ function render(now) {
   ui['tilt-note'].textContent=!row||row.length<28?'Nạp firmware Kalman để xem góc.':!finite(row[25])?'Giữ yên, gần 1 g để khởi tạo góc.':row[27]?'Accel gần 1 g · đang hiệu chỉnh gyro.':'Ưu tiên gyro; accel chưa đủ tin cậy.';
   const series=(rawBase,filteredBase)=>COLORS.flatMap((color,i)=>[...(mode!=='kalman'?[{index:rawBase+i,color,raw:true}]:[]),...(mode!=='raw'?[{index:filteredBase+i,color,raw:false}]:[])]);
   chart('accel-chart',data,series(10,17),.3);chart('gyro-chart',data,series(13,20),10);
+  drawButton(data);
   chart('tilt-chart',data,[...(mode!=='kalman'?[{index:23,color:COLORS[0],raw:true},{index:24,color:COLORS[1],raw:true}]:[]),...(mode!=='raw'?[{index:25,color:COLORS[0]},{index:26,color:COLORS[1]}]:[])],10);
   drawBoard(row);
 }

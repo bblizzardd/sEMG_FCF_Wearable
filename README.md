@@ -14,6 +14,7 @@ Branch `dev-bmi` chứa firmware độc lập cho **GY-BMI160**, đọc gia tố
 | SA0 / SDO / MISO | GPIO 7 |
 | CS/CSB | GPIO 15 |
 | INT1/INT2 | Không nối |
+| Nút nhấn ngoài | GPIO 3 ↔ GND (INPUT_PULLUP) |
 
 Bus **HSPI**, mode 0, MSB first, 1 MHz. CS do firmware điều khiển; không nối CS cố định lên nguồn hoặc SDO xuống GND. Các chân 5/6/7/15 được chọn để tránh các chân 4/8/9/10/11/12/13 đã dành cho phần cứng khác.
 
@@ -41,6 +42,7 @@ Mở **http://localhost:8765** trong Chrome, Edge hoặc trình duyệt tích h�
 - Đồ thị accel/gyro XYZ: gốc + Kalman, chọn cửa sổ 6/12/20 giây.
 - Góc roll/pitch Kalman, mô hình góc nghiêng, SPS và trạng thái nhận mẫu.
 - Ghi CSV mọi frame nhận được; dừng/tải file, tự tách phiên khi cảm biến reset.
+- Mốc cắt rep: button_state ở cuối CSV (1 = nhấn, 0 = thả), đồ thị nút và vạch đỏ tại cạnh nhấn; chống dội 30 ms. Nhấn nút không reset cảm biến.
 - Demo có nhãn riêng để xem giao diện khi chưa có phần cứng.
 
 Xem hướng dẫn tại **web/guide.html**. Với module có chân VIN/3V3: nối **3V3 → 3.3V**, để VIN trống; **SA0 → GPIO 7 (MISO)**. Hàng lỗ OCS/INT2/INT1/SCX/SDX để trống.
@@ -60,6 +62,7 @@ include/BMI160.h             Giao diện driver
 src/BMI160.cpp               Driver SPI và chuyển đổi đơn vị
 src/main.cpp                Khởi tạo, thu mẫu, xuất CSV và phục hồi lỗi
 include/ImuKalman.h         Kalman sáu trục và roll/pitch
+include/DebouncedButton.h   Chống dội nút đánh dấu rep
 web/                        Dashboard HTTP/SSE, dự phòng Web Serial
 live_bmi_visualizer.py       Tự dò COM, đọc Serial và phục vụ web cục bộ
 requirements-visualizer.txt  Phụ thuộc pyserial cho visualizer

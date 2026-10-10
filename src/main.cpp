@@ -4,6 +4,7 @@
 
 #include "BMI160.h"
 #include "ImuKalman.h"
+#include "DebouncedButton.h"
 
 #ifndef BMI160_MOSI_PIN
 #define BMI160_MOSI_PIN 5
@@ -17,6 +18,11 @@
 #ifndef BMI160_CS_PIN
 #define BMI160_CS_PIN 15
 #endif
+
+#ifndef BUTTON_PIN
+#define BUTTON_PIN 3
+#endif
+
 
 namespace {
 constexpr uint32_t SERIAL_BAUD = 460800;
@@ -38,8 +44,10 @@ uint32_t ioErrors = 0;
 uint32_t serialDrops = 0;
 uint8_t consecutiveErrors = 0;
 
+DebouncedButton button;
+
 void printHeader() {
-  Serial.println("session,seq,host_us,sensor_ticks,ax_raw,ay_raw,az_raw,gx_raw,gy_raw,gz_raw,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,temp_c,ax_kal_g,ay_kal_g,az_kal_g,gx_kal_dps,gy_kal_dps,gz_kal_dps,roll_acc_deg,pitch_acc_deg,roll_kal_deg,pitch_kal_deg,accel_trusted");
+  Serial.println("session,seq,host_us,sensor_ticks,ax_raw,ay_raw,az_raw,gx_raw,gy_raw,gz_raw,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,temp_c,ax_kal_g,ay_kal_g,az_kal_g,gx_kal_dps,gy_kal_dps,gz_kal_dps,roll_acc_deg,pitch_acc_deg,roll_kal_deg,pitch_kal_deg,accel_trusted,button_state");
 }
 
 void printStatus() {
@@ -73,7 +81,7 @@ void emitSample(const BMI160::Sample &sample, uint64_t hostUs) {
   char line[512];
   const int length = snprintf(line, sizeof(line),
       "%lu,%lu,%llu,%lu,%d,%d,%d,%d,%d,%d,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f,"
-      "%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%u\n",
+      "%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%u,%u\n",
       (unsigned long)session, (unsigned long)sequence++,
       (unsigned long long)hostUs, (unsigned long)sample.sensorTime,
       sample.accel[0], sample.accel[1], sample.accel[2],
@@ -83,7 +91,7 @@ void emitSample(const BMI160::Sample &sample, uint64_t hostUs) {
       filtered.accel[0], filtered.accel[1], filtered.accel[2],
       filtered.gyro[0], filtered.gyro[1], filtered.gyro[2],
       filtered.rollAccel, filtered.pitchAccel, filtered.roll, filtered.pitch,
-      unsigned(filtered.accelTrusted));
+      unsigned(filtered.accelTrusted), unsigned(button.pressed()));
   if (length <= 0 || size_t(length) >= sizeof(line) || Serial.availableForWrite() < length) {
     ++serialDrops;
     return;
@@ -98,6 +106,8 @@ void setup() {
   delay(1000);
   digitalWrite(BMI160_CS_PIN, HIGH);
   pinMode(BMI160_CS_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  button.reset(digitalRead(BUTTON_PIN) == LOW, millis());
   bmiSpi.begin(BMI160_SCK_PIN, BMI160_MISO_PIN, BMI160_MOSI_PIN, -1);
   Serial.printf("# GY-BMI160 / ESP32-S3: SPI mode 0, 1 MHz; SCK=%d MOSI=%d MISO=%d CS=%d baud=%lu\n",
                 BMI160_SCK_PIN, BMI160_MOSI_PIN, BMI160_MISO_PIN, BMI160_CS_PIN,
@@ -108,6 +118,8 @@ void setup() {
 }
 
 void loop() {
+  // Mark reps without interrupting the sensor session or blocking sampling.
+  button.update(digitalRead(BUTTON_PIN) == LOW, millis());
   // Bound command work so a continuous stream of input cannot starve reads.
   if (Serial.available()) {
     const char command = Serial.read();
