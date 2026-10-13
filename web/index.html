@@ -22,6 +22,18 @@
   <span class="ads-port-pill" id="ads-port-pill">—</span>
 </div>
 
+<div class="ads-port-bar">
+  <div class="ads-port-left">
+    <span>Cổng USB ADS1292R:</span>
+    <select id="ads-serial-port">
+      <option value="">Tự động tìm cổng ADS</option>
+    </select>
+  </div>
+  <div class="ads-port-right">
+    <button id="ads-connect-btn" class="button light small" onclick="adsConnectToggle()">↔ Kết nối sEMG</button>
+  </div>
+</div>
+
 <!-- Health bar -->
 <div class="ads-health-bar">
   <div class="ads-health-header">

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ads.mjs – ADS1292R sEMG panel for Combined Dashboard
  * Connects to /api/ads/stream (SSE, event: ads) and renders 3 oscilloscopes + gauge.
  */
@@ -54,6 +54,47 @@ function adsRecordToggle() {
 
 window.sendAdsCmd = sendAdsCmd;
 window.adsRecordToggle = adsRecordToggle;
+
+async function refreshAdsPorts() {
+  try {
+    const res = await fetch('/api/ads/ports');
+    if (!res.ok) return;
+    const { ports } = await res.json();
+    const sel = $('ads-serial-port');
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">Tự động tìm cổng ADS</option>';
+    (ports || []).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.device;
+      opt.textContent = `${p.device} (${p.description || 'USB Serial'})`;
+      sel.appendChild(opt);
+    });
+    if (currentVal) sel.value = currentVal;
+  } catch {}
+}
+
+async function adsConnectToggle() {
+  const token = document.querySelector('meta[name=bmi-token]')?.content || window.__bmiToken || '';
+  const isConn = latestAds && latestAds.connected;
+  if (isConn) {
+    await fetch('/api/ads/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
+      body: JSON.stringify({})
+    }).catch(() => {});
+  } else {
+    const sel = $('ads-serial-port');
+    const port = sel ? sel.value : '';
+    await fetch('/api/ads/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
+      body: JSON.stringify({ port: port || null })
+    }).catch(() => {});
+  }
+}
+window.adsConnectToggle = adsConnectToggle;
+window.refreshAdsPorts = refreshAdsPorts;
 
 function drawGrid(ctx, w, h) {
   ctx.fillStyle = '#05080e';
@@ -200,6 +241,19 @@ setInterval(() => {
     const dot=$('ads-live-dot');
     if(dot){ dot.className='ads-dot '+(d.connected?'live':''); }
   }
+
+  const cb = $('ads-connect-btn');
+  if (cb) {
+    if (d.connected) {
+      cb.textContent = '⏹ Ngắt kết nối sEMG';
+      cb.classList.remove('primary');
+      cb.classList.add('light');
+    } else {
+      cb.textContent = '↔ Kết nối sEMG';
+      cb.classList.remove('light');
+      cb.classList.add('primary');
+    }
+  }
 }, 40);
 
 // SSE connection
@@ -224,4 +278,6 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', resizeCanvases);
   requestAnimationFrame(drawScopes);
   connectAdsSSE();
+  refreshAdsPorts();
+  setInterval(refreshAdsPorts, 5000);
 });
