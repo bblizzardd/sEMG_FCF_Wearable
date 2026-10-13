@@ -595,6 +595,13 @@ class AdsSerialBridge:
                 exclude = bmi_port if (not requested or requested != bmi_port) else None
 
                 ports = self.scan()
+                if not requested and len(ports) < 2:
+                    with self.ads_state.lock:
+                        self.ads_state.connected = False
+                        self.ads_state.port = "Chờ cắm cổng ADS1292R (cổng thứ 2)"
+                    self.stop_event.wait(1.0)
+                    continue
+
                 candidate = choose_ads_port(ports, requested, self.remembered, exclude_port=exclude)
                 if not candidate:
                     with self.ads_state.lock:
