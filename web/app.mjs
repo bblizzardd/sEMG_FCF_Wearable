@@ -289,18 +289,19 @@ function applyBridgeState(state) {
       log('Python đã mở '+state.device+' ở 460800 baud.');
       notice('Đã tự kết nối '+state.device+'. SPI chạy trên ESP32; dữ liệu chuyển qua USB-UART.');
     }
-    port={bridge:true,device:state.device};ui.connect.textContent='× Ngắt kết nối';ui.demo.disabled=true;
-    ui.source.textContent=state.device+' · USB-UART → Python → web';
-    connection('Đã mở cổng · chờ dữ liệu','amber');
+    port={bridge:true,device:state.device};ui.connect.textContent='× Ngắt kết nối ESP32';ui.demo.disabled=true;
+    ui.source.textContent=state.device+' · ESP32-S3 (ADS1292R + BMI160)';
+    connection('Đã kết nối ESP32','green');
+    notice('Đã kết nối '+state.device+' @ 460800 baud. Đang nhận đồng thời sEMG (ADS1292R) & Cử động (BMI160).');
   } else {
     if(port?.bridge) {
       finishRecording('Kết nối đã đóng; dữ liệu đã ghi được tải xuống.');
       log('Đã đóng '+bridgeDevice+'.');
     }
-    port=null;bridgeDevice=null;ui.connect.textContent='↔ Kết nối cảm biến';ui.demo.disabled=false;
+    port=null;bridgeDevice=null;ui.connect.textContent='↔ Kết nối ESP32';ui.demo.disabled=false;
     if(!demoTimer) {
-      connection(state.automatic?'Đang tìm cảm biến':'Đã ngắt kết nối');
-      ui.source.textContent='Python tự nhận USB-UART · không cần quyền Serial của trình duyệt';
+      connection(state.automatic?'Đang tìm ESP32…':'Đã ngắt kết nối');
+      ui.source.textContent='Python tự nhận USB-UART ESP32 · 460800 baud';
       if(state.error && state.error!==bridgeError)notice(state.error,true);
     }
   }
@@ -317,7 +318,7 @@ function openBridgeStream() {
   bridgeStream.onerror=()=>{
     finishRecording('Mất kết nối máy chủ Python; CSV đã ghi được tải.');
     port=null;bridgeDevice=null;ui.connect.disabled=true;ui.demo.disabled=true;
-    connection('Mất kết nối Python','amber');notice('Máy chủ Python bị ngắt. Chạy lại live_bmi_visualizer.py; web sẽ tự nối lại.',true);
+    connection('Mất kết nối Python','amber');notice('Máy chủ Python bị ngắt. Chạy lại live_combined_visualizer.py; web sẽ tự nối lại.',true);
   };
   bridgeStream.onopen=()=>{ui.connect.disabled=false;};
 }
@@ -332,8 +333,8 @@ async function initializeConnection() {
     bridgeMode=true;bridgeToken=state.token;window.__bmiToken=state.token;ui['port-controls'].hidden=false;
     applyBridgeState(state);openBridgeStream();
   } catch {
-    if(!navigator.serial || !window.isSecureContext)notice('Chạy python live_bmi_visualizer.py rồi mở http://localhost:8765 để tự nhận cổng COM.',true);
-    else notice('Chưa có máy chủ Python. Có thể chọn Serial trực tiếp, hoặc chạy live_bmi_visualizer.py để tự nhận COM.');
+    if(!navigator.serial || !window.isSecureContext)notice('Chạy python live_combined_visualizer.py rồi mở http://localhost:8765 để tự nhận cổng COM.',true);
+    else notice('Chưa có máy chủ Python. Chạy python live_combined_visualizer.py để tự nhận cổng ESP32.');
   } finally { ui.connect.disabled=false; }
 }
 initializeConnection();

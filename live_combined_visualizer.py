@@ -1,9 +1,6 @@
 """
-Combined ADS sEMG + BMI160 IMU dual-sensor dashboard.
-- ADS bridge  : đọc cổng ADS1292R (115200 baud, protocol $D, / telemetry)
-- BMI bridge  : đọc cổng BMI160   (460800 baud, CSV protocol)
-- HTTP/SSE    : phục vụ web từ thư mục ./web
-Chạy: python live_combined_visualizer.py [--ads-port COM14] [--bmi-port COM10]
+Combined ESP32 Dual-Sensor Dashboard: ADS1292R (sEMG) + GY-BMI160 (IMU).
+Cả 2 cảm biến cùng cắm trên 1 board ESP32-S3, truyền qua 1 cổng Serial @ 460800 baud.
 """
 import argparse
 import functools
@@ -32,20 +29,17 @@ except ImportError:
     serial = None
     list_ports = None
 
-# ---------------------------------------------------------------------------
 # Hằng số
-# ---------------------------------------------------------------------------
 USB_VENDORS = {0x1A86, 0x10C4, 0x0403, 0x303A}
-ADS_BAUD = 115200
-BMI_BAUD = 460800
-BUCKET_SIZE = 10   # 2000 SPS / 10 = 200 Hz preview
+SERIAL_BAUD = 2000000
+BUCKET_SIZE = 10
 
 
 # ===========================================================================
 # ADS sEMG State
 # ===========================================================================
 class AdsState:
-    """Trạng thái và bộ đệm dữ liệu ADS1292R."""
+    """Trạng thái và bộ đệm dữ liệu ADS1292R sEMG."""
 
     def __init__(self):
         self.lock = threading.Lock()
@@ -58,7 +52,8 @@ class AdsState:
         self.last_ts_us = 0
         self.max_gap_us = 500
         self.lead_off = False
-        self.measured_sps = 2000.0
+        self.measured_sps = 0.0
+
         # Bucket decimation
         self._bucket_n = 0
         self._b_min_raw = float("inf")
@@ -67,9 +62,11 @@ class AdsState:
         self._b_max_filt = float("-inf")
         self.latest_qc_raw = 0
         self.latest_qc_filt = 0
+
         # SPS window
         self._sps_t0 = time.perf_counter()
         self._sps_n = 0
+
         # UI telemetry (50 Hz)
         self.raw = 0
         self.filt = 0
@@ -79,6 +76,7 @@ class AdsState:
         self.percent = 0
         self.status_str = "THA LONG"
         self.dsp = "DSP:ON"
+
         # Recording
         self.recording = False
         self.record_file = None
@@ -99,7 +97,7 @@ class AdsState:
                 "record_count": self.record_count,
                 "healthy": (
                     self.total_dropped == 0
-                    and 1500 <= self.measured_sps <= 2200
+                    and self.measured_sps >= 1800
                     and not self.lead_off
                 ),
             }
@@ -118,16 +116,19 @@ class AdsState:
             }
 
     def process_dataset_line(self, parts):
-        """Xử lý dòng $D,... (2000 SPS dataset)."""
+        """Xử lý dòng $D,... (mẫu sEMG)."""
         if len(parts) < 7:
             return
-        s_idx = int(parts[0])
-        hw_us = int(parts[1])
-        ch1_24 = int(parts[2])
-        ch2_24 = int(parts[3])
-        raw16 = int(parts[4])
-        filt16 = int(parts[5])
-        loff = int(parts[6])
+        try:
+            s_idx = int(parts[0])
+            hw_us = int(parts[1])
+            ch1_24 = int(parts[2])
+            ch2_24 = int(parts[3])
+            raw16 = int(parts[4])
+            filt16 = int(parts[5])
+            loff = int(parts[6])
+        except (ValueError, IndexError):
+            return
 
         with self.lock:
             if self.last_seq is not None:
@@ -149,9 +150,9 @@ class AdsState:
             if abs(raw16) >= 32700 or abs(ch2_24) >= 8388000:
                 self.clipped += 1
 
-            self.lead_off = loff == 1
+            self.lead_off = (loff == 1)
 
-            if self.total_received % 1000 == 0:
+            if self.total_received % 500 == 0:
                 now = time.perf_counter()
                 elapsed = now - self._sps_t0
                 if elapsed >= 0.8:
@@ -164,7 +165,7 @@ class AdsState:
                     f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff}\n"
                 )
                 self.record_count += 1
-                if self.record_count % 1000 == 0:
+                if self.record_count % 500 == 0:
                     self.record_file.flush()
 
             # Bucket decimation
@@ -261,38 +262,32 @@ class AdsState:
 
 
 # ===========================================================================
-# BMI Serial Bridge
+# Cầu nối Serial Đơn cho ESP32 Dual-Sensor
 # ===========================================================================
 def port_identity(port):
     return (port.get("vid"), port.get("pid"), port.get("serial_number"))
 
 
-def choose_bmi_port(ports, requested=None, remembered=None, exclude_port=None):
+def choose_port(ports, requested=None, remembered=None):
     if requested:
         return next((p for p in ports if p["device"] == requested), None)
-    candidates = [p for p in ports if p.get("vid") in USB_VENDORS and (not exclude_port or p["device"] != exclude_port)]
+    candidates = [p for p in ports if p.get("vid") in USB_VENDORS]
+    if not candidates and len(ports) == 1:
+        return ports[0]
     if remembered:
-        candidates = [p for p in candidates if port_identity(p) == remembered]
+        matched = [p for p in (candidates or ports) if port_identity(p) == remembered]
+        if matched:
+            return matched[0]
     return candidates[0] if len(candidates) == 1 else None
 
 
-def choose_ads_port(ports, requested=None, remembered=None, exclude_port=None):
-    if requested:
-        return next((p for p in ports if p["device"] == requested), None)
-    candidates = [
-        p for p in ports
-        if (p.get("vid") in USB_VENDORS or any(k in (p.get("description") or "").upper() for k in ["CH34", "CP210", "USB SERIAL"]))
-        and (not exclude_port or p["device"] != exclude_port)
-    ]
-    if remembered:
-        candidates = [p for p in candidates if port_identity(p) == remembered]
-    return candidates[0] if len(candidates) == 1 else None
+class Esp32DualBridge:
+    """Cầu nối Serial kết nối với 1 board ESP32-S3 phát cả BMI160 và ADS1292R."""
 
-
-class BmiSerialBridge:
-    def __init__(self, requested=None, port_provider=None, serial_factory=None):
-        self.port_provider = port_provider or list_ports.comports
-        self.serial_factory = serial_factory or serial.Serial
+    def __init__(self, ads_state, requested=None, port_provider=None, serial_factory=None):
+        self.ads_state = ads_state
+        self.port_provider = port_provider or (list_ports.comports if list_ports else lambda: [])
+        self.serial_factory = serial_factory or (serial.Serial if serial else None)
         self.lock = threading.RLock()
         self.stop_event = threading.Event()
         self.clients = set()
@@ -301,22 +296,15 @@ class BmiSerialBridge:
         self.enabled = True
         self.generation = 0
         self.remembered = None
-        self.ads_bridge = None
+        self.connection = None
         self.state = {
             "connected": False,
             "device": None,
             "ports": [],
-            "error": "Đang tìm cổng USB-UART…",
+            "error": "Đang tìm cổng USB-UART ESP32…",
             "automatic": True,
         }
-        self.thread = threading.Thread(target=self.run, daemon=True, name="bmi160-serial")
-
-    def set_ads_bridge(self, ads_bridge):
-        self.ads_bridge = ads_bridge
-
-    def get_active_port(self):
-        with self.lock:
-            return self.state.get("device") or self.requested
+        self.thread = threading.Thread(target=self.run, daemon=True, name="esp32-serial")
 
     def snapshot(self):
         with self.lock:
@@ -332,7 +320,7 @@ class BmiSerialBridge:
                     while not client.empty():
                         client.get_nowait()
                     client.put_nowait(
-                        ("overflow", {"error": "Trình duyệt nhận chậm: luồng bị gián đoạn. CSV đã ghi sẽ được tách."})
+                        ("overflow", {"error": "Trình duyệt nhận chậm: luồng bị gián đoạn."})
                     )
 
     def update(self, **changes):
@@ -357,16 +345,21 @@ class BmiSerialBridge:
                 self.commands.get_nowait()
             self.update(automatic=enabled)
 
-    def command(self, command):
-        if command not in {"s", "?", "k", "r"}:
-            raise ValueError("Lệnh không hợp lệ")
+    def command(self, cmd):
         with self.lock:
             if not self.state["connected"]:
-                raise ValueError("Chưa kết nối cảm biến")
+                raise ValueError("Chưa kết nối ESP32")
             try:
-                self.commands.put_nowait(command.encode("ascii"))
+                self.commands.put_nowait(cmd.encode("ascii", errors="ignore"))
             except queue.Full:
                 raise ValueError("Hàng đợi lệnh đang đầy")
+
+    def start(self):
+        self.thread.start()
+
+    def stop(self):
+        self.stop_event.set()
+        self.thread.join(timeout=2)
 
     def scan(self):
         return [
@@ -381,310 +374,192 @@ class BmiSerialBridge:
         retry_at = 0
         scan_at = 0
         ports = []
-        pending = b""
-        discarding = False
+        byte_buf = bytearray()
+        last_ads_stat = time.perf_counter()
+
         try:
             while not self.stop_event.is_set():
                 with self.lock:
                     generation, enabled, requested = self.generation, self.enabled, self.requested
+
                 if generation != active_generation:
                     if connection:
-                        connection.close()
+                        try:
+                            connection.close()
+                        except Exception:
+                            pass
                     connection = None
-                    pending = b""
-                    discarding = False
+                    self.connection = None
+                    byte_buf.clear()
                     active_generation, retry_at = generation, 0
                     self.update(
                         connected=False,
                         device=None,
                         error="Đang tìm cổng…" if enabled else "Đã ngắt kết nối",
                     )
+                    with self.ads_state.lock:
+                        self.ads_state.connected = False
+                        self.ads_state.port = ""
+
                 now = time.monotonic()
                 if now >= scan_at:
                     try:
                         ports = self.scan()
                         self.update(ports=ports)
-                    except Exception as error:
-                        self.update(error="Không dò được cổng: " + str(error))
+                    except Exception as err:
+                        self.update(error="Không dò được cổng: " + str(err))
                     scan_at = now + 2
+
                 if not enabled:
                     self.stop_event.wait(0.1)
                     continue
+
                 if connection is None:
                     if now < retry_at:
                         self.stop_event.wait(0.1)
                         continue
-                    ads_port = self.ads_bridge.get_active_port() if self.ads_bridge else None
-                    exclude = ads_port if (not requested or requested != ads_port) else None
-                    candidate = choose_bmi_port(ports, requested, self.remembered, exclude_port=exclude)
+                    candidate = choose_port(ports, requested, self.remembered)
                     retry_at = now + 2
                     if not candidate:
-                        message = "Chưa thấy ESP32 BMI160. Cắm USB hoặc chọn cổng trên web."
-                        if len([p for p in ports if p.get("vid") in USB_VENDORS and (not exclude or p["device"] != exclude)]) > 1:
-                            message = "Có nhiều cổng USB-UART. Chọn cổng BMI160 trên web."
+                        message = "Chưa thấy ESP32. Cắm cáp USB hoặc chọn cổng trên web."
+                        if len([p for p in ports if p.get("vid") in USB_VENDORS]) > 1:
+                            message = "Có nhiều cổng USB-UART. Chọn đúng cổng ESP32 trên web."
                         self.update(error=message)
+                        with self.ads_state.lock:
+                            self.ads_state.connected = False
+                            self.ads_state.port = message
                         self.stop_event.wait(0.1)
                         continue
+
                     try:
-                        connection = self.serial_factory(
-                            port=None, baudrate=BMI_BAUD, timeout=0.1, write_timeout=0.5
+                        conn = self.serial_factory(
+                            port=candidate["device"],
+                            baudrate=SERIAL_BAUD,
+                            timeout=0.05,
+                            write_timeout=0.5,
                         )
-                        connection.dtr = False
-                        connection.rts = False
-                        connection.port = candidate["device"]
-                        connection.open()
+                        conn.dtr = False
+                        conn.rts = False
+                        connection = conn
+                        self.connection = conn
                         self.remembered = port_identity(candidate)
-                        pending = b""
-                        discarding = False
-                        connection.write(b"s")
+                        byte_buf.clear()
+                        conn.write(b"s")
                         self.update(connected=True, device=candidate["device"], error="")
-                    except Exception as error:
+                        with self.ads_state.lock:
+                            self.ads_state.connected = True
+                            self.ads_state.port = candidate["device"]
+                        print(f"[ESP32] Kết nối thành công: {candidate['device']} @ {SERIAL_BAUD}")
+                    except Exception as exc:
                         if connection:
-                            connection.close()
+                            try:
+                                connection.close()
+                            except Exception:
+                                pass
                         connection = None
+                        self.connection = None
                         self.update(
                             connected=False,
                             device=None,
-                            error="Không mở được " + candidate["device"] + ": " + str(error) + ". Đóng Serial Monitor.",
+                            error=f"Không mở được {candidate['device']}: {exc}. Đóng Serial Monitor.",
                         )
+                        with self.ads_state.lock:
+                            self.ads_state.connected = False
+                            self.ads_state.port = f"Lỗi: {exc}"
                         continue
+
+                # Đọc dữ liệu từ Serial và gửi các lệnh đang chờ
                 try:
                     with self.lock:
                         if active_generation != self.generation:
                             continue
                         while not self.commands.empty():
-                            connection.write(self.commands.get_nowait())
-                    chunk = connection.read(max(1, min(connection.in_waiting, 4096)))
+                            cmd = self.commands.get_nowait()
+                            connection.write(cmd)
+
+                    waiting = connection.in_waiting
+                    chunk = connection.read(max(waiting, 1024))
                     if not chunk:
+                        time.sleep(0.002)
                         continue
-                    pending += chunk
-                    lines = []
-                    while b"\n" in pending:
-                        line, pending = pending.split(b"\n", 1)
-                        if not discarding and len(line) <= 4096:
-                            lines.append(line.rstrip(b"\r").decode("ascii", errors="replace"))
-                        else:
-                            self.emit("lines", ["# Bridge: dropped oversized Serial line"])
-                        discarding = False
-                    if len(pending) > 4096:
-                        pending = b""
-                        discarding = True
-                    if lines:
-                        self.emit("lines", lines)
+
+                    byte_buf.extend(chunk)
+                    bmi_lines = []
+
+                    while True:
+                        nl = byte_buf.find(b"\n")
+                        if nl < 0:
+                            break
+                        raw_line = byte_buf[:nl]
+                        del byte_buf[:nl + 1]
+                        if not raw_line:
+                            continue
+                        line = raw_line.rstrip(b"\r").decode("utf-8", errors="ignore").strip()
+                        if not line:
+                            continue
+
+                        # 1. ADS1292R dataset: $D,...
+                        if line.startswith("$D,"):
+                            with self.ads_state.lock:
+                                _is_first = (self.ads_state.total_received == 0)
+                            if _is_first:
+                                print(f"[sEMG] Nhận mẫu đầu tiên: {line[:60]}")
+                            try:
+                                self.ads_state.process_dataset_line(line[3:].split(","))
+                            except Exception as _e:
+                                print(f"[sEMG] Lỗi parse $D: {_e} | line: {line[:60]}")
+                            continue
+
+                        # 2. ADS1292R telemetry: Raw:... | Env:...
+                        if "Raw:" in line and "Env:" in line:
+                            now_t = time.perf_counter()
+                            if now_t - last_ads_stat > 3.0:
+                                last_ads_stat = now_t
+                                with self.ads_state.lock:
+                                    sps = self.ads_state.measured_sps
+                                    dropped = self.ads_state.total_dropped
+                                print(f"[sEMG] {line[:80]} | SPS:{sps:.0f} | Drop:{dropped}")
+                            try:
+                                self.ads_state.process_telemetry_line(line)
+                            except Exception:
+                                pass
+                            continue
+
+                        # 3. BMI160 sample hoặc status log (# ...)
+                        if line.startswith("#") or line.startswith("session,") or ("," in line and line[0].isdigit()):
+                            bmi_lines.append(line)
+
+                    if len(byte_buf) > 8192:
+                        byte_buf.clear()
+
+                    if bmi_lines:
+                        self.emit("lines", bmi_lines)
+
                 except Exception as error:
-                    connection.close()
+                    print(f"[ESP32] Lỗi Serial: {error}")
+                    if connection:
+                        try:
+                            connection.close()
+                        except Exception:
+                            pass
                     connection = None
-                    pending = b""
-                    discarding = False
-                    self.update(connected=False, device=None, error="USB Serial bị ngắt: " + str(error))
+                    self.connection = None
+                    byte_buf.clear()
+                    self.update(
+                        connected=False,
+                        device=None,
+                        error="USB Serial bị ngắt: " + str(error),
+                    )
+                    with self.ads_state.lock:
+                        self.ads_state.connected = False
+                        self.ads_state.port = ""
                     retry_at = time.monotonic() + 2
         finally:
             if connection:
-                connection.close()
-
-    def start(self):
-        self.thread.start()
-
-    def stop(self):
-        self.stop_event.set()
-        self.thread.join(timeout=2)
-
-
-class AdsSerialBridge:
-    def __init__(self, ads_state, requested=None, port_provider=None, serial_factory=None):
-        self.ads_state = ads_state
-        self.port_provider = port_provider or (list_ports.comports if list_ports else lambda: [])
-        self.serial_factory = serial_factory or (serial.Serial if serial else None)
-        self.lock = threading.RLock()
-        self.stop_event = threading.Event()
-        self.ser_ref = [None]
-        self.requested = requested
-        self.enabled = True
-        self.generation = 0
-        self.remembered = None
-        self.active_device = None
-        self.bmi_bridge = None
-        self.thread = threading.Thread(target=self.run, daemon=True, name="ads-serial")
-
-    def set_bmi_bridge(self, bmi_bridge):
-        self.bmi_bridge = bmi_bridge
-
-    def get_active_port(self):
-        with self.lock:
-            return self.active_device or self.requested
-
-    def configure(self, requested=None, enabled=True):
-        with self.lock:
-            self.requested = requested
-            self.enabled = enabled
-            self.generation += 1
-
-    def send_command(self, cmd):
-        with self.lock:
-            s = self.ser_ref[0]
-            if s and s.is_open:
-                s.write(cmd.encode("utf-8"))
-                s.flush()
-            else:
-                raise ValueError("ADS1292R chưa kết nối")
-
-    def start(self):
-        self.thread.start()
-
-    def stop(self):
-        self.stop_event.set()
-        with self.lock:
-            if self.ser_ref[0]:
                 try:
-                    self.ser_ref[0].close()
+                    connection.close()
                 except Exception:
                     pass
-                self.ser_ref[0] = None
-
-    def scan(self):
-        return [
-            {"device": p.device, "description": p.description, "vid": p.vid,
-             "pid": p.pid, "serial_number": p.serial_number}
-            for p in self.port_provider()
-        ]
-
-    def run(self):
-        active_generation = -1
-        connection = None
-        byte_buf = bytearray()
-        last_stat = time.perf_counter()
-        retry_at = 0
-
-        while not self.stop_event.is_set():
-            with self.lock:
-                generation = self.generation
-                enabled = self.enabled
-                requested = self.requested
-
-            if generation != active_generation:
-                if connection:
-                    try:
-                        connection.close()
-                    except Exception:
-                        pass
-                    connection = None
-                byte_buf.clear()
-                with self.lock:
-                    self.active_device = None
-                    self.ser_ref[0] = None
-                with self.ads_state.lock:
-                    self.ads_state.connected = False
-                    self.ads_state.port = ""
-                active_generation = generation
-                retry_at = 0
-
-            if not enabled:
-                with self.ads_state.lock:
-                    self.ads_state.port = "Đã ngắt kết nối"
-                self.stop_event.wait(0.2)
-                continue
-
-            now = time.monotonic()
-            if connection is None:
-                if now < retry_at:
-                    self.stop_event.wait(0.1)
-                    continue
-                retry_at = now + 1.5
-
-                bmi_port = self.bmi_bridge.get_active_port() if self.bmi_bridge else None
-                exclude = bmi_port if (not requested or requested != bmi_port) else None
-
-                ports = self.scan()
-                if not requested and len(ports) < 2:
-                    with self.ads_state.lock:
-                        self.ads_state.connected = False
-                        self.ads_state.port = "Chờ cắm cổng ADS1292R (cổng thứ 2)"
-                    self.stop_event.wait(1.0)
-                    continue
-
-                candidate = choose_ads_port(ports, requested, self.remembered, exclude_port=exclude)
-                if not candidate:
-                    with self.ads_state.lock:
-                        self.ads_state.connected = False
-                        self.ads_state.port = "Chờ cắm cổng ADS1292R..." if not requested else f"Không thấy {requested}"
-                    self.stop_event.wait(0.2)
-                    continue
-
-                port_name = candidate["device"]
-                try:
-                    ser = self.serial_factory(port_name, ADS_BAUD, timeout=0.05)
-                    ser.dtr = True
-                    ser.rts = True
-                    connection = ser
-                    with self.lock:
-                        self.ser_ref[0] = ser
-                        self.active_device = port_name
-                    with self.ads_state.lock:
-                        self.ads_state.connected = True
-                        self.ads_state.port = port_name
-                    print(f"[ADS] Kết nối thành công: {port_name} @ {ADS_BAUD}")
-                    byte_buf.clear()
-                except Exception as exc:
-                    with self.ads_state.lock:
-                        self.ads_state.connected = False
-                        self.ads_state.port = f"Lỗi: {exc}"
-                    self.stop_event.wait(0.5)
-                    continue
-
-            # Đọc dữ liệu
-            try:
-                waiting = connection.in_waiting
-                chunk = connection.read(max(waiting, 1024))
-                if not chunk:
-                    time.sleep(0.002)
-                    continue
-
-                byte_buf.extend(chunk)
-                while True:
-                    nl = byte_buf.find(b"\n")
-                    if nl < 0:
-                        break
-                    raw_line = byte_buf[:nl]
-                    del byte_buf[:nl + 1]
-                    if not raw_line:
-                        continue
-                    line = raw_line.decode("utf-8", errors="ignore").strip()
-                    if not line:
-                        continue
-
-                    if line.startswith("$D,"):
-                        try:
-                            self.ads_state.process_dataset_line(line[3:].split(","))
-                        except Exception:
-                            pass
-                        continue
-
-                    if "Raw:" in line and "Env:" in line:
-                        now = time.perf_counter()
-                        if now - last_stat > 3.0:
-                            last_stat = now
-                            with self.ads_state.lock:
-                                sps = self.ads_state.measured_sps
-                                dropped = self.ads_state.total_dropped
-                            print(f"[ADS] {line[:80]} | SPS:{sps:.0f} | Drop:{dropped}")
-                        try:
-                            self.ads_state.process_telemetry_line(line)
-                        except Exception:
-                            pass
-            except Exception as exc:
-                print(f"[ADS] Mất kết nối ({port_name}): {exc}")
-                if connection:
-                    try:
-                        connection.close()
-                    except Exception:
-                        pass
-                connection = None
-                with self.lock:
-                    self.ser_ref[0] = None
-                    self.active_device = None
-                with self.ads_state.lock:
-                    self.ads_state.connected = False
-                self.stop_event.wait(1.5)
 
 
 # ===========================================================================
@@ -717,20 +592,21 @@ class CombinedHandler(SimpleHTTPRequestHandler):
             self.send_error(403)
             return
 
-        # --- BMI endpoints (dùng bởi app.mjs gốc) ---
+        # BMI / ESP32 status
         if self.path == "/api/status":
-            self.json_response({**self.server.bmi_bridge.snapshot(), "token": self.server.token})
+            self.json_response({**self.server.bridge.snapshot(), "token": self.server.token})
             return
 
+        # BMI SSE stream
         if self.path == "/api/events":
-            client = self.server.bmi_bridge.subscribe()
+            client = self.server.bridge.subscribe()
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Connection", "close")
             self.end_headers()
             self.connection.settimeout(5)
             try:
-                while not self.server.bmi_bridge.stop_event.is_set():
+                while not self.server.stop_event.is_set():
                     try:
                         kind, value = client.get(timeout=1)
                         if kind == "state":
@@ -746,18 +622,17 @@ class CombinedHandler(SimpleHTTPRequestHandler):
             except (OSError, TimeoutError):
                 pass
             finally:
-                with self.server.bmi_bridge.lock:
-                    self.server.bmi_bridge.clients.discard(client)
+                with self.server.bridge.lock:
+                    self.server.bridge.clients.discard(client)
                 self.close_connection = True
             return
 
-        # --- ADS endpoints ---
+        # ADS endpoints
         if self.path == "/api/ads/status":
             self.json_response(self.server.ads_state.snapshot())
             return
 
         if self.path == "/api/ads/stream":
-            # SSE push 25 Hz
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Connection", "close")
@@ -778,15 +653,6 @@ class CombinedHandler(SimpleHTTPRequestHandler):
         if self.path == "/api/ads/reset":
             self.server.ads_state.reset_qc()
             self.json_response({"ok": True})
-            return
-
-        if self.path == "/api/ads/ports":
-            ports = [
-                {"device": p.device, "description": p.description, "vid": p.vid,
-                 "pid": p.pid, "serial_number": p.serial_number}
-                for p in (list_ports.comports() if list_ports else [])
-            ]
-            self.json_response({"ports": ports})
             return
 
         if self.path.startswith("/api/"):
@@ -818,30 +684,21 @@ class CombinedHandler(SimpleHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError("Yêu cầu không hợp lệ")
 
-            # BMI commands
+            # Kết nối / Ngắt kết nối ESP32
             if self.path == "/api/connect":
                 requested = payload.get("port") or None
                 if requested is not None and not isinstance(requested, str):
                     raise ValueError("Cổng không hợp lệ")
-                self.server.bmi_bridge.configure(requested=requested)
+                self.server.bridge.configure(requested=requested, enabled=True)
             elif self.path == "/api/disconnect":
-                self.server.bmi_bridge.configure(enabled=False)
+                self.server.bridge.configure(enabled=False)
             elif self.path == "/api/command":
-                self.server.bmi_bridge.command(payload.get("command"))
-
-            # ADS connect / disconnect
-            elif self.path == "/api/ads/connect":
-                requested = payload.get("port") or None
-                if requested is not None and not isinstance(requested, str):
-                    raise ValueError("Cổng không hợp lệ")
-                self.server.ads_bridge.configure(requested=requested, enabled=True)
-            elif self.path == "/api/ads/disconnect":
-                self.server.ads_bridge.configure(enabled=False)
+                self.server.bridge.command(payload.get("command", ""))
 
             # ADS commands
             elif self.path == "/api/ads/command":
                 key = payload.get("command", "")
-                self.server.ads_bridge.send_command(key)
+                self.server.bridge.command(key)
 
             # ADS recording start
             elif self.path == "/api/ads/record/start":
@@ -883,17 +740,16 @@ class CombinedHandler(SimpleHTTPRequestHandler):
             self.json_response({"error": str(error)}, 400)
 
     def log_message(self, fmt, *args):
-        pass  # tắt HTTP log
+        pass
 
 
 # ===========================================================================
 # main()
 # ===========================================================================
 def main():
-    parser = argparse.ArgumentParser(description="Combined ADS sEMG + BMI160 IMU dashboard")
+    parser = argparse.ArgumentParser(description="Combined ESP32 Dual-Sensor Dashboard (ADS1292R + BMI160)")
     parser.add_argument("--port", type=int, default=8765, help="HTTP port (default: 8765)")
-    parser.add_argument("--ads-port", default="", help="Cổng ADS1292R, vd COM14. Mặc định: tự tìm.")
-    parser.add_argument("--bmi-port", default=None, help="Cổng BMI160, vd COM13. Mặc định: tự tìm.")
+    parser.add_argument("--serial-port", default=None, help="Cổng ESP32 (vd COM13). Mặc định: tự tìm.")
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
 
@@ -906,17 +762,10 @@ def main():
     if not root.is_dir():
         parser.exit(1, f"Không tìm thấy thư mục web: {root}\n")
 
-    # --- ADS state & bridges ---
     ads_state = AdsState()
-    ads_bridge = AdsSerialBridge(ads_state, requested=args.ads_port)
-    bmi_bridge = BmiSerialBridge(requested=args.bmi_port)
-
-    # Liên kết chéo để tránh đụng cổng
-    ads_bridge.set_bmi_bridge(bmi_bridge)
-    bmi_bridge.set_ads_bridge(ads_bridge)
+    bridge = Esp32DualBridge(ads_state, requested=args.serial_port)
     stop_event = threading.Event()
 
-    # --- HTTP server ---
     try:
         server = ThreadingHTTPServer(
             ("127.0.0.1", args.port),
@@ -925,22 +774,20 @@ def main():
     except OSError as error:
         parser.exit(1, f"Không thể mở server: {error}. Thử --port 8766.\n")
 
-    server.bmi_bridge = bmi_bridge
-    server.ads_bridge = ads_bridge
+    server.bridge = bridge
     server.ads_state = ads_state
     server.stop_event = stop_event
     server.token = secrets.token_urlsafe(32)
 
-    ads_bridge.start()
-    bmi_bridge.start()
+    bridge.start()
 
     url = f"http://localhost:{args.port}"
     print(
         f"\n{'='*60}\n"
-        f"  Combined ADS sEMG + BMI160 Dashboard\n"
-        f"  URL  : {url}\n"
-        f"  ADS  : {'auto-detect' if not args.ads_port else args.ads_port} @ {ADS_BAUD} baud\n"
-        f"  BMI  : {'auto-detect' if not args.bmi_port else args.bmi_port} @ {BMI_BAUD} baud\n"
+        f"  Combined ESP32 Dual-Sensor Dashboard\n"
+        f"  Sensors : BMI160 (IMU) + ADS1292R (sEMG)\n"
+        f"  URL     : {url}\n"
+        f"  ESP32   : {'auto-detect' if not args.serial_port else args.serial_port} @ {SERIAL_BAUD} baud\n"
         f"  Ctrl+C để dừng\n"
         f"{'='*60}\n",
         flush=True,
@@ -956,8 +803,7 @@ def main():
     finally:
         print("\n[*] Đang dừng…")
         stop_event.set()
-        ads_bridge.stop()
-        bmi_bridge.stop()
+        bridge.stop()
         server.server_close()
 
 

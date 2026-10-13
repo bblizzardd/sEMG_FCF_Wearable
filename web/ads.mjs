@@ -55,46 +55,6 @@ function adsRecordToggle() {
 window.sendAdsCmd = sendAdsCmd;
 window.adsRecordToggle = adsRecordToggle;
 
-async function refreshAdsPorts() {
-  try {
-    const res = await fetch('/api/ads/ports');
-    if (!res.ok) return;
-    const { ports } = await res.json();
-    const sel = $('ads-serial-port');
-    if (!sel) return;
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">Tự động tìm cổng ADS</option>';
-    (ports || []).forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.device;
-      opt.textContent = `${p.device} (${p.description || 'USB Serial'})`;
-      sel.appendChild(opt);
-    });
-    if (currentVal) sel.value = currentVal;
-  } catch {}
-}
-
-async function adsConnectToggle() {
-  const token = document.querySelector('meta[name=bmi-token]')?.content || window.__bmiToken || '';
-  const isConn = latestAds && latestAds.connected;
-  if (isConn) {
-    await fetch('/api/ads/disconnect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
-      body: JSON.stringify({})
-    }).catch(() => {});
-  } else {
-    const sel = $('ads-serial-port');
-    const port = sel ? sel.value : '';
-    await fetch('/api/ads/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
-      body: JSON.stringify({ port: port || null })
-    }).catch(() => {});
-  }
-}
-window.adsConnectToggle = adsConnectToggle;
-window.refreshAdsPorts = refreshAdsPorts;
 
 function drawGrid(ctx, w, h) {
   ctx.fillStyle = '#05080e';
@@ -222,17 +182,16 @@ setInterval(() => {
   // Stats
   const sv = $('ads-stat-base'); if (sv) sv.textContent = (d.base||0).toLocaleString();
   const se = $('ads-stat-env'); if (se) se.textContent = (d.env||0).toLocaleString();
-  const sp = $('ads-stat-peak'); if (sp) sp.textContent = maxFlexPeak.toLocaleString();
-  const pp = $('ads-port-pill'); if (pp) pp.textContent = d.port || '—';
+  const pp = $('ads-port-pill'); if (pp) pp.textContent = d.connected ? (d.port ? `${d.port} · ONLINE` : 'ONLINE') : 'CHỜ ESP32';
 
   // Health
   if (d.health) {
     const h = d.health;
     const set = (id, txt, cls) => { const el=$(id); if(el){el.textContent=txt;if(cls)el.className='ads-hi-chk '+(cls==='ok'?'ok':'bad');} };
-    set('ads-hi-sps', `${h.sps} SPS`); set('ads-chk-sps', h.sps >= 1500 ? '✓' : '✗', h.sps >= 1500 ? 'ok' : 'bad');
+    set('ads-hi-sps', `${h.sps} SPS`); set('ads-chk-sps', h.sps >= 350 ? '✓' : '✗', h.sps >= 350 ? 'ok' : 'bad');
     set('ads-hi-recv', (h.received||0).toLocaleString());
     set('ads-hi-drop', (h.dropped||0).toLocaleString()); set('ads-chk-drop', h.dropped===0?'✓':'✗', h.dropped===0?'ok':'bad');
-    set('ads-hi-gap', `${h.max_gap_us}µs`); set('ads-chk-gap', h.max_gap_us<=2000?'✓':'✗', h.max_gap_us<=2000?'ok':'bad');
+    set('ads-hi-gap', `${h.max_gap_us}µs`); set('ads-chk-gap', h.max_gap_us<=3000?'✓':'✗', h.max_gap_us<=3000?'ok':'bad');
     set('ads-hi-clip', `${h.clipping_pct}%`); set('ads-chk-clip', h.clipping_pct<1?'✓':'✗', h.clipping_pct<1?'ok':'bad');
     set('ads-hi-loff', h.lead_off?'LEAD-OFF':'CONNECTED'); set('ads-chk-loff', !h.lead_off?'✓':'✗', !h.lead_off?'ok':'bad');
     const recEl=$('ads-hi-rec'); if(recEl) recEl.textContent = h.recording ? `REC (${(h.record_count||0).toLocaleString()})` : 'STANDBY';
@@ -240,19 +199,6 @@ setInterval(() => {
     if(badge){ badge.textContent=h.healthy?'✓ HEALTHY':'✗ INVALID'; badge.className='ads-health-badge '+(h.healthy?'healthy':'warn'); }
     const dot=$('ads-live-dot');
     if(dot){ dot.className='ads-dot '+(d.connected?'live':''); }
-  }
-
-  const cb = $('ads-connect-btn');
-  if (cb) {
-    if (d.connected) {
-      cb.textContent = '⏹ Ngắt kết nối sEMG';
-      cb.classList.remove('primary');
-      cb.classList.add('light');
-    } else {
-      cb.textContent = '↔ Kết nối sEMG';
-      cb.classList.remove('light');
-      cb.classList.add('primary');
-    }
   }
 }, 40);
 
@@ -278,6 +224,5 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', resizeCanvases);
   requestAnimationFrame(drawScopes);
   connectAdsSSE();
-  refreshAdsPorts();
-  setInterval(refreshAdsPorts, 5000);
 });
+
