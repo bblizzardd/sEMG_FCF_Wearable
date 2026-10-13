@@ -153,7 +153,7 @@ void configAdsRegisters() {
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xA0, PIN_ADS_CS); // VREF nội 2.42V
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0xBC, PIN_ADS_CS); // RLD on
+  ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0x00, PIN_ADS_CS); // RLDSENS tắt (tránh nối common-mode đè lên kênh đo)
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x40, PIN_ADS_CS);  // CH1 4x
   delay(10);
@@ -163,6 +163,18 @@ void configAdsRegisters() {
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_RESP2, 0x03, PIN_ADS_CS);
   delay(10);
+
+  // Đọc kiểm tra toàn bộ 12 thanh ghi
+  const char *regNames[] = {
+      "ID       (0x00)", "CONFIG1  (0x01)", "CONFIG2  (0x02)",
+      "LOFF     (0x03)", "CH1SET   (0x04)", "CH2SET   (0x05)",
+      "RLDSENS  (0x06)", "LOFFSENS (0x07)", "LOFFSTAT (0x08)",
+      "RESP1    (0x09)", "RESP2    (0x0A)", "GPIO     (0x0B)"};
+  Serial.println("\n# --- BẢNG THANH GHI ADS1292R (CẤU HÌNH THỰC TẾ) ---");
+  for (uint8_t i = 0; i <= 0x0B; i++) {
+    uint8_t val = ads1292r::ads1292RegRead(i, PIN_ADS_CS);
+    Serial.printf("#   [%02d] %-16s = 0x%02X\n", i, regNames[i], val);
+  }
 
   ads1292r::ads1292StartReadDataContinuous(PIN_ADS_CS);
   delay(10);
@@ -302,7 +314,9 @@ void loop() {
       uint64_t hwTimestampUs = esp_timer_get_time();
 
       int32_t ch1Raw = ecgData.sDaqVals[0];
-      int32_t emgRaw = ecgData.sDaqVals[1]; // Ch2 sEMG
+      int32_t ch2Raw = ecgData.sDaqVals[1];
+      // Tự động nhận diện kênh đo sEMG: chọn kênh có biên độ dao động lớn hơn
+      int32_t emgRaw = (labs(ch2Raw) >= labs(ch1Raw)) ? ch2Raw : ch1Raw;
       int16_t emgRaw16 = (int16_t)(emgRaw >> 8);
 
       // DSP Filtering (20-450 Hz)
