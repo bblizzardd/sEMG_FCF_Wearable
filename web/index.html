@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BMI160 · Motion Studio</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"></head>
+<body>
+<aside><a class="brand" href="#"><span class="brand-icon">◈</span> MOTION<span class="brand-sub">STUDIO</span></a><div class="aside-label">WORKSPACE</div><div class="nav active"><span>◉</span> Theo dõi trực tiếp</div><a class="nav" href="guide.html"><span>↗</span> Hướng dẫn kết nối</a><div class="device-card"><span class="device-icon">▦</span><strong>GY-BMI160</strong><span>ESP32-S3 · SPI 4 dây</span><div class="pins">SCK 6 · MOSI 5<br>MISO 7 · CS 15</div></div><div class="aside-footer"><span class="dot"></span> Dữ liệu xử lý trên máy bạn</div></aside>
+<main>
+<header><div><div class="eyebrow">SENSOR WORKSPACE <span>/</span> BMI160</div><h1>Chuyển động, ngay trước mắt.</h1><p>Quan sát sáu trục và tín hiệu Kalman theo thời gian thực.</p></div><div class="header-actions"><button id="demo" class="button light">Xem demo</button><button id="connect" class="button primary">↔ Kết nối cảm biến</button></div></header>
+<div class="connection-bar"><div class="connection-left"><span id="status-dot" class="dot"></span><strong id="status">Chưa kết nối</strong><span id="source">Tự tìm cổng USB-UART của ESP32-S3</span></div><label id="port-controls" class="port-controls" hidden>Cổng USB <select id="serial-port" aria-label="Cổng USB-UART"><option value="">Tự nhận cổng ESP32</option></select></label><span class="baud">460800 baud <span>·</span> 100 Hz mục tiêu</span></div>
+<div id="notice" class="notice" role="status">Đóng Serial Monitor. Python tự nhận cổng ESP32 và chuyển dữ liệu lên web.</div>
+<section class="metrics"><article class="metric"><div>TỐC ĐỘ NHẬN <span class="small-icon">⌁</span></div><strong id="sps">— <small>Hz</small></strong><p id="rate-caption">Chờ dữ liệu cảm biến</p></article><article class="metric"><div>MẪU ĐÃ NHẬN <span class="small-icon">≋</span></div><strong id="sample-count">0</strong><p><span id="lost-count">0</span> khoảng trống sequence</p></article><article class="metric"><div>NHIỆT ĐỘ CHIP <span class="small-icon">♧</span></div><strong id="temp">— <small>°C</small></strong><p>Bên trong BMI160</p></article><article class="metric"><div>ĐỘ LỚN GIA TỐC <span class="small-icon">↗</span></div><strong id="norm">— <small>g</small></strong><p id="gravity-caption">Chưa có dữ liệu</p></article></section>
+<div class="workspace-toolbar"><div class="section-title"><span class="live-icon"></span> Dòng tín hiệu <span id="session-label">SESSION —</span></div><div class="controls"><label>Tín hiệu <select id="display"><option value="both">Gốc + Kalman</option><option value="kalman">Kalman</option><option value="raw">Gốc</option></select></label><label>Cửa sổ <select id="window"><option value="6">6 giây</option><option value="12">12 giây</option><option value="20">20 giây</option></select></label><button id="pause" class="button light small">Ⅱ Tạm dừng đồ thị</button></div></div>
+<article class="panel button-panel"><div class="panel-heading"><div><h2>Mốc cắt rep · nút nhấn</h2><p>GPIO 3 ↔ GND · 1 = nhấn, 0 = thả · vạch đỏ là lúc nhấn</p></div><div class="button-summary"><strong id="button-state" class="button-badge" role="status">Chưa có dữ liệu nút</strong><span>Mốc nhấn trong phiên: <b id="button-count">—</b></span></div></div><canvas id="button-chart" aria-label="Trạng thái nút nhấn theo thời gian: 0 thả, 1 nhấn"></canvas><div class="chart-footer"><span>Cùng trục thời gian với tín hiệu bên dưới</span><span>Cắt tại cạnh 0 → 1 trong CSV</span></div></article>
+<section class="charts"><article class="panel chart-panel"><div class="panel-heading"><div><h2>Gia tốc</h2><p>Trọng lực + chuyển động · g</p></div><div class="legend"><span class="x">X</span><span class="y">Y</span><span class="z">Z</span></div></div><canvas id="accel-chart" aria-label="Đồ thị gia tốc X Y Z"></canvas><div class="chart-footer"><span>Thời gian từ mẫu mới nhất (s)</span><span><i class="line-key raw"></i> Gốc <i class="line-key"></i> Kalman</span></div></article><article class="panel chart-panel"><div class="panel-heading"><div><h2>Tốc độ góc</h2><p>Xoay quanh ba trục · °/s</p></div><div class="legend"><span class="x">X</span><span class="y">Y</span><span class="z">Z</span></div></div><canvas id="gyro-chart" aria-label="Đồ thị tốc độ góc X Y Z"></canvas><div class="chart-footer"><span>Thời gian từ mẫu mới nhất (s)</span><span><i class="line-key raw"></i> Gốc <i class="line-key"></i> Kalman</span></div></article></section>
+<section class="bottom-grid"><article class="panel attitude-panel"><div class="panel-heading"><div><h2>Góc nghiêng</h2><p>Kalman kết hợp accel + gyro</p></div><span class="tag">ROLL / PITCH</span></div><div class="attitude-body"><canvas id="attitude" aria-label="Mô hình minh họa góc roll pitch của cảm biến"></canvas><div class="angle-values"><div><span>Roll</span><strong id="roll">—<small>°</small></strong></div><div><span>Pitch</span><strong id="pitch">—<small>°</small></strong></div><p id="tilt-note">Nạp firmware Kalman để xem góc.</p></div></div><canvas id="tilt-chart" aria-label="Đồ thị góc roll và pitch"></canvas><div class="chart-footer"><span><i class="line-key x-key"></i> Roll <i class="line-key y-key"></i> Pitch</span><span>Yaw không được ước lượng</span></div></article><article class="panel capture-panel"><div class="panel-heading"><div><h2>Thu thập dữ liệu</h2><p>Lưu toàn bộ mẫu nhận được vào CSV</p></div><span class="capture-icon">↓</span></div><div class="record-state"><span id="record-dot" class="dot"></span><strong id="record-status">Sẵn sàng ghi</strong><span id="record-count">0 mẫu</span></div><button id="record" class="button primary wide" disabled>● Bắt đầu ghi CSV</button><button id="export" class="button light wide" disabled>↓ Tải đoạn đồ thị hiện tại</button><div class="separator"></div><div class="health-row"><span>Lỗi kiểm tra cảm biến</span><strong id="io-errors">—</strong></div><div class="health-row"><span>Mẫu bỏ ở Serial</span><strong id="serial-drops">—</strong></div><div class="health-row"><span>Dòng không hợp lệ</span><strong id="invalid">0</strong></div><div class="health-row"><span>Khoảng cách mẫu lớn nhất</span><strong id="max-gap">—</strong></div><div class="command-row"><button id="reset-filter" class="button light small" disabled>↻ Reset Kalman</button><button id="device-status" class="button light small" disabled>Xem trạng thái</button></div><p class="fine-print">CSV lưu trên máy bạn. Tạm dừng đồ thị vẫn tiếp tục nhận và ghi dữ liệu. Giới hạn một phiên: 100.000 mẫu.</p></article></section>
+<details class="panel log-panel"><summary>Nhật ký thiết bị <span id="last-log">Chưa có thông báo</span></summary><pre id="logs" aria-live="polite"></pre></details>
+
+<!-- ===== ADS sEMG SECTION ===== -->
+<div class="ads-section-title">
+  <span class="ads-dot" id="ads-live-dot"></span>
+  <span>sEMG · ADS1292R 2000 SPS</span>
+  <span class="ads-badge">BIOPOTENTIAL</span>
+  <span class="ads-port-pill" id="ads-port-pill">—</span>
+</div>
+
+<!-- Health bar -->
+<div class="ads-health-bar">
+  <div class="ads-health-header">
+    <div class="ads-health-title">🔬 Kiểm chứng chất lượng dataset 2000 SPS</div>
+    <div class="ads-health-badge healthy" id="ads-health-badge">✓ HEALTHY</div>
+  </div>
+  <div class="ads-health-items">
+    <div class="ads-hi"><div class="ads-hi-label">Tốc độ thực tế</div><div class="ads-hi-value" id="ads-hi-sps">— SPS</div><span class="ads-hi-chk ok" id="ads-chk-sps">✓</span></div>
+    <div class="ads-hi"><div class="ads-hi-label">Mẫu nhận</div><div class="ads-hi-value" id="ads-hi-recv">0</div></div>
+    <div class="ads-hi"><div class="ads-hi-label">Mất mẫu</div><div class="ads-hi-value" id="ads-hi-drop">0</div><span class="ads-hi-chk ok" id="ads-chk-drop">✓</span></div>
+    <div class="ads-hi"><div class="ads-hi-label">Max Gap</div><div class="ads-hi-value" id="ads-hi-gap">500µs</div><span class="ads-hi-chk ok" id="ads-chk-gap">✓</span></div>
+    <div class="ads-hi"><div class="ads-hi-label">Clipping</div><div class="ads-hi-value" id="ads-hi-clip">0.0%</div><span class="ads-hi-chk ok" id="ads-chk-clip">✓</span></div>
+    <div class="ads-hi"><div class="ads-hi-label">Lead-Off</div><div class="ads-hi-value" id="ads-hi-loff" style="color:#087b65">CONNECTED</div><span class="ads-hi-chk ok" id="ads-chk-loff">✓</span></div>
+    <div class="ads-hi"><div class="ads-hi-label">Ghi CSV</div><div class="ads-hi-value" id="ads-hi-rec" style="color:#768489">STANDBY</div></div>
+  </div>
+</div>
+
+<!-- Main grid: scopes + gauge -->
+<div class="ads-grid">
+  <!-- Scopes -->
+  <div class="ads-scopes">
+    <div class="ads-scope-box">
+      <div class="ads-scope-header">
+        <div class="ads-scope-label" style="color:#518be5">■ Raw ADC (Min/Max Decimation)</div>
+        <div class="ads-scope-val" id="ads-val-raw">Raw: 0</div>
+      </div>
+      <canvas class="ads-canvas" id="ads-canvas-raw"></canvas>
+    </div>
+    <div class="ads-scope-box">
+      <div class="ads-scope-header">
+        <div class="ads-scope-label" style="color:#b55fe6">■ Filtered sEMG (HPF+Notch+LPF)</div>
+        <div class="ads-scope-val" id="ads-val-filt">Filt: 0</div>
+      </div>
+      <canvas class="ads-canvas" id="ads-canvas-filt"></canvas>
+    </div>
+    <div class="ads-scope-box">
+      <div class="ads-scope-header">
+        <div class="ads-scope-label" style="color:#24a887">■ Envelope &amp; Baseline</div>
+        <div class="ads-scope-val" id="ads-val-env">Env:0 Base:0</div>
+      </div>
+      <canvas class="ads-canvas" id="ads-canvas-env"></canvas>
+    </div>
+  </div>
+
+  <!-- Gauge + controls -->
+  <div class="ads-gauge-card">
+    <div class="ads-gauge-wrapper">
+      <svg class="ads-gauge-circle" viewBox="0 0 160 160">
+        <circle class="ads-gauge-bg" cx="80" cy="80" r="75"></circle>
+        <circle class="ads-gauge-fill" id="ads-gauge-fill" cx="80" cy="80" r="75"></circle>
+      </svg>
+      <div class="ads-gauge-inner">
+        <div class="ads-pct-num" id="ads-pct-num">0</div>
+        <div class="ads-pct-unit">% MVC</div>
+      </div>
+    </div>
+    <div class="ads-status-badge" id="ads-status-badge">THA LONG</div>
+    <div class="ads-stat-row">
+      <div class="ads-stat"><div class="ads-stat-name">Baseline</div><div class="ads-stat-val" id="ads-stat-base" style="color:#518be5">0</div></div>
+      <div class="ads-stat"><div class="ads-stat-name">Envelope</div><div class="ads-stat-val" id="ads-stat-env" style="color:#24a887">0</div></div>
+      <div class="ads-stat"><div class="ads-stat-name">Peak MVC</div><div class="ads-stat-val" id="ads-stat-peak" style="color:#e5a345">0</div></div>
+    </div>
+    <div class="ads-ctrl-row">
+      <button class="button light small" onclick="sendAdsCmd('c')">⚡ Cân chỉnh (C)</button>
+      <button class="button light small" onclick="sendAdsCmd('+')">➕ Tăng nhạy</button>
+      <button class="button light small" onclick="sendAdsCmd('-')">➖ Giảm nhạy</button>
+      <button class="button light small" onclick="sendAdsCmd('f')">🛡️ DSP (F)</button>
+    </div>
+    <div class="ads-ctrl-row">
+      <button class="button light small" id="ads-btn-record" onclick="adsRecordToggle()">● Ghi CSV sEMG</button>
+      <button class="button light small" onclick="fetch('/api/ads/reset',{method:'GET'})">🔄 Reset QC</button>
+    </div>
+  </div>
+</div>
+<!-- ===== END ADS sEMG SECTION ===== -->
+
+<footer><span>BMI160 + ADS1292R · Motion &amp; Biopotential Studio</span><span>IMU: Kalman filter · sEMG: 2000 SPS dual-stream</span></footer>
+</main><script type="module" src="app.mjs"></script><script type="module" src="ads.mjs"></script></body></html>
