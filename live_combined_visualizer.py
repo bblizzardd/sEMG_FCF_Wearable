@@ -190,6 +190,8 @@ class AdsState:
                     if abs(self._b_max_filt) > abs(self._b_min_filt)
                     else self._b_min_filt
                 )
+                self.raw = self.latest_qc_raw
+                self.filt = self.latest_qc_filt
                 self._bucket_n = 0
                 self._b_min_raw, self._b_max_raw = float("inf"), float("-inf")
                 self._b_min_filt, self._b_max_filt = float("inf"), float("-inf")

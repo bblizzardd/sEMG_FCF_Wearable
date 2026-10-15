@@ -289,6 +289,12 @@ boolean ads1292r::getAds1292EcgAndRespirationSamples(const int dataReady, const 
     digitalWrite(chipSelect, HIGH);
     _spi->endTransaction();
 
+    static int _dbgCount = 0;
+    if (_dbgCount++ < 5) {
+      Serial.printf("# RAW9: %02X %02X %02X | %02X %02X %02X | %02X %02X %02X\n",
+                    rxBuf[0], rxBuf[1], rxBuf[2], rxBuf[3], rxBuf[4], rxBuf[5], rxBuf[6], rxBuf[7], rxBuf[8]);
+    }
+
     // 1. Channel 1 (Respiration / Ch1): Bytes 3, 4, 5 (24-bit signed 2's complement)
     int32_t ch1 = ((uint32_t)rxBuf[3] << 16) | ((uint32_t)rxBuf[4] << 8) | rxBuf[5];
     if (ch1 & 0x00800000) {
