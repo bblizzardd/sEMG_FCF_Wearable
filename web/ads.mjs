@@ -219,10 +219,16 @@ function connectAdsSSE() {
   es.onerror = () => setTimeout(connectAdsSSE, 2000);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+function startAdsApp() {
   resizeCanvases();
   window.addEventListener('resize', resizeCanvases);
   requestAnimationFrame(drawScopes);
   connectAdsSSE();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startAdsApp);
+} else {
+  startAdsApp();
+}
 
