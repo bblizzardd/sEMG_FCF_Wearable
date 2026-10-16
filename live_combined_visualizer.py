@@ -36,6 +36,155 @@ BUCKET_SIZE = 10
 
 
 # ===========================================================================
+# Dual-Sensor Synchronized Recorder (sEMG + IMU)
+# ===========================================================================
+class DualRecorder:
+    """Quản lý ghi đồng thời 2 cảm biến sEMG (ADS1292R 2000 SPS) và IMU (BMI160 100 Hz)."""
+
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.recording = False
+        self.session_id = ""
+        self.start_time = 0.0
+        self.semg_file = None
+        self.imu_file = None
+        self.semg_filename = ""
+        self.imu_filename = ""
+        self.semg_count = 0
+        self.imu_count = 0
+
+    def start(self):
+        with self.lock:
+            if self.recording:
+                return {
+                    "ok": True,
+                    "already": True,
+                    "session": self.session_id,
+                    "semg_file": self.semg_filename,
+                    "imu_file": self.imu_filename,
+                }
+            os.makedirs("data", exist_ok=True)
+            self.session_id = time.strftime("%Y%m%d_%H%M%S")
+            self.start_time = time.time()
+            self.semg_filename = os.path.join("data", f"sEMG_2000SPS_{self.session_id}.csv")
+            self.imu_filename = os.path.join("data", f"IMU_100Hz_{self.session_id}.csv")
+
+            self.semg_file = open(self.semg_filename, "w", encoding="utf-8")
+            self.semg_file.write(
+                "sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off\n"
+            )
+
+            self.imu_file = open(self.imu_filename, "w", encoding="utf-8")
+            self.imu_file.write(
+                "session,seq,host_us,sensor_ticks,ax_raw,ay_raw,az_raw,gx_raw,gy_raw,gz_raw,"
+                "ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,temp_c,ax_kal_g,ay_kal_g,az_kal_g,"
+                "gx_kal_dps,gy_kal_dps,gz_kal_dps,roll_acc_deg,pitch_acc_deg,roll_kal_deg,pitch_kal_deg,"
+                "accel_trusted,button_state\n"
+            )
+
+            self.semg_count = 0
+            self.imu_count = 0
+            self.recording = True
+            print(f"\n[RECORDER] >>> BẮT ĐẦU GHI ĐỒNG THỜI PHIÊN {self.session_id} <<<")
+            print(f"  + sEMG (2000 SPS): {self.semg_filename}")
+            print(f"  + IMU  (100 Hz)  : {self.imu_filename}")
+            return {
+                "ok": True,
+                "session": self.session_id,
+                "semg_file": self.semg_filename,
+                "imu_file": self.imu_filename,
+            }
+
+    def write_semg(self, line):
+        if not self.recording:
+            return
+        with self.lock:
+            if self.semg_file:
+                self.semg_file.write(line)
+                self.semg_count += 1
+                if self.semg_count % 500 == 0:
+                    self.semg_file.flush()
+
+    def write_imu(self, line):
+        if not self.recording:
+            return
+        with self.lock:
+            if self.imu_file:
+                self.imu_file.write(line + "\n")
+                self.imu_count += 1
+                if self.imu_count % 50 == 0:
+                    self.imu_file.flush()
+
+    def stop(self):
+        with self.lock:
+            if not self.recording:
+                return {"ok": False, "error": "Chưa có phiên ghi nào đang chạy"}
+            self.recording = False
+            duration = round(time.time() - self.start_time, 2)
+            if self.semg_file:
+                self.semg_file.flush()
+                self.semg_file.close()
+                self.semg_file = None
+            if self.imu_file:
+                self.imu_file.flush()
+                self.imu_file.close()
+                self.imu_file = None
+
+            info_file = os.path.join("data", f"Session_{self.session_id}_info.json")
+            info = {
+                "session_id": self.session_id,
+                "start_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.start_time)),
+                "duration_seconds": duration,
+                "semg": {
+                    "file": self.semg_filename,
+                    "samples": self.semg_count,
+                    "sampling_rate": "2000 SPS",
+                    "timestamp_col": "timestamp_us",
+                },
+                "imu": {
+                    "file": self.imu_filename,
+                    "samples": self.imu_count,
+                    "sampling_rate": "100 Hz",
+                    "timestamp_col": "host_us",
+                },
+                "sync_clock": "Cả 2 file đồng bộ chính xác qua đồng hồ vi điều khiển esp_timer_get_time() (đơn vị micro-giây).",
+            }
+            try:
+                with open(info_file, "w", encoding="utf-8") as f:
+                    json.dump(info, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+
+            print(f"\n[RECORDER] >>> KẾT THÚC GHI PHIÊN {self.session_id} ({duration}s) <<<")
+            print(f"  + sEMG: {self.semg_count} mẫu -> {self.semg_filename}")
+            print(f"  + IMU : {self.imu_count} mẫu -> {self.imu_filename}")
+            print(f"  + Info: {info_file}")
+            return {
+                "ok": True,
+                "session": self.session_id,
+                "duration_s": duration,
+                "semg_file": self.semg_filename,
+                "semg_samples": self.semg_count,
+                "imu_file": self.imu_filename,
+                "imu_samples": self.imu_count,
+                "info_file": info_file,
+            }
+
+    def status(self):
+        with self.lock:
+            dur = round(time.time() - self.start_time, 1) if self.recording else 0.0
+            return {
+                "recording": self.recording,
+                "session": self.session_id,
+                "duration_s": dur,
+                "semg_samples": self.semg_count,
+                "imu_samples": self.imu_count,
+                "semg_file": self.semg_filename,
+                "imu_file": self.imu_filename,
+            }
+
+
+# ===========================================================================
 # ADS sEMG State
 # ===========================================================================
 class AdsState:
@@ -43,6 +192,7 @@ class AdsState:
 
     def __init__(self):
         self.lock = threading.Lock()
+        self.recorder = None
         self.connected = False
         self.port = ""
         self.total_received = 0
@@ -83,13 +233,24 @@ class AdsState:
         self.status_str = "THA LONG"
         self.dsp = "DSP:ON"
 
-        # Recording
+        # Legacy individual ADS recording
         self.recording = False
         self.record_file = None
         self.record_count = 0
 
     def snapshot(self):
         with self.lock:
+            rec_status = self.recorder.status() if self.recorder else {
+                "recording": self.recording,
+                "session": "",
+                "duration_s": 0.0,
+                "semg_samples": self.record_count,
+                "imu_samples": 0,
+                "semg_file": "",
+                "imu_file": "",
+            }
+            is_rec = rec_status["recording"] or self.recording
+            semg_cnt = rec_status["semg_samples"] if rec_status["recording"] else self.record_count
             h = {
                 "sps": round(self.measured_sps, 1),
                 "received": self.total_received,
@@ -99,8 +260,8 @@ class AdsState:
                     (self.clipped / max(1, self.total_received)) * 100, 2
                 ),
                 "lead_off": self.lead_off,
-                "recording": self.recording,
-                "record_count": self.record_count,
+                "recording": is_rec,
+                "record_count": semg_cnt,
                 "healthy": (
                     self.total_dropped == 0
                     and self.measured_sps >= 1800
@@ -119,6 +280,7 @@ class AdsState:
                 "percent": self.percent,
                 "status": self.status_str,
                 "dsp": self.dsp,
+                "dual_recording": rec_status,
                 "health": h,
             }
 
@@ -166,6 +328,11 @@ class AdsState:
                     self.measured_sps = self._sps_n / elapsed
                     self._sps_n = 0
                     self._sps_t0 = now
+
+            if self.recorder and self.recorder.recording:
+                self.recorder.write_semg(
+                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff}\n"
+                )
 
             if self.recording and self.record_file:
                 self.record_file.write(
@@ -337,8 +504,9 @@ def choose_port(ports, requested=None, remembered=None):
 class Esp32DualBridge:
     """Cầu nối Serial kết nối với 1 board ESP32-S3 phát cả BMI160 và ADS1292R."""
 
-    def __init__(self, ads_state, requested=None, port_provider=None, serial_factory=None):
+    def __init__(self, ads_state, recorder=None, requested=None, port_provider=None, serial_factory=None):
         self.ads_state = ads_state
+        self.recorder = recorder
         self.port_provider = port_provider or (list_ports.comports if list_ports else lambda: [])
         self.serial_factory = serial_factory or (serial.Serial if serial else None)
         self.lock = threading.RLock()
@@ -585,6 +753,8 @@ class Esp32DualBridge:
                         # 3. BMI160 sample hoặc status log (# ...)
                         if line.startswith("#") or line.startswith("session,") or ("," in line and line[0].isdigit()):
                             bmi_lines.append(line)
+                            if self.recorder and ("," in line and line[0].isdigit()):
+                                self.recorder.write_imu(line)
 
                     if len(byte_buf) > 8192:
                         byte_buf.clear()
@@ -684,6 +854,11 @@ class CombinedHandler(SimpleHTTPRequestHandler):
                 self.close_connection = True
             return
 
+        # Dual recording status
+        if self.path == "/api/record/status":
+            self.json_response(self.server.recorder.status())
+            return
+
         # ADS endpoints
         if self.path == "/api/ads/status":
             self.json_response(self.server.ads_state.snapshot())
@@ -757,35 +932,15 @@ class CombinedHandler(SimpleHTTPRequestHandler):
                 key = payload.get("command", "")
                 self.server.bridge.command(key)
 
-            # ADS recording start
-            elif self.path == "/api/ads/record/start":
-                ads = self.server.ads_state
-                os.makedirs("data", exist_ok=True)
-                fn = os.path.join("data", f"sEMG_2000SPS_{time.strftime('%Y%m%d_%H%M%S')}.csv")
-                with ads.lock:
-                    ads.record_file = open(fn, "w", encoding="utf-8")
-                    ads.record_file.write(
-                        "sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off\n"
-                    )
-                    ads.recording = True
-                    ads.record_count = 0
-                    ads.total_dropped = 0
-                    ads.max_gap_us = 500
-                self.json_response({"ok": True, "filename": fn})
+            # Dual Recording (Ghi đồng thời sEMG + IMU)
+            elif self.path in ("/api/record/start", "/api/ads/record/start"):
+                res = self.server.recorder.start()
+                self.json_response(res)
                 return
 
-            # ADS recording stop
-            elif self.path == "/api/ads/record/stop":
-                ads = self.server.ads_state
-                with ads.lock:
-                    ads.recording = False
-                    fn = "N/A"
-                    cnt = ads.record_count
-                    if ads.record_file:
-                        fn = ads.record_file.name
-                        ads.record_file.close()
-                        ads.record_file = None
-                self.json_response({"ok": True, "filename": fn, "samples": cnt})
+            elif self.path in ("/api/record/stop", "/api/ads/record/stop"):
+                res = self.server.recorder.stop()
+                self.json_response(res)
                 return
 
             else:
@@ -819,8 +974,10 @@ def main():
     if not root.is_dir():
         parser.exit(1, f"Không tìm thấy thư mục web: {root}\n")
 
+    recorder = DualRecorder()
     ads_state = AdsState()
-    bridge = Esp32DualBridge(ads_state, requested=args.serial_port)
+    ads_state.recorder = recorder
+    bridge = Esp32DualBridge(ads_state, recorder=recorder, requested=args.serial_port)
     stop_event = threading.Event()
 
     try:
@@ -833,6 +990,7 @@ def main():
 
     server.bridge = bridge
     server.ads_state = ads_state
+    server.recorder = recorder
     server.stop_event = stop_event
     server.token = secrets.token_urlsafe(32)
 

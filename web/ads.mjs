@@ -26,34 +26,72 @@ function sendAdsCmd(key) {
   }).catch(() => {});
 }
 
-function adsRecordToggle() {
-  const btn = $('ads-btn-record');
+function updateRecordButtons(rec, semg_n, imu_n, dur_s) {
+  const ids = ['btn-dual-record', 'btn-imu-dual-record', 'ads-btn-record'];
+  ids.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    if (rec) {
+      el.classList.add('recording');
+      el.textContent = `⏹ Đang Ghi: sEMG (${(semg_n || 0).toLocaleString()}) | IMU (${(imu_n || 0).toLocaleString()}) · ${dur_s}s`;
+    } else {
+      el.classList.remove('recording');
+      el.textContent = (id === 'ads-btn-record') ? '● Ghi Cả 2 Cảm Biến' : '● Ghi Cả 2 Cảm Biến (sEMG + IMU)';
+    }
+  });
+  const recDot = $('record-dot');
+  if (recDot) recDot.className = rec ? 'dot red' : 'dot';
+  const recStatus = $('record-status');
+  if (recStatus) recStatus.textContent = rec ? 'Đang ghi đồng thời' : 'Sẵn sàng ghi';
+  const recCount = $('record-count');
+  if (recCount) recCount.textContent = rec ? `${(imu_n || 0).toLocaleString()} mẫu IMU` : '0 mẫu';
+}
+
+function dualRecordToggle() {
+  const token = document.querySelector('meta[name=bmi-token]')?.content || window.__bmiToken || '';
   if (!isRecording) {
-    const token = document.querySelector('meta[name=bmi-token]')?.content || window.__bmiToken || '';
-    fetch('/api/ads/record/start', {
+    fetch('/api/record/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
       body: JSON.stringify({})
     }).then(r => r.json()).then(d => {
-      isRecording = true;
-      if (btn) { btn.textContent = '⏹ Đang Ghi…'; btn.classList.add('primary'); }
-    }).catch(() => {});
+      if (d.ok) {
+        isRecording = true;
+        updateRecordButtons(true, 0, 0, 0);
+      } else {
+        alert(d.error || 'Không thể bắt đầu ghi');
+      }
+    }).catch(e => alert('Lỗi kết nối: ' + e));
   } else {
-    const token = document.querySelector('meta[name=bmi-token]')?.content || window.__bmiToken || '';
-    fetch('/api/ads/record/stop', {
+    fetch('/api/record/stop', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-BMI-Token': token },
       body: JSON.stringify({})
     }).then(r => r.json()).then(d => {
       isRecording = false;
-      if (btn) { btn.textContent = '● Ghi CSV sEMG'; btn.classList.remove('primary'); }
-      alert(`✅ Ghi xong: ${d.filename}\nMẫu: ${(d.samples||0).toLocaleString()}`);
-    }).catch(() => {});
+      updateRecordButtons(false, 0, 0, 0);
+      if (d.ok) {
+        alert(
+          `✅ ĐÃ LƯU ĐỒNG THỜI CẢ 2 CẢM BIẾN (sEMG + IMU)!\n\n` +
+          `⏱ Thời lượng: ${d.duration_s}s (Phiên: ${d.session})\n\n` +
+          `⚡ sEMG (ADS1292R): ${(d.semg_samples||0).toLocaleString()} mẫu (2000 SPS)\n` +
+          `   📁 ${d.semg_file}\n\n` +
+          `🧭 IMU (BMI160):    ${(d.imu_samples||0).toLocaleString()} mẫu (100 Hz)\n` +
+          `   📁 ${d.imu_file}\n\n` +
+          `📋 Thông tin đồng bộ: ${d.info_file}\n\n` +
+          `ℹ Cả 2 file đồng bộ chính xác tới micro-giây qua cột timestamp_us / host_us.`
+        );
+      } else {
+        alert(d.error || 'Lỗi khi dừng ghi');
+      }
+    }).catch(e => alert('Lỗi kết nối: ' + e));
   }
 }
 
 window.sendAdsCmd = sendAdsCmd;
-window.adsRecordToggle = adsRecordToggle;
+window.dualRecordToggle = dualRecordToggle;
+window.adsRecordToggle = dualRecordToggle;
+window.updateRecordButtons = updateRecordButtons;
 
 
 function drawGrid(ctx, w, h) {
@@ -205,6 +243,13 @@ setInterval(() => {
     if(badge){ badge.textContent=h.healthy?'✓ HEALTHY':'✗ INVALID'; badge.className='ads-health-badge '+(h.healthy?'healthy':'warn'); }
     const dot=$('ads-live-dot');
     if(dot){ dot.className='ads-dot '+(d.connected?'live':''); }
+  }
+
+  // Dual recording live update
+  if (d.dual_recording) {
+    const rec = d.dual_recording;
+    isRecording = rec.recording;
+    updateRecordButtons(rec.recording, rec.semg_samples, rec.imu_samples, rec.duration_s);
   }
 }, 40);
 
