@@ -440,8 +440,12 @@ class Esp32DualBridge:
                             timeout=0.05,
                             write_timeout=0.5,
                         )
-                        conn.dtr = False
-                        conn.rts = False
+                        if candidate.get("vid") == 0x303A:
+                            conn.dtr = True
+                            conn.rts = True
+                        else:
+                            conn.dtr = False
+                            conn.rts = False
                         connection = conn
                         self.connection = conn
                         self.remembered = port_identity(candidate)

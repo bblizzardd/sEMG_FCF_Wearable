@@ -97,9 +97,9 @@ bool filterEnabled = true;
 // ============================================================================
 // BỘ LỌC TÍN HIỆU sEMG (Fs = 2000 Hz)
 // ============================================================================
-float filterHighPass20Hz(float input) {
-  const float b0 =  0.956543f, b1 = -1.913086f, b2 = 0.956543f;
-  const float a1 = -1.911197f, a2 =  0.914976f;
+float filterHighPass30Hz(float input) {
+  const float b0 =  0.935527f, b1 = -1.871053f, b2 = 0.935527f;
+  const float a1 = -1.866892f, a2 =  0.875215f;
   static float x1 = 0, x2 = 0, y1 = 0, y2 = 0;
   float out = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
   x2 = x1; x1 = input; y2 = y1; y1 = out;
@@ -153,15 +153,15 @@ void configAdsRegisters() {
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xA0, PIN_ADS_CS); // VREF nội 2.42V
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0x00, PIN_ADS_CS); // RLDSENS tắt (tránh nối common-mode đè lên kênh đo)
+  ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0x2C, PIN_ADS_CS); // Bật RLD buffer + lấy mẫu CH2 khử nhiễu 50Hz
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x40, PIN_ADS_CS);  // CH1 4x
+  ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x81, PIN_ADS_CS);  // CH1 TẮT (Power-down + shorted chống nhiễu ký sinh)
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_CH2SET, 0x40, PIN_ADS_CS);  // CH2 4x (sEMG electrode)
+  ads1292r::ads1292RegWrite(ADS1292_REG_CH2SET, 0x40, PIN_ADS_CS);  // CH2 BẬT 4x (Điện cực sEMG)
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_RESP1, 0x02, PIN_ADS_CS);
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_RESP2, 0x03, PIN_ADS_CS);
+  ads1292r::ads1292RegWrite(ADS1292_REG_RESP2, 0x83, PIN_ADS_CS);   // RLDREF_INT = 1 (1.65V)
   delay(10);
 
   // Đọc kiểm tra toàn bộ 12 thanh ghi
@@ -315,14 +315,14 @@ void loop() {
 
       int32_t ch1Raw = ecgData.sDaqVals[0];
       int32_t ch2Raw = ecgData.sDaqVals[1];
-      // Tự động nhận diện kênh đo sEMG: chọn kênh có biên độ dao động lớn hơn
-      int32_t emgRaw = (labs(ch2Raw) >= labs(ch1Raw)) ? ch2Raw : ch1Raw;
+      // Cố định kênh đo sEMG vào Kênh 2 (CH2 cắm cáp điện cực)
+      int32_t emgRaw = ch2Raw;
       int16_t emgRaw16 = (int16_t)(emgRaw >> 8);
 
-      // DSP Filtering (20-450 Hz)
+      // DSP Filtering (30-450 Hz + Notch 50/100 Hz)
       float emgSignal = (float)emgRaw16;
       if (filterEnabled) {
-        emgSignal = filterHighPass20Hz(emgSignal);
+        emgSignal = filterHighPass30Hz(emgSignal);
         emgSignal = filterNotch50Hz(emgSignal);
         emgSignal = filterNotch100Hz(emgSignal);
         emgSignal = filterLowPass450Hz(emgSignal);
