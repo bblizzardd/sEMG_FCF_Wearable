@@ -67,6 +67,12 @@ class AdsState:
         self._sps_t0 = time.perf_counter()
         self._sps_n = 0
 
+        # Real-time envelope & contraction tracking
+        self.emg_env = 0.0
+        self.baseline_noise = 12.0
+        self.noise_threshold = 5.0
+        self.mvc_peak = 80.0
+
         # UI telemetry (50 Hz)
         self.raw = 0
         self.filt = 0
@@ -108,6 +114,7 @@ class AdsState:
                 "filt": self.filt,
                 "env": self.env,
                 "base": self.base,
+                "peak": int(round(self.mvc_peak)),
                 "sens": self.sensitivity,
                 "percent": self.percent,
                 "status": self.status_str,
@@ -168,6 +175,25 @@ class AdsState:
                 if self.record_count % 500 == 0:
                     self.record_file.flush()
 
+            # Envelope & Gated Baseline Tracking trực tiếp từ filtered sEMG
+            rect = abs(filt16)
+            alpha = 0.05 if rect > self.emg_env else 0.005
+            self.emg_env = (1.0 - alpha) * self.emg_env + alpha * rect
+
+            # Gated dynamic baseline: không cho baseline trôi theo khi gồng cơ
+            if self.emg_env < self.baseline_noise:
+                self.baseline_noise = 0.995 * self.baseline_noise + 0.005 * self.emg_env
+            elif self.emg_env < (self.baseline_noise + self.noise_threshold * 1.5):
+                self.baseline_noise = 0.99995 * self.baseline_noise + 0.00005 * self.emg_env
+
+            target_gate = max(3.0, min(20.0, self.baseline_noise * 0.35))
+            self.noise_threshold = 0.999 * self.noise_threshold + 0.001 * target_gate
+
+            if self.emg_env > self.mvc_peak:
+                self.mvc_peak = 0.90 * self.mvc_peak + 0.10 * self.emg_env
+            elif self.mvc_peak > self.baseline_noise + 30.0:
+                self.mvc_peak *= 0.99998
+
             # Bucket decimation
             self._bucket_n += 1
             if raw16 < self._b_min_raw:
@@ -192,6 +218,26 @@ class AdsState:
                 )
                 self.raw = self.latest_qc_raw
                 self.filt = self.latest_qc_filt
+
+                eff_env = self.emg_env - (self.baseline_noise + self.noise_threshold)
+                pct = 0
+                if eff_env > 0:
+                    span = max(25.0, self.mvc_peak - (self.baseline_noise + self.noise_threshold))
+                    pct = min(100, int((eff_env / span) * 100))
+
+                st = "THA LONG"
+                if pct >= 50:
+                    st = "GONG MANH!"
+                elif pct >= 20:
+                    st = "GONG VUA"
+                elif pct >= 6:
+                    st = "GONG NHE"
+
+                self.env = int(round(self.emg_env))
+                self.base = int(round(self.baseline_noise))
+                self.percent = pct
+                self.status_str = st
+
                 self._bucket_n = 0
                 self._b_min_raw, self._b_max_raw = float("inf"), float("-inf")
                 self._b_min_filt, self._b_max_filt = float("inf"), float("-inf")
@@ -261,6 +307,11 @@ class AdsState:
             self.total_received = 0
             self.max_gap_us = 500
             self.clipped = 0
+            self.baseline_noise = max(3.0, min(25.0, self.emg_env if self.emg_env > 0 else 12.0))
+            self.mvc_peak = self.baseline_noise + 80.0
+            self.noise_threshold = self.baseline_noise * 0.35
+            self.percent = 0
+            self.status_str = "THA LONG"
 
 
 # ===========================================================================

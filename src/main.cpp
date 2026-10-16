@@ -135,10 +135,11 @@ float filterLowPass450Hz(float input) {
 
 void resetAdsCalibration() {
   baselineNoise = emgEnvelope;
-  if (baselineNoise < 1.0f) baselineNoise = 1.0f;
-  float defaultSpan = filterEnabled ? 80.0f : 400.0f;
-  mvcPeak = baselineNoise + defaultSpan;
-  noiseThreshold = (baselineNoise * 0.25f < 2.5f) ? 2.5f : (baselineNoise * 0.25f);
+  if (baselineNoise < 2.0f) baselineNoise = 12.0f;
+  if (baselineNoise > 40.0f) baselineNoise = 15.0f; // Chống ấn cân chỉnh lúc đang gồng cơ
+  mvcPeak = baselineNoise + 80.0f;
+  noiseThreshold = baselineNoise * 0.35f;
+  if (noiseThreshold < 3.0f) noiseThreshold = 3.0f;
   if (noiseThreshold > 20.0f) noiseThreshold = 20.0f;
   sensitivityMultiplier = 1.0f;
   Serial.printf("\n# [ADS CÂN CHỈNH LẠI] Mức nghỉ = %.0f | Đỉnh = %.0f | Ngưỡng ồn = %.1f | Độ nhạy = x1.00\n",
@@ -293,6 +294,9 @@ void loop() {
       sensitivityMultiplier *= 0.7f;
       if (sensitivityMultiplier < 0.1f) sensitivityMultiplier = 0.1f;
       Serial.printf("# [ĐỘ NHẠY] Giảm nhạy: x%.2f\n", sensitivityMultiplier);
+    } else if (cmd == '0') {
+      sensitivityMultiplier = 1.0f;
+      Serial.println("# [ĐỘ NHẠY] Reset về chuẩn x1.00");
     } else if (cmd == 'k' || cmd == 'K') {
       kalman.reset();
       Serial.println("# [BMI] Reset Kalman filter");
@@ -321,35 +325,37 @@ void loop() {
 
       // DSP Filtering (30-450 Hz + Notch 50/100 Hz)
       float emgSignal = (float)emgRaw16;
+      // Luôn triệt tiêu thành phần DC bằng bộ lọc thông cao 30 Hz để tính bao hình chính xác
+      float acSignal = filterHighPass30Hz(emgSignal);
       if (filterEnabled) {
-        emgSignal = filterHighPass30Hz(emgSignal);
+        emgSignal = acSignal;
         emgSignal = filterNotch50Hz(emgSignal);
         emgSignal = filterNotch100Hz(emgSignal);
         emgSignal = filterLowPass450Hz(emgSignal);
       }
       int16_t emgFiltered16 = (int16_t)emgSignal;
 
-      // Tính bao hình Envelope (Moving Absolute Mean)
-      float rectified = fabsf(emgSignal);
+      // Tính bao hình Envelope luôn từ AC signal để triệt tiêu điện thế tiếp xúc điện cực
+      float rectified = fabsf(filterEnabled ? emgSignal : acSignal);
       float alpha = (rectified > emgEnvelope) ? 0.05f : 0.005f;
       emgEnvelope = (1.0f - alpha) * emgEnvelope + alpha * rectified;
 
-      // Dynamic baseline & peak adaptation
+      // Dynamic baseline: GATED baseline tracker
+      // Không cho baseline trôi theo khi đang có co cơ (emgEnvelope vượt ngưỡng)!
       if (emgEnvelope < baselineNoise) {
         baselineNoise = 0.995f * baselineNoise + 0.005f * emgEnvelope;
-      } else {
+      } else if (emgEnvelope < (baselineNoise + noiseThreshold * 1.5f)) {
         baselineNoise = 0.99995f * baselineNoise + 0.00005f * emgEnvelope;
       }
-      float targetGate = baselineNoise * 0.25f;
-      if (targetGate < 2.5f) targetGate = 2.5f;
+      float targetGate = baselineNoise * 0.35f;
+      if (targetGate < 3.0f) targetGate = 3.0f;
       if (targetGate > 20.0f) targetGate = 20.0f;
       noiseThreshold = 0.999f * noiseThreshold + 0.001f * targetGate;
 
       if (emgEnvelope > mvcPeak) {
         mvcPeak = 0.90f * mvcPeak + 0.10f * emgEnvelope;
-      } else {
-        float minSpan = filterEnabled ? 20.0f : 80.0f;
-        if (mvcPeak > baselineNoise + minSpan) mvcPeak *= 0.99998f;
+      } else if (mvcPeak > baselineNoise + 30.0f) {
+        mvcPeak *= 0.99998f;
       }
 
       // Xuất mẫu sEMG dataset: 2000 SPS đầy đủ
@@ -366,13 +372,12 @@ void loop() {
 
       // Telemetry UI Preview 20 Hz (mỗi 50ms)
       if (millis() - adsLastSamplePrint >= 50) {
-        adsLastSamplePrint = millis();
         float effectiveGate = noiseThreshold / sensitivityMultiplier;
         if (effectiveGate < 0.8f) effectiveGate = 0.8f;
         float effectiveEnv = emgEnvelope - (baselineNoise + effectiveGate);
         int percent = 0;
         if (effectiveEnv > 0.0f) {
-          float minSpan = filterEnabled ? 15.0f : 50.0f;
+          float minSpan = 25.0f;
           float rawSpan = mvcPeak - (baselineNoise + effectiveGate);
           if (rawSpan < minSpan) rawSpan = minSpan;
           float span = rawSpan / sensitivityMultiplier;
@@ -381,22 +386,23 @@ void loop() {
         }
 
         const char *trangThai = "THA LONG";
-        if (percent >= 60) trangThai = "GONG MANH!";
-        else if (percent >= 25) trangThai = "GONG VUA";
-        else if (percent >= 8) trangThai = "GONG NHE";
+        if (percent >= 50) trangThai = "GONG MANH!";
+        else if (percent >= 20) trangThai = "GONG VUA";
+        else if (percent >= 6) trangThai = "GONG NHE";
 
-        char bar[21];
-        int barLength = percent / 5;
-        for (int i = 0; i < 20; i++) bar[i] = (i < barLength) ? '=' : ' ';
-        bar[20] = '\0';
+        char bar[11];
+        int barLength = percent / 10;
+        for (int i = 0; i < 10; i++) bar[i] = (i < barLength) ? '=' : ' ';
+        bar[10] = '\0';
 
-        char telemLine[192];
+        char telemLine[128];
         int tLen = snprintf(telemLine, sizeof(telemLine),
-                            "Raw:%6ld | Filt:%6ld | Env:%4ld | Base:%4ld | x%.2f | Luc:[%-20s] %3d%% | %s | %s\n",
+                            "Raw:%ld | Filt:%ld | Env:%ld | Base:%ld | x%.2f | [%s] %d%% | %s | %s\n",
                             (long)emgRaw, (long)emgSignal, (long)emgEnvelope, (long)baselineNoise,
                             sensitivityMultiplier, bar, percent, trangThai, filterEnabled ? "DSP:ON" : "DSP:OFF");
         if (tLen > 0 && Serial.availableForWrite() >= tLen) {
           Serial.write(reinterpret_cast<const uint8_t *>(telemLine), tLen);
+          adsLastSamplePrint = millis();
         }
       }
     }

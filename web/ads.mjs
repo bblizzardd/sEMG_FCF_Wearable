@@ -182,7 +182,13 @@ setInterval(() => {
   // Stats
   const sv = $('ads-stat-base'); if (sv) sv.textContent = (d.base||0).toLocaleString();
   const se = $('ads-stat-env'); if (se) se.textContent = (d.env||0).toLocaleString();
+  const sp = $('ads-stat-peak'); if (sp) sp.textContent = (d.peak||0).toLocaleString();
   const pp = $('ads-port-pill'); if (pp) pp.textContent = d.connected ? (d.port ? `${d.port} · ONLINE` : 'ONLINE') : 'CHỜ ESP32';
+  const bd = $('ads-btn-dsp');
+  if (bd && d.dsp) {
+    bd.textContent = d.dsp.includes('ON') ? '🛡️ DSP: BẬT' : '⚠️ DSP: TẮT';
+    bd.style.borderColor = d.dsp.includes('ON') ? 'rgba(8,123,101,.5)' : 'rgba(218,97,87,.6)';
+  }
 
   // Health
   if (d.health) {
