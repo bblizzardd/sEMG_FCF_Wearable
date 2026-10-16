@@ -386,19 +386,23 @@ class AdsState:
                 self.raw = self.latest_qc_raw
                 self.filt = self.latest_qc_filt
 
-                eff_env = self.emg_env - (self.baseline_noise + self.noise_threshold)
-                pct = 0
-                if eff_env > 0:
-                    span = max(25.0, self.mvc_peak - (self.baseline_noise + self.noise_threshold))
-                    pct = min(100, int((eff_env / span) * 100))
+                if self.lead_off:
+                    pct = 0
+                    st = "CHƯA CẮM ĐIỆN CỰC"
+                else:
+                    eff_env = self.emg_env - (self.baseline_noise + self.noise_threshold)
+                    pct = 0
+                    if eff_env > 0:
+                        span = max(25.0, self.mvc_peak - (self.baseline_noise + self.noise_threshold))
+                        pct = min(100, int((eff_env / span) * 100))
 
-                st = "THA LONG"
-                if pct >= 50:
-                    st = "GONG MANH!"
-                elif pct >= 20:
-                    st = "GONG VUA"
-                elif pct >= 6:
-                    st = "GONG NHE"
+                    st = "THA LONG"
+                    if pct >= 50:
+                        st = "GONG MANH!"
+                    elif pct >= 20:
+                        st = "GONG VUA"
+                    elif pct >= 6:
+                        st = "GONG NHE"
 
                 self.env = int(round(self.emg_env))
                 self.base = int(round(self.baseline_noise))
@@ -452,7 +456,7 @@ class AdsState:
                         percent_val = int(num_str)
                     except Exception:
                         pass
-                elif any(k in p for k in ["THA LONG", "GONG NHE", "GONG VUA", "GONG MANH"]):
+                elif any(k in p for k in ["THA LONG", "GONG NHE", "GONG VUA", "GONG MANH", "CHUA CAM DIEN CUC", "CHƯA CẮM ĐIỆN CỰC"]):
                     status_val = p
                 elif "DSP:ON" in p:
                     dsp_val = "DSP:ON"

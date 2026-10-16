@@ -317,7 +317,9 @@ boolean ads1292r::getAds1292EcgAndRespirationSamples(const int dataReady, const 
     uint32_t statusByte = ((uint32_t)rxBuf[0] << 16) | ((uint32_t)rxBuf[1] << 8) | rxBuf[2];
     uint8_t leadStatus = (uint8_t)((statusByte & 0x0F8000) >> 15);
 
-    if ((leadStatus & 0x1F) != 0)
+    // Mask 0x1C: Bit 4 (RLD_STAT), Bit 3 (IN2N_OFF), Bit 2 (IN2P_OFF)
+    // Bỏ qua Bit 1 & 0 (CH1) vì kênh 1 đã tắt nguồn để khử nhiễu
+    if ((leadStatus & 0x1C) != 0)
     {
       ecgRespirationValues->leadoffDetected = true;
     }

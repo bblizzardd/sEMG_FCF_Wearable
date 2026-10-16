@@ -152,13 +152,17 @@ void configAdsRegisters() {
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG1, 0x04, PIN_ADS_CS); // 2000 SPS
   delay(10);
-  ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xA0, PIN_ADS_CS); // VREF nội 2.42V
+  ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG2, 0xE0, PIN_ADS_CS); // VREF nội 2.42V + BẬT Lead-Off Comparator (Bit 6 = 1)
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_RLDSENS, 0x2C, PIN_ADS_CS); // Bật RLD buffer + lấy mẫu CH2 khử nhiễu 50Hz
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CH1SET, 0x81, PIN_ADS_CS);  // CH1 TẮT (Power-down + shorted chống nhiễu ký sinh)
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CH2SET, 0x40, PIN_ADS_CS);  // CH2 BẬT 4x (Điện cực sEMG)
+  delay(10);
+  ads1292r::ads1292RegWrite(ADS1292_REG_LOFF, 0x10, PIN_ADS_CS);    // Lead-Off: Ngưỡng 95%, 6nA DC
+  delay(10);
+  ads1292r::ads1292RegWrite(ADS1292_REG_LOFFSENS, 0x0C, PIN_ADS_CS);// Bật Lead-Off Sense cho CH2 (IN2P + IN2N)
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_RESP1, 0x02, PIN_ADS_CS);
   delay(10);
@@ -365,30 +369,37 @@ void loop() {
                             (unsigned long)adsSampleCounter,
                             (unsigned long long)hwTimestampUs,
                             (long)ch1Raw, (long)emgRaw,
-                            (int)emgRaw16, (int)emgFiltered16, 0);
+                            (int)emgRaw16, (int)emgFiltered16,
+                            ecgData.leadoffDetected ? 1 : 0);
       if (adsLen > 0 && Serial.availableForWrite() >= adsLen) {
         Serial.write(reinterpret_cast<const uint8_t *>(adsDataset), adsLen);
       }
 
       // Telemetry UI Preview 20 Hz (mỗi 50ms)
       if (millis() - adsLastSamplePrint >= 50) {
-        float effectiveGate = noiseThreshold / sensitivityMultiplier;
-        if (effectiveGate < 0.8f) effectiveGate = 0.8f;
-        float effectiveEnv = emgEnvelope - (baselineNoise + effectiveGate);
         int percent = 0;
-        if (effectiveEnv > 0.0f) {
-          float minSpan = 25.0f;
-          float rawSpan = mvcPeak - (baselineNoise + effectiveGate);
-          if (rawSpan < minSpan) rawSpan = minSpan;
-          float span = rawSpan / sensitivityMultiplier;
-          percent = (int)((effectiveEnv / span) * 100.0f);
-          if (percent > 100) percent = 100;
-        }
-
         const char *trangThai = "THA LONG";
-        if (percent >= 50) trangThai = "GONG MANH!";
-        else if (percent >= 20) trangThai = "GONG VUA";
-        else if (percent >= 6) trangThai = "GONG NHE";
+
+        if (ecgData.leadoffDetected) {
+          percent = 0;
+          trangThai = "CHUA CAM DIEN CUC";
+        } else {
+          float effectiveGate = noiseThreshold / sensitivityMultiplier;
+          if (effectiveGate < 0.8f) effectiveGate = 0.8f;
+          float effectiveEnv = emgEnvelope - (baselineNoise + effectiveGate);
+          if (effectiveEnv > 0.0f) {
+            float minSpan = 25.0f;
+            float rawSpan = mvcPeak - (baselineNoise + effectiveGate);
+            if (rawSpan < minSpan) rawSpan = minSpan;
+            float span = rawSpan / sensitivityMultiplier;
+            percent = (int)((effectiveEnv / span) * 100.0f);
+            if (percent > 100) percent = 100;
+          }
+
+          if (percent >= 50) trangThai = "GONG MANH!";
+          else if (percent >= 20) trangThai = "GONG VUA";
+          else if (percent >= 6) trangThai = "GONG NHE";
+        }
 
         char bar[11];
         int barLength = percent / 10;

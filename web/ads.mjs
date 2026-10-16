@@ -209,6 +209,7 @@ setInterval(() => {
     if (s.includes('MANH')) { sb.style.background='#fde8e6';sb.style.color='#da6157';sb.style.borderColor='rgba(218,97,87,.4)'; }
     else if (s.includes('VUA')) { sb.style.background='#fff8e6';sb.style.color='#e5a345';sb.style.borderColor='rgba(229,163,69,.4)'; }
     else if (s.includes('NHE')) { sb.style.background='#e8f4fc';sb.style.color='#518be5';sb.style.borderColor='rgba(81,139,229,.4)'; }
+    else if (s.includes('CAM') || s.includes('CẮM')) { sb.style.background='#fff8e1';sb.style.color='#b45309';sb.style.borderColor='rgba(245,158,11,.5)'; }
     else { sb.style.background='#e6f7f0';sb.style.color='#087b65';sb.style.borderColor='#a3d9c5'; }
   }
 
