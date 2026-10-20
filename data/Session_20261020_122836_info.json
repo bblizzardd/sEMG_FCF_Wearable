@@ -1,0 +1,18 @@
+{
+  "session_id": "20261020_122836",
+  "start_time": "2026-10-20 12:28:36",
+  "duration_seconds": 51.07,
+  "semg": {
+    "file": "data\\sEMG_2000SPS_20261020_122836.csv",
+    "samples": 95319,
+    "sampling_rate": "2000 SPS",
+    "timestamp_col": "timestamp_us"
+  },
+  "imu": {
+    "file": "data\\IMU_100Hz_20261020_122836.csv",
+    "samples": 5063,
+    "sampling_rate": "100 Hz",
+    "timestamp_col": "host_us"
+  },
+  "sync_clock": "Cả 2 file đồng bộ chính xác qua đồng hồ vi điều khiển esp_timer_get_time() (đơn vị micro-giây)."
+}
