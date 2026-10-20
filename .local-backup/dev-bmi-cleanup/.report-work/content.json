@@ -1,0 +1,647 @@
+{
+  "title": "Báo cáo tiến độ kỹ thuật hệ thống MPU6050 và ADS1292R",
+  "subtitle": "Thiết bị đeo theo dõi chuyển động và tín hiệu điện cơ trong bài tập kháng lực",
+  "date": "Ngày 03 tháng 10 năm 2026",
+  "pages": [
+    {
+      "title": "Mục lục và tóm tắt tiến độ",
+      "toc": true,
+      "blocks": [
+        {
+          "type": "h2",
+          "text": "Tóm tắt tiến độ"
+        },
+        {
+          "type": "p",
+          "text": "Nhóm đã phát triển hai luồng firmware trên ESP32 S3. Nhánh MPU6050 thu gia tốc, vận tốc góc, nhiệt độ và dấu nút bấm; các công cụ Python lưu CSV và tạo biểu đồ. Nhánh ADS1292R thu hai kênh ADC 24 bit theo ngắt, xử lý kênh 2 bằng bộ lọc số, ghi CSV và hiển thị trực tiếp trên trình duyệt."
+        },
+        {
+          "type": "p",
+          "text": "Kết quả hiện có là nền tảng thu và quan sát dữ liệu. Hai cảm biến chưa được thu đồng thời trong một firmware; chưa có thuật toán velocity loss hoặc mô hình FCF (tỉ lệ số rep đã hoàn thành trong set đến failure) và RIR (số rep còn lại đến failure) chạy trên ESP32. Hiệu quả lọc nhiễu ADS cần được xác nhận bằng phép đo trước và sau lọc."
+        },
+        {
+          "type": "p",
+          "text": "Ưu tiên tiếp theo là kiểm tra thang đo MPU, thu dữ liệu ADS liên tục, xác định pha nâng của từng rep và xây dựng phép đo tham chiếu. Các kết quả build và kiểm thử phần mềm được trình bày riêng với các phép đo phần cứng chưa thực hiện."
+        }
+      ]
+    },
+    {
+      "title": "1 Tổng quan hệ thống và phạm vi triển khai",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Hệ thống hướng tới theo dõi tiến trình mỏi cơ trong bài tập kháng lực bằng thông tin chuyển động và hoạt động điện cơ bề mặt. MPU6050 hỗ trợ quan sát động tác, xác định chu kỳ lặp và khảo sát sự giảm tốc độ. ADS1292R cung cấp tín hiệu điện thế sinh học để nghiên cứu biên độ và phổ sEMG. Mỗi loại dữ liệu cần cách thu, lọc và kiểm chứng riêng."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 1 So sánh hai luồng đang triển khai",
+          "widths": [
+            1700,
+            3650,
+            3650
+          ],
+          "rows": [
+            [
+              "Hạng mục",
+              "MPU6050",
+              "ADS1292R"
+            ],
+            [
+              "Nhánh được đối chiếu",
+              "dev-mpu tại d2aaa81",
+              "binhdev-ads tại 3a67a0a"
+            ],
+            [
+              "Giao tiếp cảm biến",
+              "I²C 100 kHz",
+              "SPI 1 MHz và MODE1"
+            ],
+            [
+              "Nhịp đọc mục tiêu",
+              "100 mẫu mỗi giây",
+              "2000 mẫu mỗi giây"
+            ],
+            [
+              "Dữ liệu chính",
+              "Gia tốc và gyro ba trục, nhiệt độ, button",
+              "Raw hai kênh 24 bit, filtered kênh 2, sequence và timestamp"
+            ],
+            [
+              "Công cụ quan sát",
+              "PNG và dashboard HTML từ file CSV",
+              "Web trực tiếp và recorder CSV"
+            ]
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Luồng dữ liệu và lý do tổ chức"
+        },
+        {
+          "type": "p",
+          "text": "Với MPU, ESP32 đọc cảm biến theo lịch 10 ms và gửi từng dòng CSV; máy tính lưu dữ liệu rồi tạo biểu đồ. Cách tổ chức này phục vụ khảo sát chuyển động và đối chiếu dấu nút bấm. Dashboard IMU hiển thị bản ghi đã lưu, chưa phải công cụ nhận Serial trực tiếp."
+        },
+        {
+          "type": "p",
+          "text": "Với ADS, cạnh DRDY báo có mẫu mới. Tác vụ thu đọc SPI, đẩy mẫu vào hàng đợi, sau đó main xử lý DSP và gửi Serial. Máy tính tiếp nhận dữ liệu mẫu đầy đủ để ghi CSV; một luồng trạng thái có nhịp thấp hơn phục vụ giao diện. Việc tách hai luồng giảm tải hiển thị mà vẫn giữ dữ liệu nhận được để phân tích."
+        },
+        {
+          "type": "h2",
+          "text": "Trạng thái chức năng"
+        },
+        {
+          "type": "p",
+          "text": "Firmware hiện chưa kết hợp MPU và ADS trong cùng một chương trình. Các bước đếm rep, đồng bộ hai cảm biến, velocity loss, trích xuất đủ bộ đặc trưng nghiên cứu và suy luận mô hình trên chip còn cần triển khai. Công cụ analyze_semg.py từng có trong phiên bản trước đã được xóa khỏi thư mục làm việc hiện tại; các kết quả khảo sát offline trước đây chưa được xem là chức năng đang hoạt động."
+        }
+      ]
+    },
+    {
+      "title": "2 Thu dữ liệu MPU6050 và bộ lọc tích hợp",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Firmware MPU sử dụng Wire để ghi cấu hình và đọc trực tiếp thanh ghi cảm biến. Một lần đọc lấy 14 byte chứa gia tốc ba trục, nhiệt độ và vận tốc góc ba trục. Dữ liệu nguyên có dấu được quy đổi sang đơn vị vật lý trước khi xuất CSV. Nút bấm bổ sung mốc thao tác thủ công để đối chiếu với dạng sóng."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 2 Cấu hình MPU trong nhánh dev mpu",
+          "widths": [
+            2750,
+            2350,
+            3900
+          ],
+          "rows": [
+            [
+              "Thông số",
+              "Giá trị",
+              "Ý nghĩa"
+            ],
+            [
+              "SDA và SCL",
+              "GPIO 18 và 17",
+              "Giao tiếp I²C với địa chỉ 0x68"
+            ],
+            [
+              "Gia tốc",
+              "±4 g và 8192 LSB mỗi g",
+              "Quy đổi raw thành gia tốc theo g"
+            ],
+            [
+              "Gyro",
+              "±500 °/s và 65,5 LSB mỗi °/s",
+              "Quy đổi raw thành vận tốc góc"
+            ],
+            [
+              "Bộ lọc DLPF_CFG",
+              "3 qua CONFIG bằng 0x03",
+              "Accel 44 Hz và gyro 42 Hz"
+            ],
+            [
+              "Nhịp đọc của ESP32",
+              "100 Hz và chu kỳ 10 ms",
+              "Lịch lấy dữ liệu gửi lên máy tính"
+            ],
+            [
+              "Serial và button",
+              "921600 baud và GPIO 5",
+              "Nhấn nút được mã hóa bằng 1"
+            ]
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Tại sao dùng thông thấp 44 Hz"
+        },
+        {
+          "type": "p",
+          "text": "DLPF là bộ lọc số tích hợp trong MPU. Cấu hình đang dùng giảm dao động nhanh và nhiễu cảm biến, giúp quan sát chuyển động rõ hơn. Datasheet quy định băng thông accel 44 Hz với độ trễ 4,9 ms và gyro 42 Hz với độ trễ 4,8 ms ở cấu hình 3. Vì vậy, ghi chú chung 44 Hz trong code cần được hiểu chính xác cho từng loại tín hiệu [1]."
+        },
+        {
+          "type": "p",
+          "text": "ESP đọc ở 100 Hz nên giới hạn Nyquist của chuỗi dữ liệu là 50 Hz. Băng thông 44 và 42 Hz nằm dưới giới hạn đó nhưng bộ lọc không cắt đứt phổ tại tần số này. Cấu hình chưa bảo đảm triệt hoàn toàn aliasing. SMPLRT_DIV bằng 0 tạo cập nhật nội bộ 1 kHz khi DLPF bật, trong khi ESP chỉ đọc mỗi 10 ms [1]."
+        },
+        {
+          "type": "h2",
+          "text": "Các giới hạn cần xử lý"
+        },
+        {
+          "type": "p",
+          "text": "main chưa có FIFO, sequence hoặc thống kê mất mẫu cho MPU. Timestamp millis được lấy sau khi đọc; các khoảng cách timestamp đều chưa chứng minh thời điểm đọc không có jitter. Firmware cũng chưa hiệu chuẩn bias gyro, loại trọng lực, xác định góc hay dùng KalmanFilter.h. Với velocity loss, cần đánh giá ảnh hưởng của bộ lọc lên thời gian pha nâng và vận tốc từng rep trước khi chọn cấu hình cuối cùng."
+        }
+      ]
+    },
+    {
+      "title": "3 Dữ liệu MPU và kết quả quan sát",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Bản ghi có sẵn trong nhánh dev-mpu gồm 6066 dòng, kéo dài 60,65 giây. Có 6065 khoảng cách timestamp đều bằng 10 ms và 264 dòng mang button bằng 1. Đây là dữ liệu lưu trong repo, dùng minh họa chức năng ghi và trực quan hóa; các con số này không được gán cho hai ảnh dashboard mới đã trao đổi."
+        },
+        {
+          "type": "image",
+          "file": "mpu-plot_axes_xyz_breakdown.png",
+          "width": 5.55,
+          "height": 4.94,
+          "caption": "Hình 1 Gia tốc và gyro theo từng trục cùng dấu nút bấm trong bản ghi MPU của nhánh dev mpu"
+        },
+        {
+          "type": "p",
+          "text": "Các công cụ đã tạo bốn hình PNG và dashboard Plotly để xem từng trục, độ lớn vector, phân bố, tương quan và phổ. Dạng sóng lặp lại là cơ sở khảo sát tách rep. Đồ thị 3D hiện biểu diễn vector gia tốc, chưa phải quỹ đạo vị trí của cảm biến."
+        },
+        {
+          "type": "p",
+          "text": "Trong hai ảnh dashboard mới, chu kỳ chuyển động xuất hiện khá rõ, đồng thời có xung đầu bản ghi và các dao động nhanh. Độ lớn gia tốc nhìn gần 2 g cần kiểm tra bằng dữ liệu tĩnh. Nếu cảm biến đứng yên mà giá trị vẫn gần 2 g, phải đối chiếu ACCEL_CONFIG và hệ số quy đổi trước khi tính vận tốc. Những nhận xét từ ảnh chưa đủ xác nhận nhiễu, số rep hoặc mức mỏi."
+        }
+      ]
+    },
+    {
+      "title": "4 Hướng đánh giá velocity loss bằng MPU",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Velocity loss biểu diễn mức giảm vận tốc của một rep so với vận tốc tham chiếu trong set. Rep là một lần lặp động tác; set là một hiệp gồm nhiều rep. Nghiên cứu trên tập kháng lực đã ghi nhận quan hệ giữa sự giảm vận tốc và các chỉ báo mỏi thần kinh cơ [4]. Trong project, đây là hướng sử dụng dữ liệu MPU để theo dõi suy giảm hiệu suất, đồng thời kiểm chéo kết quả từ sEMG."
+        },
+        {
+          "type": "equation",
+          "kind": "vl"
+        },
+        {
+          "type": "p",
+          "text": "v_ref là vận tốc tham chiếu được định nghĩa trước; v_k là vận tốc rep k, được tính theo cùng đại lượng và cùng pha chuyển động. Ví dụ, vận tốc trung bình pha nâng giảm từ 0,60 m/s xuống 0,45 m/s thì VL bằng 25%. Giá trị này mô tả mức giảm vận tốc; nó chưa trực tiếp xác định FCF, RIR hoặc phần trăm mỏi cơ."
+        },
+        {
+          "type": "h2",
+          "text": "Chọn đại lượng từ gyro"
+        },
+        {
+          "type": "p",
+          "text": "Gyro đo vận tốc góc, đơn vị °/s. Với động tác có trục quay rõ và cảm biến gắn chắc, có thể khảo sát vận tốc góc trung bình trong pha nâng sau khi trừ bias. Cần chọn trục hoặc phép chiếu lên trục chuyển động đã xác định. Độ lớn vector gyro gộp ba trục và mất dấu chiều quay, nên một đỉnh của đường này chưa đủ xác định một rep."
+        },
+        {
+          "type": "p",
+          "text": "Khi dùng vận tốc góc, báo cáo kết quả dưới tên mức giảm vận tốc góc và kiểm chứng khả năng đại diện cho động tác. Quan hệ v bằng r nhân omega chỉ áp dụng cho mô hình quay với bán kính đã biết; không thể tự áp dụng cho mọi vị trí gắn MPU. Muốn suy ra vận tốc tuyến tính từ accel, cần xác định hướng, loại trọng lực và kiểm soát trôi tích phân."
+        },
+        {
+          "type": "h2",
+          "text": "Các bước triển khai đề xuất"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Hiệu chuẩn thang đo và bias, gắn cảm biến chắc, ghi video tham chiếu cùng bản ghi.",
+            "Tách từng rep, xác định pha nâng và kiểm tra biên độ chuyển động của pha đó.",
+            "Tính vận tốc trung bình pha nâng và chọn tham chiếu từ các rep đầu hợp lệ theo quy tắc đã khai báo.",
+            "Tính VL từng rep, giữ tải và kỹ thuật tương đối nhất quán, ghi nhận nhịp chủ động của người tập.",
+            "Đối chiếu số rep, ranh giới pha và sai số vận tốc với video hoặc thiết bị tham chiếu trước khi kết luận về mỏi."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Cần báo cáo riêng sai số đo và mức giảm quan sát được. Chuyển động chậm do thay đổi nhịp chủ động, thay đổi biên độ hoặc vị trí cảm biến có thể làm sai diễn giải VL. Mức VL dùng để ra quyết định phải được kiểm định cho bài tập và đối tượng nghiên cứu."
+        }
+      ]
+    },
+    {
+      "title": "5 Thu mẫu ADS1292R bằng ngắt và hàng đợi",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "ADS1292R được cấu hình đọc hai kênh 24 bit với PGA gain 4. SPI dùng clock 1 MHz và MODE1; tốc độ ADC mục tiêu là 2000 mẫu mỗi giây (SPS). Driver đang được main gọi là ads1292r trong thư viện ProtoCentral. Driver ADS1292R riêng và thư viện thuật toán ECG còn trong repo nhưng chưa được gọi trong luồng xử lý sEMG hiện tại."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 3 Kết nối và cấu hình thu ADS",
+          "widths": [
+            2300,
+            2600,
+            4100
+          ],
+          "rows": [
+            [
+              "Nhóm",
+              "Giá trị",
+              "Vai trò"
+            ],
+            [
+              "SPI",
+              "CS 10 và SCK 12",
+              "Chọn chip và tạo xung giao tiếp"
+            ],
+            [
+              "Dữ liệu SPI",
+              "MOSI 11 và MISO 13",
+              "Ghi cấu hình và đọc mẫu ADC"
+            ],
+            [
+              "Điều khiển",
+              "PWDN 9 và START 8",
+              "Reset và bắt đầu chuyển đổi"
+            ],
+            [
+              "Báo mẫu",
+              "DRDY 4",
+              "Cạnh xuống báo mẫu sẵn sàng"
+            ],
+            [
+              "ADC và Serial",
+              "2000 SPS và 2000000 baud",
+              "Nhịp thu mục tiêu và tốc độ truyền"
+            ],
+            [
+              "Hàng đợi",
+              "512 mẫu",
+              "Dung lượng tương đương 256 ms tại 2000 SPS"
+            ]
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Vì sao tách SampleAcquisition"
+        },
+        {
+          "type": "p",
+          "text": "Một chu kỳ ADC chỉ dài 500 μs. Nếu main vừa đọc ADC, lọc, xử lý lệnh và in Serial thì một công việc chậm có thể làm trễ lần đọc kế tiếp. SampleAcquisition tách thu mẫu thành task trên core 0, priority 3 và stack 4096. ISR chỉ tăng sequence, ghi timestamp microsecond và đánh thức task."
+        },
+        {
+          "type": "p",
+          "text": "Task khóa mutex SPI, đọc frame và kiểm tra tính hợp lệ. Frame được bỏ nếu driver đọc lỗi hoặc có cạnh DRDY mới trong lúc truyền. Mẫu hợp lệ được đưa vào queue bằng thao tác không chờ. main nhận mẫu từ queue rồi xử lý DSP và xuất Serial. Mutex còn hỗ trợ tránh truy cập SPI đồng thời khi khởi tạo lại ADC."
+        },
+        {
+          "type": "h2",
+          "text": "Ý nghĩa các bộ đếm"
+        },
+        {
+          "type": "p",
+          "text": "ADC_MISSED ghi cạnh bị bỏ qua hoặc frame không hợp lệ; QUEUE_DROP ghi mẫu không đưa được vào queue. Hàng đợi đệm được tình trạng consumer chậm tạm thời nhưng không phục hồi mẫu ADC đã mất. Sequence đếm cạnh ngắt mà ESP quan sát, còn timestamp phản ánh thời điểm ISR được phục vụ. Các thông số này hỗ trợ chẩn đoán, chưa chứng minh tuyệt đối không bỏ lỡ cạnh phần cứng."
+        },
+        {
+          "type": "p",
+          "text": "Raw hai kênh được giữ để xử lý lại. Kênh 2 được dịch phải 8 bit trước DSP; các giá trị raw và filtered đang là ADC counts. Cần quy đổi và hiệu chuẩn riêng trước khi ghi đơn vị mV hoặc đánh giá đặc tính điện áp của mạch [2]."
+        }
+      ]
+    },
+    {
+      "title": "6 Bộ lọc sEMG và các thay đổi trong main",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Chuỗi xử lý đang dùng là high pass 20 Hz, notch 50 Hz, notch 100 Hz và low pass 450 Hz. High pass giảm DC và thành phần cử động chậm; notch giảm nhiễu điện lưới và hài; low pass giảm thành phần trên dải sEMG mục tiêu. Hai tầng Butterworth có bậc 2; mỗi notch là một biquad riêng. MPU giữ thông tin chuyển động ở tần số thấp, còn ADS giữ hoạt động điện cơ trong dải 20 đến 450 Hz. Các tần số cắt là vùng chuyển tiếp, nên bộ lọc không loại hết nhiễu ngoài dải."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 4 Tham số bộ lọc có thể cấu hình",
+          "widths": [
+            2700,
+            1750,
+            4550
+          ],
+          "rows": [
+            [
+              "Biến",
+              "Giá trị",
+              "Chức năng"
+            ],
+            [
+              "fs",
+              "2000 Hz",
+              "Nhịp ADC và tần số mẫu dùng tính DSP"
+            ],
+            [
+              "f0",
+              "20 Hz",
+              "Tần số cắt high pass"
+            ],
+            [
+              "fc",
+              "450 Hz",
+              "Tần số cắt low pass"
+            ],
+            [
+              "DC_filter_50",
+              "50 Hz",
+              "Tâm notch thứ nhất"
+            ],
+            [
+              "DC_filter_100",
+              "100 Hz",
+              "Tâm notch thứ hai"
+            ],
+            [
+              "NOTCH_RADIUS",
+              "0,98",
+              "Bán kính cực điều chỉnh độ hẹp notch"
+            ]
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Nguồn gốc các hệ số biquad"
+        },
+        {
+          "type": "p",
+          "text": "Các hệ số b0, b1, b2 mô tả phần tác động của mẫu đầu vào; a1 và a2 mô tả hồi tiếp từ đầu ra trước đó. Code chuẩn hóa a0 bằng 1. Mỗi tầng lưu hai mẫu đầu vào và hai mẫu đầu ra gần nhất. Hệ số được tính một lần từ tham số thay cho các hằng số nhập sẵn."
+        },
+        {
+          "type": "equation",
+          "kind": "biquad"
+        },
+        {
+          "type": "p",
+          "text": "High pass và low pass dùng Q bằng 1 chia căn 2, omega bằng 2π nhân tần số cắt chia fs, alpha bằng sin omega chia 2Q và D bằng 1 cộng alpha. Đây là công thức biquad Butterworth từ Audio EQ Cookbook [3]. Notch dùng cặp zero tại tần số chặn, pole có bán kính r và hệ số K để chuẩn hóa gain tại DC."
+        },
+        {
+          "type": "h2",
+          "text": "Những phần đã làm sạch"
+        },
+        {
+          "type": "p",
+          "text": "main đã tập trung chân GPIO và tham số DSP ở đầu file, dùng chung cấu trúc Biquad, thêm chú thích công dụng trước hàm và static_assert để kiểm tra cấu hình. Các dòng dump thanh ghi và thông báo kiểm tra khởi tạo Serial đã được bỏ theo yêu cầu. Luồng thu và telemetry hoạt động vẫn được giữ."
+        },
+        {
+          "type": "p",
+          "text": "Đổi fs đồng thời cập nhật CONFIG1 của ADS theo các tốc độ hỗ trợ. Cần đối chiếu lại baud, mục tiêu SPS trong Python và các EMA vì hệ số EMA hiện tính theo từng mẫu. Notch cũng giảm thành phần sEMG thật quanh vùng chặn. Bộ lọc số không xử lý được dữ liệu đã clip, mất mẫu hoặc sai thang đo."
+        }
+      ]
+    },
+    {
+      "title": "7 Ghi CSV kiểm tra thời gian và hiển thị trực tiếp",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Firmware gửi mỗi mẫu nhận được dưới một dòng bắt đầu bằng $D. Python phân biệt dòng mẫu với dòng trạng thái, ghi các mẫu hợp lệ vào CSV và kiểm tra sequence cùng timestamp. Lưu cả raw và filtered cho phép đối chiếu trực tiếp hoặc xử lý lại khi đổi bộ lọc."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 5 Các trường dữ liệu trong recorder ADS",
+          "widths": [
+            2700,
+            1900,
+            4400
+          ],
+          "rows": [
+            [
+              "Trường",
+              "Đơn vị",
+              "Ý nghĩa"
+            ],
+            [
+              "sample_idx",
+              "Số nguyên",
+              "Sequence cạnh DRDY được quan sát"
+            ],
+            [
+              "timestamp_us",
+              "μs",
+              "Timestamp ISR dạng uint32"
+            ],
+            [
+              "ch1_raw24 và ch2_raw24",
+              "ADC counts",
+              "Raw hai kênh có dấu 24 bit"
+            ],
+            [
+              "ch2_raw16",
+              "ADC counts",
+              "Kênh 2 sau khi dịch phải 8 bit"
+            ],
+            [
+              "filtered16",
+              "ADC counts",
+              "Kênh 2 sau DSP và bỏ phần lẻ"
+            ],
+            [
+              "lead_off",
+              "0 hoặc 1",
+              "Cờ lead off đọc từ frame"
+            ],
+            [
+              "time_s",
+              "s",
+              "Thời gian tương đối của bản ghi"
+            ]
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "SampleClock và tính liên tục"
+        },
+        {
+          "type": "p",
+          "text": "SampleClock tính SPS từ timestamp thiết bị, tránh nhầm nhịp USB đến theo cụm với nhịp lấy mẫu. Sequence 100, 101 rồi 104 cho biết thiếu hai mẫu. Sequence hoặc timestamp trùng bị loại. Phép toán modulo uint32 xử lý trường hợp bộ đếm quay vòng; timestamp microsecond quay vòng khoảng 71,6 phút. Khi nhận diện reboot, recorder kết thúc bản ghi cũ để không nối hai đoạn thời gian."
+        },
+        {
+          "type": "h2",
+          "text": "Web và các nhịp cập nhật"
+        },
+        {
+          "type": "p",
+          "text": "live_emg_visualizer.py mở web tại localhost:8765 để xem raw, filtered, envelope, mức nền, SPS, ghi CSV và gửi lệnh. Mẫu $D được gửi theo nhịp nhận đầy đủ; telemetry được phát khoảng 50 lần mỗi giây; các chỉ số DOM cập nhật khoảng 25 lần mỗi giây. Canvas vẽ theo requestAnimationFrame của trình duyệt. Bởi vậy, nhịp cập nhật màn hình không phải tốc độ lưu CSV."
+        },
+        {
+          "type": "p",
+          "text": "Envelope được tạo bằng chỉnh lưu và EMA để quan sát biên độ gồng nhả. Phần trăm kích hoạt dùng mức nền, gate, peak và độ nhạy thích nghi; chưa được hiệu chuẩn thành lực hoặc phần trăm MVC (co cơ tối đa chủ động). LOFFSENS hiện bằng 0 nên cờ lead_off bằng 0 chưa chứng minh điện cực tiếp xúc tốt. Preview giảm số điểm và không bảo đảm giữ mọi đỉnh ngắn."
+        }
+      ]
+    },
+    {
+      "title": "8 Kiểm thử giới hạn và kế hoạch tiếp theo",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Ngày 03/10/2026, firmware ADS hiện tại build thành công với môi trường 4d_systems_esp32s3_gen4_r8n16. Bảy kiểm thử Python về SampleClock và recorder đều đạt. Kết quả MPU bên dưới là số build đã ghi nhận trong lượt kiểm tra trước trên nhánh dev-mpu; chưa chạy lại build MPU trong lượt lập báo cáo này."
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 6 Kết quả kiểm tra phần mềm",
+          "widths": [
+            3450,
+            2500,
+            3050
+          ],
+          "rows": [
+            [
+              "Hạng mục",
+              "MPU6050",
+              "ADS1292R"
+            ],
+            [
+              "Build firmware",
+              "SUCCESS đã ghi nhận",
+              "SUCCESS ngày 03/10/2026"
+            ],
+            [
+              "RAM tĩnh theo build",
+              "18928 byte",
+              "19652 byte"
+            ],
+            [
+              "Flash theo build",
+              "271937 byte",
+              "288893 byte"
+            ],
+            [
+              "Test Python",
+              "Chưa có test riêng MPU",
+              "7 trên 7 đạt"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Các test ADS kiểm tốc độ độc lập với nhịp đến host, tác động mất mẫu, wrap uint32, reboot, duplicate và recorder nhận luồng mẫu xen telemetry. Hai firmware dùng cấu hình board và partition khác nhau. Số RAM và Flash trên không đại diện cho bộ nhớ động toàn bộ, độ trễ suy luận hoặc chi phí một mô hình ML."
+        },
+        {
+          "type": "h2",
+          "text": "Các giới hạn đang còn"
+        },
+        {
+          "type": "p",
+          "text": "Chưa có phép đo mới xác nhận SNR, jitter, CMRR, độ trễ, năng lượng hoặc thời lượng pin. ADS còn nhiễu theo phản hồi khi sử dụng; chưa có số liệu trước và sau lọc để định lượng. MPU chưa có thuật toán velocity loss đã kiểm định, và hai luồng chưa đồng bộ. KalmanFilter.h hiện chưa được gọi trong main của hai nhánh."
+        },
+        {
+          "type": "h2",
+          "text": "Thứ tự công việc đề xuất"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Kiểm thang đo MPU bằng tư thế tĩnh và gyro bias; ghi chuyển động cùng video để tách đúng pha nâng.",
+            "Thu ADS ở trạng thái nghỉ và co cơ; kiểm raw, clipping, phổ điện lưới, SPS và gap trước khi chỉnh thêm bộ lọc.",
+            "Đối chiếu điện cực, dây, RLD và nguồn; đo đáp ứng mạch bằng tín hiệu tham chiếu [2].",
+            "Bổ sung cơ chế thời gian và mất mẫu cho MPU, sau đó tích hợp thu hai cảm biến trên cùng cơ sở thời gian.",
+            "Khóa định nghĩa vận tốc và tham chiếu VL. Với checkpoint G3, phát lại tín hiệu tham chiếu qua ADS và kiểm khả năng bảo toàn đặc trưng theo ngưỡng khai báo trước.",
+            "Khi luồng thu đã đạt tiêu chí, triển khai đặc trưng và model rồi đo chi phí cùng board, xung nhịp và cấu hình build."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Kalman chỉ nên được thử khi đã xác định đại lượng cần ước lượng, mô hình và tiêu chí sai số hoặc độ trễ. Hiện chưa có bằng chứng cần thêm Kalman để xử lý nguồn nhiễu ADS. Trọng tâm của giai đoạn tới là chứng minh dữ liệu đúng và phép đo lặp lại được trước khi suy luận tiến trình mỏi."
+        }
+      ]
+    },
+    {
+      "title": "9 Tài liệu tham khảo và các file chính",
+      "blocks": [
+        {
+          "type": "reference",
+          "text": "[1] InvenSense. MPU 6000 and MPU 6050 Register Map and Descriptions. Revision 4.0, 2012. Mục 4.2, 4.3, 4.4 và 4.5.",
+          "url": "https://cdn.sparkfun.com/datasheets/Sensors/Accelerometers/RM-MPU-6000A.pdf"
+        },
+        {
+          "type": "reference",
+          "text": "[2] Texas Instruments. ADS129x Low Power 2 Channel 24 Bit Analog Front End for Biopotential Measurements. Datasheet Revision C.",
+          "url": "https://www.ti.com/lit/ds/symlink/ads1292r.pdf"
+        },
+        {
+          "type": "reference",
+          "text": "[3] W3C. Audio EQ Cookbook. Working Group Note, 08/06/2021. Công thức biquad low pass và high pass.",
+          "url": "https://www.w3.org/TR/audio-eq-cookbook/"
+        },
+        {
+          "type": "reference",
+          "text": "[4] Sánchez Medina L và González Badillo JJ. Velocity loss as an indicator of neuromuscular fatigue during resistance training. Medicine and Science in Sports and Exercise, 2011, 43(9), 1725 đến 1734. DOI 10.1249/MSS.0b013e318213f880.",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/21311352/"
+        },
+        {
+          "type": "h2",
+          "text": "Các file cần đọc trong project"
+        },
+        {
+          "type": "table",
+          "caption": "Bảng 7 Vị trí triển khai các chức năng chính",
+          "widths": [
+            3500,
+            1500,
+            4000
+          ],
+          "rows": [
+            [
+              "File",
+              "Nhánh",
+              "Vai trò"
+            ],
+            [
+              "src/main.cpp",
+              "MPU",
+              "Khởi tạo và đọc MPU, quy đổi, xuất CSV"
+            ],
+            [
+              "data/record_data.py",
+              "MPU",
+              "Ghi CSV từ Serial"
+            ],
+            [
+              "data/visualize_data.py và data/generate_dashboard.py",
+              "MPU",
+              "PNG và dashboard HTML từ bản ghi"
+            ],
+            [
+              "src/main.cpp",
+              "ADS",
+              "Cấu hình phần cứng, DSP và telemetry"
+            ],
+            [
+              "src/SampleAcquisition.cpp",
+              "ADS",
+              "Ngắt, task, mutex, queue và bộ đếm"
+            ],
+            [
+              "record_emg_csv.py và sample_timing.py",
+              "ADS",
+              "Ghi mẫu và kiểm thời gian"
+            ],
+            [
+              "live_emg_visualizer.py",
+              "ADS",
+              "Web trực tiếp, điều khiển và ghi CSV"
+            ]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Đường dẫn cùng tên cần được hiểu theo nhánh trong bảng. Phần MPU đối chiếu dev-mpu tại d2aaa81; phần ADS đối chiếu binhdev-ads tại 3a67a0a và trạng thái thư mục làm việc ngày 03/10/2026. Thuật toán velocity loss và phép thử phát lại tín hiệu qua mạch trong báo cáo là công việc đề xuất, chưa được ghi nhận hoàn thành."
+        }
+      ]
+    }
+  ]
+}

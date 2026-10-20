@@ -274,27 +274,39 @@ boolean ads1292r::getAds1292EcgAndRespirationSamples(const int dataReady, const 
 
   if (digitalRead(dataReady) == LOW)
   {
-    uint8_t rxBuf[9];
+    return readFrame(chipSelect, ecgRespirationValues);
+  }
 
-    _spi->beginTransaction(_spiSettings);
-    digitalWrite(chipSelect, LOW);
-    delayMicroseconds(2);
+  return false;
+}
 
-    for (int i = 0; i < 9; ++i)
-    {
-      rxBuf[i] = _spi->transfer(CONFIG_SPI_MASTER_DUMMY);
-    }
+boolean ads1292r::readFrame(const int chipSelect, ads1292OutputValues *ecgRespirationValues)
+{
+  if (ecgRespirationValues == nullptr) return false;
 
-    delayMicroseconds(2);
-    digitalWrite(chipSelect, HIGH);
-    _spi->endTransaction();
+  uint8_t rxBuf[9];
 
-    static int _dbgCount = 0;
-    if (_dbgCount++ < 5) {
-      Serial.printf("# RAW9: %02X %02X %02X | %02X %02X %02X | %02X %02X %02X\n",
-                    rxBuf[0], rxBuf[1], rxBuf[2], rxBuf[3], rxBuf[4], rxBuf[5], rxBuf[6], rxBuf[7], rxBuf[8]);
-    }
+  _spi->beginTransaction(_spiSettings);
+  digitalWrite(chipSelect, LOW);
+  delayMicroseconds(2);
 
+  for (int i = 0; i < 9; ++i)
+  {
+    rxBuf[i] = _spi->transfer(CONFIG_SPI_MASTER_DUMMY);
+  }
+
+  delayMicroseconds(2);
+  digitalWrite(chipSelect, HIGH);
+  _spi->endTransaction();
+
+  // Status word luôn bắt đầu bằng 4 bit 1100 (datasheet ADS1292R, mục 9.4.1.3.2).
+  // Sai header => frame bị lệch byte/bit (đọc trễ, DRDY chen giữa) => bỏ toàn bộ frame.
+  if ((rxBuf[0] & 0xF0) != 0xC0)
+  {
+    return false;
+  }
+
+  {
     // 1. Channel 1 (Respiration / Ch1): Bytes 3, 4, 5 (24-bit signed 2's complement)
     int32_t ch1 = ((uint32_t)rxBuf[3] << 16) | ((uint32_t)rxBuf[4] << 8) | rxBuf[5];
     if (ch1 & 0x00800000) {
@@ -330,6 +342,4 @@ boolean ads1292r::getAds1292EcgAndRespirationSamples(const int dataReady, const 
 
     return true;
   }
-
-  return false;
 }

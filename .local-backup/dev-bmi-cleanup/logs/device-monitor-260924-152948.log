@@ -1,0 +1,456 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0xb (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+
+==================================================
+     ESP32-S3 KIỂM TRA PROTOCENTRAL ADS1292R     
+==================================================
+ Cấu hình chân SPI:
+   - CS   (SS)  : GPIO 10
+   - SCK  (CLK) : GPIO 12
+   - MOSI (DIN) : GPIO 11
+   - MISO (DOUT): GPIO 13
+   - PWDN/RESET : GPIO 9
+   - START      : GPIO 8
+   - DRDY       : GPIO 4
+==================================================
+-> Đang thiết lập phần cứng ADS1292R...
+-> Mã Device ID đọc được: 0x73
+>>> [THÀNH CÔNG RỰC RỠ] ĐÃ NHẬN DIỆN CHÍNH XÁC CHIP ADS1292R! <<<
+
+--- BẢNG THANH GHI ADS1292R ---
+  [00] ID       (0x00)  = 0x73
+  [01] CONFIG1  (0x01)  = 0x03
+  [02] CONFIG2  (0x02)  = 0xA0
+  [03] LOFF     (0x03)  = 0x10
+  [04] CH1SET   (0x04)  = 0x00
+  [05] CH2SET   (0x05)  = 0x40
+  [06] RLDSENS  (0x06)  = 0x00
+  [07] LOFFSENS (0x07)  = 0x00
+  [08] LOFFSTAT (0x08)  = 0x00
+  [09] RESP1    (0x09)  = 0x32
+  [10] RESP2    (0x0A)  = 0x03
+  [11] GPIO     (0x0B)  = 0x0C
+-------------------------------
+
+Raw: 88948 | Env: 4425 | Luc:[====================] 100% | GONG MANH!
+Raw: 86754 | Env:59343 | Luc:[====================] 100% | GONG MANH!
+Raw: 85885 | Env:62801 | Luc:[====================] 100% | GONG MANH!
+Raw: 82872 | Env:63182 | Luc:[====================] 100% | GONG MANH!
+Raw: 81591 | Env:63175 | Luc:[====================] 100% | GONG MANH!
+Raw: 79838 | Env:62661 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 96248 | Env:64253 | Luc:[====================] 100% | GONG MANH!
+Raw: 94626 | Env:64113 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 93976 | Env:64006 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 93936 | Env:63985 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 92354 | Env:64038 | Luc:[====================] 100% | GONG MANH!
+Raw: 91478 | Env:64014 | Luc:[====================] 100% | GONG MANH!
+Raw: 90148 | Env:63787 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 89284 | Env:63664 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 88334 | Env:63895 | Luc:[====================] 100% | GONG MANH!
+Raw: 87173 | Env:63546 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 83712 | Env:63948 | Luc:[====================] 100% | GONG MANH!
+Raw: 86189 | Env:63842 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 86636 | Env:64556 | Luc:[====================] 100% | GONG MANH!
+Raw: 91033 | Env:66055 | Luc:[====================] 100% | GONG MANH!
+Raw: 88361 | Env:66124 | Luc:[====================] 100% | GONG MANH!
+Raw: 89127 | Env:67861 | Luc:[====================] 100% | GONG MANH!
+Raw: 88343 | Env:69995 | Luc:[====================] 100% | GONG MANH!
+Raw:109998 | Env:71018 | Luc:[====================] 100% | GONG MANH!
+Raw:117754 | Env:73964 | Luc:[====================] 100% | GONG MANH!
+Raw:119808 | Env:76605 | Luc:[====================] 100% | GONG MANH!
+Raw:129884 | Env:77739 | Luc:[====================] 100% | GONG MANH!
+Raw:115409 | Env:80185 | Luc:[====================] 100% | GONG MANH!
+Raw:122913 | Env:82629 | Luc:[====================] 100% | GONG MANH!
+Raw:116230 | Env:80517 | Luc:[=================== ]  97% | GONG MANH!
+Raw:128971 | Env:82263 | Luc:[=================== ]  99% | GONG MANH!
+Raw:120263 | Env:83892 | Luc:[====================] 100% | GONG MANH!
+Raw:116683 | Env:82970 | Luc:[=================== ]  98% | GONG MANH!
+Raw:114045 | Env:80926 | Luc:[=================== ]  96% | GONG MANH!
+Raw:117009 | Env:81718 | Luc:[=================== ]  97% | GONG MANH!
+Raw:100781 | Env:79774 | Luc:[=================== ]  95% | GONG MANH!
+Raw:101481 | Env:79415 | Luc:[=================== ]  95% | GONG MANH!
+Raw: 94716 | Env:79948 | Luc:[=================== ]  95% | GONG MANH!
+Raw: 92222 | Env:78642 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 89701 | Env:78183 | Luc:[==================  ]  93% | GONG MANH!
+Raw:114038 | Env:78164 | Luc:[==================  ]  93% | GONG MANH!
+Raw:110571 | Env:77872 | Luc:[==================  ]  93% | GONG MANH!
+Raw:110695 | Env:77938 | Luc:[==================  ]  93% | GONG MANH!
+Raw:105274 | Env:77738 | Luc:[==================  ]  93% | GONG MANH!
+Raw:110594 | Env:77616 | Luc:[==================  ]  93% | GONG MANH!
+Raw:106506 | Env:77829 | Luc:[==================  ]  94% | GONG MANH!
+Raw:107971 | Env:77475 | Luc:[==================  ]  93% | GONG MANH!
+Raw:108169 | Env:76763 | Luc:[==================  ]  92% | GONG MANH!
+Raw:102771 | Env:78528 | Luc:[=================== ]  95% | GONG MANH!
+Raw:100409 | Env:75263 | Luc:[==================  ]  91% | GONG MANH!
+Raw:101644 | Env:75985 | Luc:[==================  ]  92% | GONG MANH!
+Raw: 95806 | Env:75311 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 92643 | Env:75359 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 92839 | Env:76000 | Luc:[==================  ]  92% | GONG MANH!
+Raw: 93320 | Env:75980 | Luc:[==================  ]  92% | GONG MANH!
+Raw: 92306 | Env:76166 | Luc:[==================  ]  92% | GONG MANH!
+Raw: 93156 | Env:75115 | Luc:[==================  ]  91% | GONG MANH!
+Raw:113197 | Env:78034 | Luc:[=================== ]  95% | GONG MANH!
+Raw:111456 | Env:77836 | Luc:[=================== ]  95% | GONG MANH!
+Raw:110369 | Env:77818 | Luc:[=================== ]  95% | GONG MANH!
+Raw:110991 | Env:78490 | Luc:[=================== ]  96% | GONG MANH!
+Raw:109381 | Env:78342 | Luc:[=================== ]  96% | GONG MANH!
+Raw:108786 | Env:78511 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 96933 | Env:77468 | Luc:[=================== ]  95% | GONG MANH!
+Raw:102002 | Env:77443 | Luc:[=================== ]  95% | GONG MANH!
+Raw:103084 | Env:76953 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 99570 | Env:76631 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 99101 | Env:76629 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 95904 | Env:76046 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 94506 | Env:75515 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 92821 | Env:75499 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 90954 | Env:75355 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 87812 | Env:75634 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 86988 | Env:75608 | Luc:[==================  ]  93% | GONG MANH!
+Raw:110184 | Env:77578 | Luc:[=================== ]  96% | GONG MANH!
+Raw:109126 | Env:77326 | Luc:[=================== ]  96% | GONG MANH!
+Raw:107058 | Env:77066 | Luc:[=================== ]  96% | GONG MANH!
+Raw:106034 | Env:76938 | Luc:[=================== ]  96% | GONG MANH!
+Raw:104092 | Env:76686 | Luc:[=================== ]  95% | GONG MANH!
+Raw:102713 | Env:76152 | Luc:[=================== ]  95% | GONG MANH!
+Raw:101767 | Env:76191 | Luc:[=================== ]  95% | GONG MANH!
+Raw:100496 | Env:75654 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 98728 | Env:75359 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 94918 | Env:75301 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 93718 | Env:75418 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 90094 | Env:75599 | Luc:[=================== ]  95% | GONG MANH!
+Raw: 86701 | Env:74522 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 86796 | Env:74032 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 88528 | Env:74248 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 84883 | Env:73498 | Luc:[==================  ]  92% | GONG MANH!
+Raw: 85861 | Env:73237 | Luc:[==================  ]  92% | GONG MANH!
+Raw:106060 | Env:73481 | Luc:[==================  ]  92% | GONG MANH!
+Raw:103698 | Env:71704 | Luc:[==================  ]  90% | GONG MANH!
+Raw:101724 | Env:71834 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 97736 | Env:70895 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 94199 | Env:68932 | Luc:[=================   ]  87% | GONG MANH!
+Raw: 90141 | Env:68160 | Luc:[=================   ]  86% | GONG MANH!
+Raw: 89554 | Env:67138 | Luc:[=================   ]  85% | GONG MANH!
+Raw: 84298 | Env:65274 | Luc:[================    ]  83% | GONG MANH!
+Raw: 81038 | Env:63729 | Luc:[================    ]  81% | GONG MANH!
+Raw: 79339 | Env:63103 | Luc:[================    ]  80% | GONG MANH!
+Raw: 76957 | Env:62577 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 76516 | Env:62266 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 73818 | Env:61871 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 72680 | Env:61599 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 70809 | Env:60983 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 68904 | Env:60912 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 69618 | Env:61408 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 86603 | Env:62133 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 87987 | Env:62167 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 86546 | Env:62624 | Luc:[================    ]  80% | GONG MANH!
+Raw: 83881 | Env:62521 | Luc:[================    ]  80% | GONG MANH!
+Raw: 83314 | Env:62186 | Luc:[================    ]  80% | GONG MANH!
+Raw: 82171 | Env:62228 | Luc:[================    ]  80% | GONG MANH!
+Raw: 79324 | Env:61527 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 78609 | Env:61141 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 77239 | Env:60702 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 75522 | Env:60531 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 74156 | Env:60222 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 72626 | Env:60063 | Luc:[===============     ]  78% | GONG MANH!
+Raw: 70612 | Env:59138 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 68479 | Env:58982 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 66983 | Env:58812 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 64934 | Env:58539 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 63331 | Env:58303 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 81214 | Env:59247 | Luc:[===============     ]  77% | GONG MANH!
+Raw: 78751 | Env:58344 | Luc:[===============     ]  76% | GONG MANH!
+Raw: 76563 | Env:57665 | Luc:[===============     ]  75% | GONG MANH!
+Raw: 74930 | Env:56978 | Luc:[==============      ]  74% | GONG MANH!
+Raw: 73639 | Env:56559 | Luc:[==============      ]  74% | GONG MANH!
+Raw: 73443 | Env:56241 | Luc:[==============      ]  73% | GONG MANH!
+Raw: 69456 | Env:55637 | Luc:[==============      ]  73% | GONG MANH!
+Raw: 68784 | Env:55570 | Luc:[==============      ]  73% | GONG MANH!
+Raw: 62300 | Env:51809 | Luc:[=============       ]  68% | GONG MANH!
+Raw: 59668 | Env:48711 | Luc:[============        ]  64% | GONG VUA
+Raw: 58949 | Env:47608 | Luc:[============        ]  62% | GONG VUA
+Raw: 55971 | Env:45939 | Luc:[============        ]  60% | GONG VUA
+Raw: 54359 | Env:44822 | Luc:[===========         ]  59% | GONG VUA
+Raw: 52832 | Env:44207 | Luc:[===========         ]  58% | GONG VUA
+Raw: 51233 | Env:43980 | Luc:[===========         ]  58% | GONG VUA
+Raw: 49901 | Env:43746 | Luc:[===========         ]  57% | GONG VUA
+Raw: 47344 | Env:43127 | Luc:[===========         ]  57% | GONG VUA
+Raw: 61876 | Env:44238 | Luc:[===========         ]  58% | GONG VUA
+Raw: 62336 | Env:44640 | Luc:[===========         ]  59% | GONG VUA
+Raw: 61078 | Env:44589 | Luc:[===========         ]  59% | GONG VUA
+Raw: 59395 | Env:44604 | Luc:[===========         ]  59% | GONG VUA
+Raw: 59444 | Env:44293 | Luc:[===========         ]  58% | GONG VUA
+Raw: 58076 | Env:47509 | Luc:[============        ]  63% | GONG VUA
+Raw: 57231 | Env:43951 | Luc:[===========         ]  58% | GONG VUA
+Raw: 58738 | Env:48737 | Luc:[=============       ]  65% | GONG MANH!
+Raw: 54719 | Env:43420 | Luc:[===========         ]  58% | GONG VUA
+Raw: 54160 | Env:43129 | Luc:[===========         ]  57% | GONG VUA
+Raw: 65215 | Env:53642 | Luc:[==============      ]  71% | GONG MANH!
+Raw: 64862 | Env:55224 | Luc:[==============      ]  74% | GONG MANH!
+Raw: 61848 | Env:55380 | Luc:[==============      ]  74% | GONG MANH!
+Raw: 64536 | Env:56239 | Luc:[===============     ]  75% | GONG MANH!
+Raw: 64146 | Env:57142 | Luc:[===============     ]  77% | GONG MANH!
+Raw: 62548 | Env:57300 | Luc:[===============     ]  77% | GONG MANH!
+Raw: 62758 | Env:57693 | Luc:[===============     ]  77% | GONG MANH!
+Raw: 79329 | Env:58783 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 80624 | Env:59026 | Luc:[===============     ]  79% | GONG MANH!
+Raw: 83038 | Env:60881 | Luc:[================    ]  82% | GONG MANH!
+Raw: 82877 | Env:60367 | Luc:[================    ]  81% | GONG MANH!
+Raw: 80854 | Env:59715 | Luc:[================    ]  81% | GONG MANH!
+Raw:105648 | Env:68551 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 94774 | Env:69138 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 94098 | Env:66955 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 95376 | Env:70347 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 88094 | Env:72724 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 89297 | Env:72354 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 74604 | Env:69634 | Luc:[=================== ]  95% | GONG MANH!
+Raw: 80677 | Env:66719 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 71553 | Env:64310 | Luc:[=================   ]  88% | GONG MANH!
+Raw: 74994 | Env:65134 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 77506 | Env:62821 | Luc:[=================   ]  86% | GONG MANH!
+Raw: 96073 | Env:65756 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 92197 | Env:65846 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 92829 | Env:65869 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 91590 | Env:65353 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 91519 | Env:66232 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 90470 | Env:65666 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 89258 | Env:65661 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 88629 | Env:65346 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 84715 | Env:65452 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 83373 | Env:65132 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 81549 | Env:64418 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 79828 | Env:63950 | Luc:[=================   ]  88% | GONG MANH!
+Raw: 79550 | Env:64025 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 76592 | Env:63861 | Luc:[=================   ]  88% | GONG MANH!
+Raw: 78183 | Env:63415 | Luc:[=================   ]  88% | GONG MANH!
+Raw: 76789 | Env:63828 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 76723 | Env:64689 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 94529 | Env:66458 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 98514 | Env:67025 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 98066 | Env:67674 | Luc:[==================  ]  94% | GONG MANH!
+Raw:100005 | Env:68520 | Luc:[=================== ]  96% | GONG MANH!
+Raw:100215 | Env:68813 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 98019 | Env:70210 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 97128 | Env:69871 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 94341 | Env:69486 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 94040 | Env:69951 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 90438 | Env:69897 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 91784 | Env:69727 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 88826 | Env:69355 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 89066 | Env:68961 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 85586 | Env:68448 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 85579 | Env:68514 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 85791 | Env:68055 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 84894 | Env:68177 | Luc:[=================== ]  96% | GONG MANH!
+Raw:106298 | Env:69695 | Luc:[=================== ]  99% | GONG MANH!
+Raw:103868 | Env:69271 | Luc:[=================== ]  98% | GONG MANH!
+Raw:102453 | Env:69697 | Luc:[=================== ]  99% | GONG MANH!
+Raw:100144 | Env:69349 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 98098 | Env:69001 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 96489 | Env:68784 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 93988 | Env:68305 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 92354 | Env:68198 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 90378 | Env:67903 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 89636 | Env:67627 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 87741 | Env:67205 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 85394 | Env:67293 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 76896 | Env:64723 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 81057 | Env:65583 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 81041 | Env:65574 | Luc:[==================  ]  94% | GONG MANH!
+Raw: 77119 | Env:64621 | Luc:[==================  ]  93% | GONG MANH!
+Raw: 75895 | Env:62105 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 90502 | Env:62956 | Luc:[==================  ]  91% | GONG MANH!
+Raw: 88954 | Env:62328 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 88432 | Env:62232 | Luc:[==================  ]  90% | GONG MANH!
+Raw: 85387 | Env:61516 | Luc:[=================   ]  89% | GONG MANH!
+Raw: 82470 | Env:60563 | Luc:[=================   ]  88% | GONG MANH!
+Raw: 82204 | Env:60217 | Luc:[=================   ]  87% | GONG MANH!
+Raw: 81296 | Env:59807 | Luc:[=================   ]  87% | GONG MANH!
+Raw: 79438 | Env:59380 | Luc:[=================   ]  86% | GONG MANH!
+Raw: 77702 | Env:59008 | Luc:[=================   ]  86% | GONG MANH!
+Raw: 76717 | Env:58961 | Luc:[=================   ]  86% | GONG MANH!
+Raw: 76001 | Env:58537 | Luc:[=================   ]  85% | GONG MANH!
+Raw: 73276 | Env:57791 | Luc:[================    ]  84% | GONG MANH!
+Raw: 21557 | Env:142491 | Luc:[====================] 100% | GONG MANH!
+Raw: 16789 | Env:243142 | Luc:[====================] 100% | GONG MANH!
+Raw: 18816 | Env:249996 | Luc:[====================] 100% | GONG MANH!
+Raw: 12882 | Env:253424 | Luc:[====================] 100% | GONG MANH!
+Raw: 19424 | Env:256282 | Luc:[====================] 100% | GONG MANH!
+Raw: 34026 | Env:250435 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 39324 | Env:254542 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 48555 | Env:255163 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 47820 | Env:257104 | Luc:[====================] 100% | GONG MANH!
+Raw: 36026 | Env:260547 | Luc:[====================] 100% | GONG MANH!
+Raw: 29363 | Env:262758 | Luc:[====================] 100% | GONG MANH!
+Raw: 44600 | Env:262903 | Luc:[====================] 100% | GONG MANH!
+Raw: 21026 | Env:268504 | Luc:[====================] 100% | GONG MANH!
+Raw: 40531 | Env:265881 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 31671 | Env:269282 | Luc:[====================] 100% | GONG MANH!
+Raw: 24349 | Env:271133 | Luc:[====================] 100% | GONG MANH!
+Raw: 22726 | Env:269973 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 29918 | Env:272371 | Luc:[====================] 100% | GONG MANH!
+Raw: 19219 | Env:269983 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 25029 | Env:272013 | Luc:[====================] 100% | GONG MANH!
+Raw: 16237 | Env:270340 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 24918 | Env:269951 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 34928 | Env:263189 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 50004 | Env:262133 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 47963 | Env:264980 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 35049 | Env:262968 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 51263 | Env:263441 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 40852 | Env:261682 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 41068 | Env:260966 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 36375 | Env:263010 | Luc:[=================== ]  97% | GONG MANH!
+Raw: 47714 | Env:265507 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 34958 | Env:269865 | Luc:[====================] 100% | GONG MANH!
+Raw: 45579 | Env:265289 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 28576 | Env:271250 | Luc:[====================] 100% | GONG MANH!
+Raw: 29883 | Env:268817 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 26442 | Env:270464 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 19148 | Env:272290 | Luc:[====================] 100% | GONG MANH!
+Raw: 30258 | Env:268533 | Luc:[=================== ]  98% | GONG MANH!
+Raw: 20468 | Env:269769 | Luc:[=================== ]  99% | GONG MANH!
+Raw: 36435 | Env:261916 | Luc:[=================== ]  96% | GONG MANH!
+Raw: 64386 | Env:251681 | Luc:[==================  ]  92% | GONG MANH!
+Raw:100869 | Env:130416 | Luc:[=========           ]  48% | GONG VUA
+Raw: 82086 | Env:138987 | Luc:[==========          ]  51% | GONG VUA
+Raw: 78025 | Env:110429 | Luc:[========            ]  40% | GONG VUA
+Raw: 73124 | Env:83443 | Luc:[======              ]  30% | GONG VUA
+Raw: 81263 | Env:73869 | Luc:[=====               ]  27% | GONG VUA
+Raw: 89736 | Env:65996 | Luc:[====                ]  24% | THA LONG
+Raw: 93279 | Env:65199 | Luc:[====                ]  24% | THA LONG
+Raw: 87217 | Env:65542 | Luc:[====                ]  24% | THA LONG
+Raw: 89374 | Env:64838 | Luc:[====                ]  23% | THA LONG
+Raw: 95364 | Env:66000 | Luc:[====                ]  24% | THA LONG
+Raw: 98071 | Env:69977 | Luc:[=====               ]  25% | GONG VUA
+Raw: 99034 | Env:70358 | Luc:[=====               ]  26% | GONG VUA
+Raw:100063 | Env:71535 | Luc:[=====               ]  26% | GONG VUA
+Raw: 89403 | Env:67225 | Luc:[====                ]  24% | THA LONG
+Raw: 85421 | Env:63983 | Luc:[====                ]  23% | THA LONG
+Raw: 95283 | Env:64853 | Luc:[====                ]  24% | THA LONG
+Raw: 95251 | Env:64448 | Luc:[====                ]  24% | THA LONG
+Raw: 94369 | Env:63335 | Luc:[====                ]  23% | THA LONG
+Raw: 93858 | Env:63685 | Luc:[====                ]  23% | THA LONG
+Raw: 93278 | Env:63520 | Luc:[====                ]  23% | THA LONG
+Raw: 93466 | Env:63667 | Luc:[====                ]  23% | THA LONG
+Raw: 92473 | Env:63041 | Luc:[====                ]  23% | THA LONG
+Raw: 92130 | Env:62940 | Luc:[====                ]  23% | THA LONG
+Raw: 92226 | Env:62856 | Luc:[====                ]  23% | THA LONG
+Raw: 91016 | Env:62580 | Luc:[====                ]  23% | THA LONG
+Raw: 90879 | Env:62329 | Luc:[====                ]  23% | THA LONG
+Raw: 89825 | Env:62148 | Luc:[====                ]  23% | THA LONG
+Raw: 89090 | Env:61846 | Luc:[====                ]  23% | THA LONG
+Raw: 88822 | Env:61963 | Luc:[====                ]  23% | THA LONG
+Raw: 88135 | Env:61829 | Luc:[====                ]  23% | THA LONG
+Raw: 87533 | Env:61978 | Luc:[====                ]  23% | THA LONG
+Raw: 96224 | Env:63883 | Luc:[====                ]  24% | THA LONG
+Raw: 95706 | Env:63786 | Luc:[====                ]  24% | THA LONG
+Raw: 95657 | Env:63411 | Luc:[====                ]  24% | THA LONG
+Raw: 95540 | Env:63529 | Luc:[====                ]  24% | THA LONG
+Raw: 95326 | Env:63511 | Luc:[====                ]  24% | THA LONG
+Raw: 93986 | Env:63132 | Luc:[====                ]  24% | THA LONG
+Raw: 95834 | Env:63347 | Luc:[====                ]  24% | THA LONG
+Raw: 94827 | Env:63218 | Luc:[====                ]  24% | THA LONG
+Raw: 94186 | Env:63087 | Luc:[====                ]  24% | THA LONG
+Raw: 91999 | Env:62420 | Luc:[====                ]  23% | THA LONG
+Raw: -1615 | Env:61410 | Luc:[====                ]  23% | THA LONG
+Raw:-11634 | Env:51820 | Luc:[===                 ]  19% | THA LONG
+Raw: 11915 | Env:26200 | Luc:[=                   ]   9% | THA LONG
+Raw: 20966 | Env:22934 | Luc:[=                   ]   8% | THA LONG
+Raw: 20356 | Env:21002 | Luc:[=                   ]   7% | THA LONG
+Raw: 12542 | Env:17864 | Luc:[=                   ]   6% | THA LONG
+Raw: 13509 | Env:13713 | Luc:[=                   ]   5% | THA LONG
+Raw: 31971 | Env:20683 | Luc:[=                   ]   7% | THA LONG
+Raw: 37954 | Env:25092 | Luc:[=                   ]   9% | THA LONG
+Raw: 41209 | Env:27946 | Luc:[==                  ]  10% | THA LONG
+Raw: 41083 | Env:28551 | Luc:[==                  ]  10% | THA LONG
+Raw: 40836 | Env:28113 | Luc:[==                  ]  10% | THA LONG
+Raw: 43503 | Env:29213 | Luc:[==                  ]  11% | THA LONG
+Raw: 50868 | Env:33380 | Luc:[==                  ]  12% | THA LONG
+Raw: 50551 | Env:34825 | Luc:[==                  ]  13% | THA LONG
+Raw: 52351 | Env:35074 | Luc:[==                  ]  13% | THA LONG
+Raw: 51316 | Env:35205 | Luc:[==                  ]  13% | THA LONG
+Raw: 51468 | Env:35350 | Luc:[==                  ]  13% | THA LONG
+Raw: 51744 | Env:35453 | Luc:[==                  ]  13% | THA LONG
+Raw: 51725 | Env:35570 | Luc:[==                  ]  13% | THA LONG
+Raw: 51639 | Env:35781 | Luc:[==                  ]  13% | THA LONG
+Raw: 49281 | Env:34641 | Luc:[==                  ]  13% | THA LONG
+Raw: 49082 | Env:34075 | Luc:[==                  ]  13% | THA LONG
+Raw: 47461 | Env:33364 | Luc:[==                  ]  12% | THA LONG
+Raw: 51191 | Env:34107 | Luc:[==                  ]  13% | THA LONG
+Raw: 54099 | Env:35290 | Luc:[==                  ]  13% | THA LONG
+Raw: 57912 | Env:38379 | Luc:[==                  ]  14% | THA LONG
+Raw: 58928 | Env:39591 | Luc:[===                 ]  15% | THA LONG
+Raw: 58489 | Env:38798 | Luc:[===                 ]  15% | THA LONG
+Raw: 57361 | Env:38576 | Luc:[===                 ]  15% | THA LONG
+Raw: 59998 | Env:39415 | Luc:[===                 ]  15% | THA LONG
+Raw: 60112 | Env:40345 | Luc:[===                 ]  15% | THA LONG
+Raw: 59688 | Env:39963 | Luc:[===                 ]  15% | THA LONG
+Raw: 54631 | Env:37361 | Luc:[==                  ]  14% | THA LONG
+Raw: 45952 | Env:32596 | Luc:[==                  ]  12% | THA LONG
+Raw: 41917 | Env:29843 | Luc:[==                  ]  11% | THA LONG
+Raw: 42156 | Env:29203 | Luc:[==                  ]  11% | THA LONG
+Raw: 41429 | Env:28964 | Luc:[==                  ]  11% | THA LONG
+Raw: 40756 | Env:28495 | Luc:[==                  ]  11% | THA LONG
+Raw: 40454 | Env:28216 | Luc:[==                  ]  11% | THA LONG
+Raw: 39190 | Env:27713 | Luc:[==                  ]  10% | THA LONG
+Raw: 39511 | Env:27634 | Luc:[==                  ]  10% | THA LONG
+Raw: 39827 | Env:27581 | Luc:[==                  ]  10% | THA LONG
+Raw: 39593 | Env:27259 | Luc:[==                  ]  10% | THA LONG
+Raw: 38889 | Env:26700 | Luc:[==                  ]  10% | THA LONG
+Raw: 38761 | Env:26384 | Luc:[==                  ]  10% | THA LONG
+Raw: 38557 | Env:26277 | Luc:[==                  ]  10% | THA LONG
+Raw: 37820 | Env:26140 | Luc:[==                  ]  10% | THA LONG
+Raw: 38163 | Env:26189 | Luc:[==                  ]  10% | THA LONG
+Raw: 38227 | Env:26213 | Luc:[==                  ]  10% | THA LONG
+Raw: 37959 | Env:26171 | Luc:[==                  ]  10% | THA LONG
+Raw: 38436 | Env:26217 | Luc:[==                  ]  10% | THA LONG
+Raw: 37664 | Env:26112 | Luc:[==                  ]  10% | THA LONG
+Raw: 37778 | Env:26030 | Luc:[==                  ]  10% | THA LONG
+Raw: 37641 | Env:25937 | Luc:[==                  ]  10% | THA LONG
+Raw: 37907 | Env:25928 | Luc:[==                  ]  10% | THA LONG
+Raw: 37108 | Env:25637 | Luc:[==                  ]  10% | THA LONG
+Raw: 35463 | Env:25007 | Luc:[=                   ]   9% | THA LONG
+Raw: 32154 | Env:23365 | Luc:[=                   ]   9% | THA LONG
+Raw: 32520 | Env:22983 | Luc:[=                   ]   9% | THA LONG
+Raw: 32004 | Env:22718 | Luc:[=                   ]   9% | THA LONG
+Raw: 30597 | Env:21541 | Luc:[=                   ]   8% | THA LONG
+Raw: 32978 | Env:22409 | Luc:[=                   ]   8% | THA LONG
+Raw: 32479 | Env:22816 | Luc:[=                   ]   9% | THA LONG
+Raw: 33847 | Env:22725 | Luc:[=                   ]   9% | THA LONG
+Raw: 47599 | Env:30088 | Luc:[==                  ]  12% | THA LONG
+Raw: 79332 | Env:43820 | Luc:[===                 ]  17% | THA LONG
+Raw:102464 | Env:65001 | Luc:[=====               ]  26% | GONG VUA
+Raw: 98254 | Env:65522 | Luc:[=====               ]  26% | GONG VUA
+Raw:101349 | Env:65937 | Luc:[=====               ]  27% | GONG VUA
+Raw:101211 | Env:65683 | Luc:[=====               ]  26% | GONG VUA
+Raw:101333 | Env:65439 | Luc:[=====               ]  26% | GONG VUA
+Raw:101509 | Env:65122 | Luc:[=====               ]  26% | GONG VUA
+Raw: 99826 | Env:65378 | Luc:[=====               ]  26% | GONG VUA
+Raw: 39429 | Env:40732 | Luc:[===                 ]  16% | THA LONG
+Raw: 33238 | Env:23935 | Luc:[=                   ]   9% | THA LONG
+Raw: 29329 | Env:21623 | Luc:[=                   ]   8% | THA LONG
+Raw: 24724 | Env:18952 | Luc:[=                   ]   7% | THA LONG
+Raw: 24392 | Env:17855 | Luc:[=                   ]   7% | THA LONG
+Raw: 18503 | Env:15178 | Luc:[=                   ]   6% | THA LONG
+Raw: 18074 | Env:13657 | Luc:[=                   ]   5% | THA LONG
+Raw: 16162 | Env:12577 | Luc:[=                   ]   5% | THA LONG
+Raw: 17385 | Env:12963 | Luc:[=                   ]   5% | THA LONG
+Raw: 17930 | Env:13116 | Luc:[=                   ]   5% | THA LONG
+Raw: 18314 | Env:13351 | Luc:[=                   ]   5% | THA LONG
+Raw: 18588 | Env:13571 | Luc:[=                   ]   5% | THA LONG
+Raw: 19251 | Env:13837 | Luc:[=                   ]   5% | THA LONG
+Raw: 20416 | Env:14087 | Luc:[=                   ]   5% | THA LONG
+Raw: 20848 | Env:14745 | Luc:[=                   ]   5% | THA LONG
+Raw: 20731 | Env:14842 | Luc:[=                   ]   6% | THA LONG
+Raw: 21931 | Env:15324 | Luc:[=                   ]   6% | THA LONG
+Raw: 22874 | Env:15862 | Luc:[=                   ]   6% | THA LONG
+Raw: 23820 | Env:16900 | Luc:[=                   ]   6% | THA LONG
+Raw: 25848 | Env:18280 | Luc:[=                   ]   7% | THA LONG
+Raw: 28908 | Env:20017 | Luc:[=                   ]   8% | THA LONG

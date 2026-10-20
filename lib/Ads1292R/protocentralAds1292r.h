@@ -116,6 +116,8 @@ class ads1292r
     static char* ads1292ReadData(const int chipSelect);
     static boolean readRawSamples(const int chipSelect, uint8_t *buffer9Bytes);
     boolean getAds1292EcgAndRespirationSamples(const int dataReady, const int chipSelect, ads1292OutputValues *ecgRespirationValues);
+    // Đọc 1 frame 9 byte (không kiểm tra DRDY). Trả về false nếu header status sai (frame hỏng).
+    static boolean readFrame(const int chipSelect, ads1292OutputValues *ecgRespirationValues);
 };
 
 #endif

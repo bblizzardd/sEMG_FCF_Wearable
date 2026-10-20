@@ -62,8 +62,6 @@ constexpr uint32_t SERIAL_BAUD = 2000000;
 // ============================================================================
 // 1. ADS1292R
 SPIClass adsSpiBus(FSPI);
-ads1292r ads1292;
-ads1292OutputValues ecgData;
 
 // 2. BMI160
 SPIClass bmiSpi(HSPI);
@@ -84,9 +82,34 @@ uint32_t bmiIoErrors = 0;
 uint32_t bmiSerialDrops = 0;
 uint8_t bmiConsecutiveErrors = 0;
 
+// Đọc ADS1292R bằng ngắt DRDY + task riêng trên core 0, tách khỏi loop() (BMI160/Serial)
+// để không bao giờ bỏ lỡ DRDY hay đọc frame khi ADS đang cập nhật dữ liệu.
+struct AdsSample {
+  uint32_t seq;      // Số thứ tự cạnh DRDY: nhảy cóc => có mẫu bị mất
+  uint64_t timestampUs;
+  int32_t ch1Raw;
+  int32_t ch2Raw;
+  bool leadOff;
+};
+
+constexpr UBaseType_t ADS_QUEUE_LEN = 512; // ~256 ms đệm ở 2000 SPS (BMI160 reconnect chặn loop ~170 ms)
+QueueHandle_t adsQueue = nullptr;
+SemaphoreHandle_t adsBusMutex = nullptr;
+TaskHandle_t adsTaskHandle = nullptr;
+portMUX_TYPE adsDrdyMux = portMUX_INITIALIZER_UNLOCKED;
+volatile uint32_t adsDrdyCount = 0;
+volatile uint64_t adsDrdyUs = 0;
+
+// Thống kê lỗi (ghi bởi task ADS, đọc bởi loop)
+volatile uint32_t adsMissedFrames = 0;  // DRDY không kịp đọc
+volatile uint32_t adsBadFrames = 0;     // Header sai hoặc DRDY chen giữa lúc đọc
+volatile uint32_t adsQueueDrops = 0;    // loop() xử lý không kịp
+uint32_t adsSerialDrops = 0;            // Buffer Serial đầy
+
 // Trạng thái & DSP của ADS1292R
 uint32_t adsSampleCounter = 0;
 unsigned long adsLastSamplePrint = 0;
+bool adsLeadOff = true;
 float emgEnvelope = 0.0f;
 float baselineNoise = 10.0f;
 float mvcPeak = 120.0f;
@@ -146,8 +169,55 @@ void resetAdsCalibration() {
                 baselineNoise, mvcPeak, noiseThreshold);
 }
 
+void IRAM_ATTR onAdsDrdy() {
+  portENTER_CRITICAL_ISR(&adsDrdyMux);
+  adsDrdyCount++;
+  adsDrdyUs = esp_timer_get_time();
+  portEXIT_CRITICAL_ISR(&adsDrdyMux);
+  BaseType_t woken = pdFALSE;
+  vTaskNotifyGiveFromISR(adsTaskHandle, &woken);
+  if (woken) portYIELD_FROM_ISR();
+}
+
+void adsReaderTask(void *) {
+  // Gắn ngắt ngay trong task để ISR chạy cùng core 0 với task
+  attachInterrupt(digitalPinToInterrupt(PIN_ADS_DRDY), onAdsDrdy, FALLING);
+  uint32_t lastSeq = 0;
+  ads1292OutputValues frame;
+
+  for (;;) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    portENTER_CRITICAL(&adsDrdyMux);
+    uint32_t seq = adsDrdyCount;
+    uint64_t tsUs = adsDrdyUs;
+    portEXIT_CRITICAL(&adsDrdyMux);
+    if (seq == lastSeq) continue;
+
+    xSemaphoreTake(adsBusMutex, portMAX_DELAY);
+    bool ok = ads1292r::readFrame(PIN_ADS_CS, &frame);
+    xSemaphoreGive(adsBusMutex);
+
+    portENTER_CRITICAL(&adsDrdyMux);
+    bool overrun = (adsDrdyCount != seq); // DRDY mới xuất hiện trong lúc đang shift dữ liệu
+    portEXIT_CRITICAL(&adsDrdyMux);
+
+    if (lastSeq != 0 && seq - lastSeq > 1) adsMissedFrames += seq - lastSeq - 1;
+    lastSeq = seq;
+    if (!ok || overrun) {
+      ++adsBadFrames;
+      continue;
+    }
+
+    AdsSample sample{seq, tsUs, (int32_t)frame.sDaqVals[0], (int32_t)frame.sDaqVals[1], (bool)frame.leadoffDetected};
+    if (xQueueSend(adsQueue, &sample, 0) != pdTRUE) ++adsQueueDrops;
+  }
+}
+
 // Cấu hình thanh ghi ADS1292R
 void configAdsRegisters() {
+  // Khoá bus để task đọc ADS không chen vào giữa lúc ghi thanh ghi
+  if (adsBusMutex) xSemaphoreTake(adsBusMutex, portMAX_DELAY);
   ads1292r::ads1292StopReadDataContinuous(PIN_ADS_CS);
   delay(10);
   ads1292r::ads1292RegWrite(ADS1292_REG_CONFIG1, 0x04, PIN_ADS_CS); // 2000 SPS
@@ -186,6 +256,7 @@ void configAdsRegisters() {
   pinMode(PIN_ADS_START, OUTPUT);
   digitalWrite(PIN_ADS_START, HIGH);
   delay(10);
+  if (adsBusMutex) xSemaphoreGive(adsBusMutex);
 }
 
 // ============================================================================
@@ -271,6 +342,12 @@ void setup() {
   Serial.printf("# ADS1292R Device ID = 0x%02X\n", devId);
   configAdsRegisters();
 
+  adsQueue = xQueueCreate(ADS_QUEUE_LEN, sizeof(AdsSample));
+  adsBusMutex = xSemaphoreCreateMutex();
+  // Core 0, ưu tiên cao: chỉ thức dậy theo DRDY, đọc 9 byte rồi ngủ lại
+  xTaskCreatePinnedToCore(adsReaderTask, "ads_reader", 4096, nullptr,
+                          configMAX_PRIORITIES - 2, &adsTaskHandle, 0);
+
   bmiLastStatsMs = millis();
 }
 
@@ -316,13 +393,15 @@ void loop() {
     }
   }
 
-  // --- 3. ĐỌC DỮ LIỆU sEMG ADS1292R (2000 SPS khi DRDY LOW) ---
-  if (ads1292.getAds1292EcgAndRespirationSamples(PIN_ADS_DRDY, PIN_ADS_CS, &ecgData)) {
-      adsSampleCounter++;
-      uint64_t hwTimestampUs = esp_timer_get_time();
+  // --- 3. XỬ LÝ MẪU sEMG ADS1292R (2000 SPS, do task adsReaderTask đẩy vào hàng đợi) ---
+  AdsSample adsSample;
+  while (xQueueReceive(adsQueue, &adsSample, 0) == pdTRUE) {
+      adsSampleCounter = adsSample.seq;
+      adsLeadOff = adsSample.leadOff;
+      uint64_t hwTimestampUs = adsSample.timestampUs;
 
-      int32_t ch1Raw = ecgData.sDaqVals[0];
-      int32_t ch2Raw = ecgData.sDaqVals[1];
+      int32_t ch1Raw = adsSample.ch1Raw;
+      int32_t ch2Raw = adsSample.ch2Raw;
       // Cố định kênh đo sEMG vào Kênh 2 (CH2 cắm cáp điện cực)
       int32_t emgRaw = ch2Raw;
       int16_t emgRaw16 = (int16_t)(emgRaw >> 8);
@@ -370,9 +449,11 @@ void loop() {
                             (unsigned long long)hwTimestampUs,
                             (long)ch1Raw, (long)emgRaw,
                             (int)emgRaw16, (int)emgFiltered16,
-                            ecgData.leadoffDetected ? 1 : 0);
+                            adsLeadOff ? 1 : 0);
       if (adsLen > 0 && Serial.availableForWrite() >= adsLen) {
         Serial.write(reinterpret_cast<const uint8_t *>(adsDataset), adsLen);
+      } else {
+        ++adsSerialDrops;
       }
 
       // Telemetry UI Preview 20 Hz (mỗi 50ms)
@@ -380,7 +461,7 @@ void loop() {
         int percent = 0;
         const char *trangThai = "THA LONG";
 
-        if (ecgData.leadoffDetected) {
+        if (adsLeadOff) {
           percent = 0;
           trangThai = "CHUA CAM DIEN CUC";
         } else {
@@ -446,7 +527,7 @@ void loop() {
     }
   }
 
-  // Thống kê định kỳ BMI160 mỗi 2 giây
+  // Thống kê định kỳ BMI160 + ADS1292R mỗi 2 giây
   uint32_t curMs = millis();
   if (curMs - bmiLastStatsMs >= 2000) {
     if (bmiConnected) {
@@ -455,6 +536,9 @@ void loop() {
                     (unsigned long)bmiIoErrors, (unsigned long)bmiSerialDrops);
       bmiPrevReceived = bmiReceived;
     }
+    Serial.printf("# ADS missed=%lu bad_frames=%lu queue_drops=%lu serial_drops=%lu\n",
+                  (unsigned long)adsMissedFrames, (unsigned long)adsBadFrames,
+                  (unsigned long)adsQueueDrops, (unsigned long)adsSerialDrops);
     bmiLastStatsMs = curMs;
   }
 }

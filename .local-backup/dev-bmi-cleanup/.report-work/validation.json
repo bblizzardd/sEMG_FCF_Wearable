@@ -1,0 +1,11 @@
+{
+  "output": "C:\\Users\\Admin\\OneDrive\\Documents\\PlatformIO\\Projects\\sEMG\\docs\\report\\Bao_cao_tien_do_MPU6050_ADS1292R_2026-10-03.docx",
+  "pages": 11,
+  "visual_review": "All 11 pages inspected",
+  "tables": 7,
+  "word_open_and_repaginate": "PASS",
+  "zip_xml_validation": "PASS",
+  "python_tests": "7/7 PASS",
+  "ADS_build": "SUCCESS",
+  "sha256": "a0d7368c52e09102d5e9f8fe044e5e50cb25d90bfcd61e3190947db1ee112ad9"
+}

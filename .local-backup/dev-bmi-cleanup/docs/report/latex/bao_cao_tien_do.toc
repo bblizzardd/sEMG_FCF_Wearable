@@ -1,0 +1,10 @@
+\babel@toc {vietnamese}{}\relax 
+\contentsline {section}{\numberline {1}Tổng quan hệ thống và phạm vi triển khai}{3}{section.1}%
+\contentsline {section}{\numberline {2}Thu dữ liệu MPU6050 và bộ lọc tích hợp}{4}{section.2}%
+\contentsline {section}{\numberline {3}Dữ liệu MPU và kết quả quan sát}{5}{section.3}%
+\contentsline {section}{\numberline {4}Hướng đánh giá velocity loss bằng MPU}{6}{section.4}%
+\contentsline {section}{\numberline {5}Thu mẫu ADS1292R bằng ngắt và hàng đợi}{7}{section.5}%
+\contentsline {section}{\numberline {6}Bộ lọc sEMG và các thay đổi trong main}{8}{section.6}%
+\contentsline {section}{\numberline {7}Ghi CSV kiểm tra thời gian và hiển thị trực tiếp}{9}{section.7}%
+\contentsline {section}{\numberline {8}Kiểm thử giới hạn và kế hoạch tiếp theo}{10}{section.8}%
+\contentsline {section}{\numberline {9}Tài liệu tham khảo và các file chính}{11}{section.9}%

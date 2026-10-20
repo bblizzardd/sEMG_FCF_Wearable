@@ -1,0 +1,13 @@
+{
+  "source": "C:\\Users\\Admin\\OneDrive\\Documents\\PlatformIO\\Projects\\sEMG\\docs\\report\\latex\\bao_cao_tien_do.tex",
+  "zip": "C:\\Users\\Admin\\OneDrive\\Documents\\PlatformIO\\Projects\\sEMG\\docs\\report\\Bao_cao_tien_do_MPU_ADS_LaTeX.zip",
+  "engine": "Tectonic 0.17.0 (XeTeX)",
+  "pages": 11,
+  "sections": 9,
+  "tables": 7,
+  "figures": 1,
+  "compile": "PASS",
+  "visual_review": "PASS",
+  "archive": "PASS",
+  "sha256_tex": "5150087b78e6b8caf6f038c137e265c224bcf42572c376489b5defe9fce174a3"
+}
