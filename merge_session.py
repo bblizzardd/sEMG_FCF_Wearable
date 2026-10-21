@@ -126,7 +126,8 @@ def merge_session(session_id, semg_path, imu_path):
                 "gx_dps": cur_imu.get("gx_dps", "0.0"),
                 "gy_dps": cur_imu.get("gy_dps", "0.0"),
                 "gz_dps": cur_imu.get("gz_dps", "0.0"),
-                "button_rep": cur_imu.get("button_state", "0"),
+                # Ưu tiên button_state 2000 SPS trong file sEMG; file cũ chưa có thì lấy từ IMU 100 Hz
+                "button_rep": row.get("button_state") or cur_imu.get("button_state", "0"),
                 "lead_off": row.get("lead_off", "0"),
             }
             writer.writerow(out_row)

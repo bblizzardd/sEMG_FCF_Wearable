@@ -23,7 +23,7 @@
  * MOSI  ---> GPIO 11               MOSI ---> GPIO 5
  * MISO  ---> GPIO 13               MISO ---> GPIO 7
  * PWDN  ---> GPIO 9                [Nút nhấn mốc Rep]
- * START ---> GPIO 8                BTN  ---> GPIO 3 <-> GND
+ * START ---> GPIO 8                BTN  ---> GPIO 17 <-> GND
  * DRDY  ---> GPIO 4
  * ============================================================================
  */
@@ -52,7 +52,7 @@
 #endif
 
 #ifndef BUTTON_PIN
-#define BUTTON_PIN      3
+#define BUTTON_PIN      17
 #endif
 
 constexpr uint32_t SERIAL_BAUD = 2000000;
@@ -441,15 +441,15 @@ void loop() {
         mvcPeak *= 0.99998f;
       }
 
-      // Xuất mẫu sEMG dataset: 2000 SPS đầy đủ
+      // Xuất mẫu sEMG dataset: 2000 SPS đầy đủ (cột cuối = button_state, nhấn = 1)
       char adsDataset[96];
       int adsLen = snprintf(adsDataset, sizeof(adsDataset),
-                            "$D,%lu,%llu,%ld,%ld,%d,%d,%d\n",
+                            "$D,%lu,%llu,%ld,%ld,%d,%d,%d,%u\n",
                             (unsigned long)adsSampleCounter,
                             (unsigned long long)hwTimestampUs,
                             (long)ch1Raw, (long)emgRaw,
                             (int)emgRaw16, (int)emgFiltered16,
-                            adsLeadOff ? 1 : 0);
+                            adsLeadOff ? 1 : 0, unsigned(button.pressed()));
       if (adsLen > 0 && Serial.availableForWrite() >= adsLen) {
         Serial.write(reinterpret_cast<const uint8_t *>(adsDataset), adsLen);
       } else {

@@ -42,6 +42,7 @@
 .ads-pct-unit{font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.1em;font-weight:600}
 .ads-status-badge{font-size:11px;font-weight:700;padding:5px 16px;border-radius:20px;background:#e6f7f0;color:#087b65;border:1px solid #a3d9c5;margin-bottom:10px;letter-spacing:.04em;transition:all .2s}
 .ads-stat-row{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ads-button-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 10px;background:#f5f7f5;border-radius:8px;font-size:10px;color:var(--muted);flex-wrap:wrap}.ads-button-row b{color:var(--ink)}
 .ads-stat{background:#f8faf8;border:1px solid var(--line);border-radius:8px;padding:9px 10px;text-align:center}
 .ads-stat-name{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:600}
 .ads-stat-val{font-size:16px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}

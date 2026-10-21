@@ -11,7 +11,9 @@ const rawH   = new Array(MAX_PTS).fill(0);
 const filtH  = new Array(MAX_PTS).fill(0);
 const envH   = new Array(MAX_PTS).fill(0);
 const baseH  = new Array(MAX_PTS).fill(0);
+const btnH   = new Array(MAX_PTS).fill(0);   // 1 = đang nhấn nút Rep (GPIO 17)
 
+let lastBtnPresses = null;
 let smoothRangeF = 60, smoothMaxE = 20;
 let maxFlexPeak = 100;
 let latestAds = null;
@@ -150,6 +152,16 @@ function drawScopes() {
     let maxInH = 6;
     for (let i = 0; i < MAX_PTS; i++) { if (envH[i] > maxInH) maxInH = envH[i]; if (baseH[i] > maxInH) maxInH = baseH[i]; }
     smoothMaxE += (Math.max(16, maxInH * 1.35) - smoothMaxE) * 0.08;
+    // Nút nhấn: tô nền đỏ khi nhấn, vạch đỏ tại cạnh 0 → 1
+    const colW = wE / (MAX_PTS - 1);
+    ctxE.fillStyle = 'rgba(205,100,89,0.18)';
+    ctxE.strokeStyle = '#cd6459'; ctxE.lineWidth = 1.5;
+    for (let i = 0; i < MAX_PTS; i++) {
+      if (!btnH[i]) continue;
+      const x = i * colW;
+      ctxE.fillRect(x - colW / 2, 0, colW, hE);
+      if (i === 0 || !btnH[i - 1]) { ctxE.beginPath(); ctxE.moveTo(x, 0); ctxE.lineTo(x, hE); ctxE.stroke(); }
+    }
     // Baseline
     ctxE.strokeStyle = 'rgba(81,139,229,0.6)'; ctxE.lineWidth = 1.4; ctxE.setLineDash([4, 4]); ctxE.beginPath();
     for (let i = 0; i < MAX_PTS; i++) {
@@ -222,6 +234,13 @@ setInterval(() => {
   const sv = $('ads-stat-base'); if (sv) sv.textContent = (d.base||0).toLocaleString();
   const se = $('ads-stat-env'); if (se) se.textContent = (d.env||0).toLocaleString();
   const sp = $('ads-stat-peak'); if (sp) sp.textContent = (d.peak||0).toLocaleString();
+  const hasBtn = d.button === 0 || d.button === 1;
+  const bs = $('ads-button-state');
+  if (bs) {
+    bs.textContent = !hasBtn ? 'Chưa có dữ liệu nút' : !d.connected ? 'Không có mẫu mới' : d.button ? 'Đang nhấn · 1' : 'Đã thả · 0';
+    bs.className = 'button-badge' + (hasBtn && d.connected && d.button === 1 ? ' pressed' : '');
+  }
+  const bc = $('ads-button-count'); if (bc) bc.textContent = hasBtn ? (d.button_presses || 0).toLocaleString('vi-VN') : '—';
   const pp = $('ads-port-pill'); if (pp) pp.textContent = d.connected ? (d.port ? `${d.port} · ONLINE` : 'ONLINE') : 'CHỜ ESP32';
   const bd = $('ads-btn-dsp');
   if (bd && d.dsp) {
@@ -264,6 +283,10 @@ function connectAdsSSE() {
       filtH.push(data.filt||0); filtH.shift();
       envH.push(data.env||0); envH.shift();
       baseH.push(data.base||0); baseH.shift();
+      // Lần nhấn ngắn hơn chu kỳ SSE (40 ms) vẫn hiện nhờ bộ đếm cạnh lên phía Python
+      const pressed = data.button === 1 || (lastBtnPresses !== null && (data.button_presses||0) > lastBtnPresses);
+      lastBtnPresses = data.button_presses ?? null;
+      btnH.push(pressed ? 1 : 0); btnH.shift();
       if ((data.env||0) > maxFlexPeak) maxFlexPeak = data.env;
       latestAds = data;
     } catch {}

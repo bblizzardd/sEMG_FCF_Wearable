@@ -71,7 +71,7 @@ class DualRecorder:
 
             self.semg_file = open(self.semg_filename, "w", encoding="utf-8")
             self.semg_file.write(
-                "sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off\n"
+                "sample_idx,timestamp_us,ch1_raw24,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off,button_state\n"
             )
 
             self.imu_file = open(self.imu_filename, "w", encoding="utf-8")
@@ -204,6 +204,11 @@ class AdsState:
         self.lead_off = False
         self.measured_sps = 0.0
 
+        # Nút nhấn mốc Rep (GPIO 17), cột cuối của dòng $D; None = firmware cũ chưa gửi
+        self.button_state = None
+        self.button_presses = 0
+        self.button_last_press_us = 0
+
         # Bucket decimation
         self._bucket_n = 0
         self._b_min_raw = float("inf")
@@ -280,6 +285,9 @@ class AdsState:
                 "percent": self.percent,
                 "status": self.status_str,
                 "dsp": self.dsp,
+                "button": self.button_state,
+                "button_presses": self.button_presses,
+                "button_last_press_us": self.button_last_press_us,
                 "dual_recording": rec_status,
                 "health": h,
             }
@@ -296,10 +304,18 @@ class AdsState:
             raw16 = int(parts[4])
             filt16 = int(parts[5])
             loff = int(parts[6])
+            btn = int(parts[7]) if len(parts) > 7 else None
         except (ValueError, IndexError):
             return
 
         with self.lock:
+            if btn is not None:
+                if btn == 1 and self.button_state == 0:
+                    self.button_presses += 1
+                    self.button_last_press_us = hw_us
+                self.button_state = btn
+            btn_col = "" if btn is None else str(btn)
+
             if self.last_seq is not None:
                 diff = s_idx - (self.last_seq + 1)
                 if diff > 0:
@@ -331,12 +347,12 @@ class AdsState:
 
             if self.recorder and self.recorder.recording:
                 self.recorder.write_semg(
-                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff}\n"
+                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff},{btn_col}\n"
                 )
 
             if self.recording and self.record_file:
                 self.record_file.write(
-                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff}\n"
+                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff},{btn_col}\n"
                 )
                 self.record_count += 1
                 if self.record_count % 500 == 0:
@@ -483,6 +499,7 @@ class AdsState:
             self.noise_threshold = self.baseline_noise * 0.35
             self.percent = 0
             self.status_str = "THA LONG"
+            self.button_presses = 0
 
 
 # ===========================================================================

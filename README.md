@@ -44,7 +44,7 @@ graph TD
     subgraph Phần Cứng [Hardware Wearable Platform]
         ADS[ADS1292R 24-bit ADC<br/>Fs = 2000 SPS] -->|FSPI - SPI2| ESP[ESP32-S3 MCU<br/>Dual-Core Xtensa @ 240MHz]
         BMI[GY-BMI160 IMU 6-DOF<br/>Fs = 100 Hz] -->|HSPI - SPI3| ESP
-        BTN[Nút Nhấn Cắt Rep<br/>GPIO 3] -->|Active LOW| ESP
+        BTN[Nút Nhấn Cắt Rep<br/>GPIO 17] -->|Active LOW| ESP
     end
 
     subgraph Firmware DSP [ESP32-S3 Firmware - PlatformIO]
@@ -82,7 +82,7 @@ Sử dụng board **ESP32-S3** (khuyên dùng các dòng hỗ trợ chân linh h
 | | **MOSI / SDA** | **GPIO 5** | SPI Data Input HSPI |
 | | **MISO / SDO** | **GPIO 7** | SPI Data Output HSPI |
 | | **3V3 & GND** | **3.3V & GND** | Nguồn 3.3V và chung Mass |
-| **Nút Nhấn Sự Kiện**| **BTN** | **GPIO 3** | Nối vào GND khi nhấn (Internal Pull-Up) |
+| **Nút Nhấn Sự Kiện**| **BTN** | **GPIO 17** | Nối vào GND khi nhấn (Internal Pull-Up) |
 
 > [!WARNING]
 > Không cấp nguồn 5V trực tiếp vào các chân tín hiệu của ADS1292R và BMI160. Đảm bảo toàn bộ dây nối SPI ngắn gọn, bọc chống nhiễu nếu có thể để giảm thiểu nhiễu 50Hz từ môi trường.
@@ -157,11 +157,11 @@ Cả 2 dòng dữ liệu được truyền xen kẽ liên tục trên cùng 1 lu
 ### 6.1. Gói Dữ Liệu sEMG (Tần số 2000 SPS)
 Bắt đầu bằng tiền tố định dạng `$D`:
 ```text
-$D,<sampleCount>,<timestampUs>,<ch1Raw>,<ch2Raw>,<emgRaw16>,<emgFiltered16>,<leadOffStatus>
+$D,<sampleCount>,<timestampUs>,<ch1Raw>,<ch2Raw>,<emgRaw16>,<emgFiltered16>,<leadOffStatus>,<buttonState>
 ```
 *Ví dụ:*
 ```text
-$D,12045,6022500,1024,45120,352,298,0
+$D,12045,6022500,1024,45120,352,298,0,0
 ```
 
 ### 6.2. Gói Dữ Liệu IMU BMI160 (Tần số 100 Hz)
