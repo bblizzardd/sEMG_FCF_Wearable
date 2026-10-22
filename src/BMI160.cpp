@@ -80,7 +80,11 @@ bool BMI160::begin() {
   delay(10); // Power-on/soft-reset settling margin.
   selectSpi();
   readRegisters(CHIP_ID, &id, 1);
-  if (id != 0xD1) return fail("BMI160 CHIP_ID 0xD1 not found on SPI");
+  if (id != 0xD1) {
+    // 0x00: MISO kéo xuống/mất nguồn; 0xFF: MISO hở hoặc CS không tới chip
+    snprintf(errorBuf_, sizeof(errorBuf_), "BMI160 CHIP_ID read 0x%02X, expected 0xD1", id);
+    return fail(errorBuf_);
+  }
   writeRegister(COMMAND, 0xB6);
   delay(10);
   selectSpi();

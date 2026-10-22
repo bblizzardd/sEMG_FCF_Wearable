@@ -132,12 +132,10 @@ Chạy script Python để tự động kết nối cổng COM và mở Web Dash
 python live_combined_visualizer.py
 ```
 - Server web sẽ tự động mở tại: `http://localhost:8765/`
-- Giao diện cung cấp:
-  - **Oscilloscope sEMG**: Biểu đồ tín hiệu thô (Raw ADC), tín hiệu đã lọc (Filtered) và Bao hình (Envelope).
-  - **Thanh đo % Lực co cơ**: Phản hồi trực quan cường độ cơ bắp.
-  - **Biểu đồ IMU**: Gia tốc $X, Y, Z$, Vận tốc góc và Góc nghiêng Roll / Pitch.
-  - **Trạng thái Nút bấm (Rep Marker)**: Cắt mốc cử động chính xác từng mili-giây.
-  - **Ghi dữ liệu CSV**: Xuất dữ liệu đồng bộ cho huấn luyện mô hình Machine Learning.
+- Giao diện có 2 tab:
+  - **Trực tiếp** (`#live`): 4 thẻ trạng thái (sEMG, IMU, nút mốc Rep, ghi CSV); đồ thị **sEMG + nút** (đã lọc + bao hình + baseline, vùng lead-off tô xám) cạnh đồng hồ % MVC; đồ thị **BMI160 + nút** (gia tốc, tốc độ góc, góc nghiêng) cạnh mô hình tư thế. Ở cả hai đồ thị, vùng đỏ nhạt là lúc đang giữ nút, vạch đỏ đứt là lúc nhấn. Chỉ số chất lượng dữ liệu và nhật ký thiết bị nằm trong mục *Chất lượng dữ liệu & công cụ* (bấm để mở).
+  - Nút **● Ghi sEMG + IMU + nút** ở góc trên ghi phiên vào CSV (xem [6.3](#63-file-csv-của-một-phiên-ghi)); khi dừng, thông báo có nút **Xem lại phiên này** để mở ngay phiên vừa ghi.
+  - **Xem lại dữ liệu** (`#review`): chọn phiên trong `data/` hoặc kéo thả file CSV để xem toàn bộ phiên trên 2 đồ thị riêng – **BMI160 + nút** và **sEMG + nút** – chung một trục thời gian, kèm bảng các mốc nút bấm. Kéo chuột để phóng to vùng chọn, `Ctrl` + lăn để phóng to/thu nhỏ, `Shift` + lăn để dời, nhấp đúp để xem toàn bộ; bấm số mốc trong bảng (hoặc *Mốc trước / Mốc sau*) để nhảy tới đoạn từ lần nhấn đó tới lần nhấn kế tiếp.
 
 ### 5.4. Các Phím Lệnh Tương Tác Qua Serial
 Khi đang kết nối, bạn có thể gửi trực tiếp các ký tự lệnh từ Serial Monitor hoặc giao diện:
@@ -169,6 +167,33 @@ $D,12045,6022500,1024,45120,352,298,0,0
 ```text
 <session>,<sequence>,<timestampUs>,<sensorTime>,<accX>,<accY>,<accZ>,<gyrX>,<gyrY>,<gyrZ>,<accX_g>,<accY_g>,<accZ_g>,<gyrX_dps>,<gyrY_dps>,<gyrZ_dps>,<tempC>,<kAccX>,<kAccY>,<kAccZ>,<kGyrX>,<kGyrY>,<kGyrZ>,<rollAccel>,<pitchAccel>,<rollKalman>,<pitchKalman>,<trusted>,<btnPressed>
 ```
+
+### 6.3. File CSV Của Một Phiên Ghi
+Nút **Ghi Cả 2 Cảm Biến** tạo trong `data/`:
+
+| File | Nội dung |
+| :--- | :--- |
+| `Combined_<phiên>.csv` | **File gộp sEMG + IMU + nút** – mỗi dòng 1 mẫu sEMG (2000 SPS) |
+| `sEMG_2000SPS_<phiên>.csv` | sEMG riêng (dùng cho `analyze_semg.py`) |
+| `IMU_100Hz_<phiên>.csv` | IMU riêng, đủ 29 cột firmware |
+| `Session_<phiên>_info.json` | Thời lượng, số mẫu, tên file |
+
+Cột của file gộp:
+```text
+time_s,timestamp_us,                                        # thời gian (time_s tính từ dòng đầu)
+sample_idx,ch2_raw24,ch2_raw16,ch2_filtered16,lead_off,      # sEMG
+imu_seq,imu_host_us,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,     # IMU
+ax_kal_g,ay_kal_g,az_kal_g,gx_kal_dps,gy_kal_dps,gz_kal_dps,
+roll_acc_deg,pitch_acc_deg,roll_kal_deg,pitch_kal_deg,accel_trusted,
+button_state                                                 # nút: 1 = nhấn, cắt rep tại cạnh 0 → 1
+```
+- IMU chỉ có 100 Hz nên mỗi mẫu IMU **được giữ nguyên trên ~20 dòng sEMG**; `imu_seq` đổi nghĩa là có mẫu IMU mới (pandas: `df.drop_duplicates("imu_seq")` để lấy đúng chuỗi 100 Hz).
+- Cột IMU để trống khi IMU mất tín hiệu quá 50 ms; khi không có sEMG, mỗi mẫu IMU thành một dòng riêng với cột sEMG để trống.
+- Gộp lại các phiên cũ (ghi trước khi có file gộp):
+  ```powershell
+  python merge_session.py all              # mọi phiên chưa có file gộp
+  python merge_session.py 20261021_142351  # một phiên (hoặc tiền tố, vd 20261021)
+  ```
 
 ---
 
@@ -212,10 +237,17 @@ sEMG_FCF_Wearable/
 ├── web/                         # Dual-Sensor Web Studio Dashboard
 │   ├── index.html               # Giao diện chính theo dõi sEMG & IMU
 │   ├── style.css                # Giao diện Dark-mode cao cấp
-│   ├── app.mjs                  # Logic xử lý đồ thị & kết nối Serial
-│   ├── ads.mjs                  # Xử lý hiển thị oscilloscope sEMG
+│   ├── tabs.mjs                 # Chuyển tab Trực tiếp / Xem lại
+│   ├── timechart.mjs            # Engine vẽ đồ thị theo thời gian + làn nút nhấn (dùng chung)
+│   ├── app.mjs                  # IMU trực tiếp & kết nối Serial
+│   ├── ads.mjs                  # sEMG trực tiếp, đồng hồ % MVC, nút Ghi phiên
+│   ├── button.mjs               # Thẻ trạng thái nút nhấn mốc Rep
+│   ├── review.mjs               # Xem lại phiên đã ghi: đồ thị BMI160 + nút, sEMG + nút
+│   ├── review-data.mjs          # Đọc CSV đã ghi (file gộp / sEMG / IMU)
 │   └── protocol.mjs             # Bộ phân tích giao thức khung truyền
 ├── live_combined_visualizer.py  # Python Server thu thập và hiển thị thời gian thực
+├── combined_csv.py              # Ghi file CSV gộp sEMG + IMU + nút
+├── merge_session.py             # Gộp lại file CSV của các phiên cũ
 ├── analyze_semg.py              # Pipeline phân tích mỏi cơ & trích xuất đặc trưng offline
 ├── platformio.ini               # Cấu hình biên dịch PlatformIO cho ESP32-S3
 └── README.md                    # Tài liệu hướng dẫn dự án

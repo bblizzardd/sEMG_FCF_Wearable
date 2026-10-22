@@ -18,10 +18,10 @@
  * SƠ ĐỒ NỐI DÂY (ESP32-S3):
  * 
  * [ADS1292R - FSPI]                [BMI160 - HSPI]
- * CS    ---> GPIO 10               CS   ---> GPIO 15
- * SCK   ---> GPIO 12               SCK  ---> GPIO 6
- * MOSI  ---> GPIO 11               MOSI ---> GPIO 5
- * MISO  ---> GPIO 13               MISO ---> GPIO 7
+ * CS    ---> GPIO 10               CS   ---> GPIO 15 (CS)
+ * SCK   ---> GPIO 12               SCK  ---> GPIO 6  (SCL)
+ * MOSI  ---> GPIO 11               MOSI ---> GPIO 5  (SDA)
+ * MISO  ---> GPIO 13               MISO ---> GPIO 7  (SAO)
  * PWDN  ---> GPIO 9                [Nút nhấn mốc Rep]
  * START ---> GPIO 8                BTN  ---> GPIO 17 <-> GND
  * DRDY  ---> GPIO 4
@@ -52,7 +52,7 @@
 #endif
 
 #ifndef BUTTON_PIN
-#define BUTTON_PIN      17
+#define BUTTON_PIN      3
 #endif
 
 constexpr uint32_t SERIAL_BAUD = 2000000;

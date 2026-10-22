@@ -1,20 +1,21 @@
 import {FIELDS, parseLine, LineDecoder, SampleStats} from './protocol.mjs';
+import {chartHeight, drawTimeChart, BUTTON_COLOR} from './timechart.mjs';
+import {runsOf} from './review-data.mjs';
 const $ = id => document.getElementById(id);
-const ui = Object.fromEntries(['connect','demo','status','status-dot','source','notice','sps','sample-count','lost-count','temp','norm','gravity-caption','rate-caption','session-label','display','window','pause','record','export','record-status','record-count','record-dot','io-errors','serial-drops','invalid','max-gap','reset-filter','device-status','roll','pitch','tilt-note','logs','last-log','serial-port','port-controls','button-state','button-count'].map(id=>[id,$(id)]));
+const ui = Object.fromEntries(['connect','demo','status','status-dot','source','notice','sps','sample-count','lost-count','temp','norm','gravity-caption','rate-caption','session-label','display','window','pause','record','export','record-status','record-count','record-dot','io-errors','serial-drops','invalid','max-gap','reset-filter','device-status','roll','pitch','tilt-note','logs','last-log','serial-port','port-controls'].map(id=>[id,$(id)]));
 let port=null, reader=null, readTask=null, closing=false, connecting=false;
 let bridgeMode=false, bridgeToken='', bridgeStream=null, bridgeDevice=null, bridgeError='';
 let demoTimer=null, demoStart=0, demoSeq=0, demoFiltered=null;
 let sourceKind='none';
 let samples=[], latest=null, stats=new SampleStats(), lastArrival=0, invalid=0;
 let paused=false, frozen=[], recording=false, recorded=[], logLines=[], firmwareCounters=null;
-let buttonPresses=0;
 const COLORS=['#518be5','#24a887','#e5a345'];
 const finite = v => typeof v==='number' && Number.isFinite(v);
 const fmt = (v,d=2) => finite(v) ? v.toFixed(d) : '—';
 function notice(text,warn=false) { ui.notice.textContent=text; ui.notice.classList.toggle('warn',warn); }
 function log(text) { logLines.push(text); if(logLines.length>80)logLines.shift(); ui.logs.textContent=logLines.join('\n');ui['last-log'].textContent=text; }
 function connection(text,color='') { ui.status.textContent=text; ui['status-dot'].className='dot '+color; }
-function resetData() { samples=[]; latest=null;stats.reset();lastArrival=0;invalid=0;firmwareCounters=null;buttonPresses=0;frozen=[];paused=false;ui.pause.textContent='Ⅱ Tạm dừng đồ thị'; }
+function resetData() { samples=[]; latest=null;stats.reset();lastArrival=0;invalid=0;firmwareCounters=null;frozen=[];setPaused(false); }
 function download(rows,prefix) {
   if(!rows.length)return;
   const fields=FIELDS.slice(0,rows[0].length);
@@ -24,7 +25,7 @@ function download(rows,prefix) {
 }
 function finishRecording(reason='Đã dừng ghi và tải CSV.') {
   if(!recording)return;
-  recording=false;download(recorded,'bmi160');ui.record.textContent='● Bắt đầu ghi CSV';ui['record-dot'].className='dot';ui['record-status'].textContent='Đã tải '+recorded.length.toLocaleString('vi-VN')+' mẫu';recorded=[];notice(reason);
+  recording=false;download(recorded,'bmi160');ui.record.textContent='● Bắt đầu ghi CSV';ui['record-dot'].className='state-dot';ui['record-status'].textContent='Đã tải '+recorded.length.toLocaleString('vi-VN')+' mẫu';recorded=[];notice(reason);
 }
 function accept(line) {
   const event=parseLine(line);
@@ -41,10 +42,9 @@ function accept(line) {
   // Never mix old and extended schemas, MCU restarts, or sensor sessions in a recording.
   if(recording && latest && (values[0]!==latest[0] || values[2]<=latest[2] || values.length!==latest.length)) finishRecording('Phiên cảm biến thay đổi: CSV đã được tải. Bắt đầu phiên ghi mới khi sẵn sàng.');
   const restarted=stats.update(values);
-  if(restarted || schemaChanged) { samples=[];firmwareCounters=null;buttonPresses=0;frozen=[];log('Bắt đầu session '+values[0]+'.'); }
-  else if(latest?.[28]===0 && values[28]===1)buttonPresses++;
+  if(restarted || schemaChanged) { samples=[];firmwareCounters=null;frozen=[];log('Bắt đầu session '+values[0]+'.'); }
   latest=values;lastArrival=performance.now();samples.push(values);
-  if(samples.length>2500)samples.splice(0,samples.length-2500);
+  if(samples.length>3300)samples.splice(0,samples.length-3300);
   if(recording) {
     recorded.push(values);
     ui['record-count'].textContent=recorded.length.toLocaleString('vi-VN')+' mẫu';
@@ -151,11 +151,13 @@ ui.demo.addEventListener('click',async()=>{
     accept(row.join(','));
   };tick();demoTimer=setInterval(tick,10);
 });
-ui.pause.addEventListener('click',()=>{paused=!paused;frozen=paused?samples.slice():[];ui.pause.textContent=paused?'▶ Tiếp tục đồ thị':'Ⅱ Tạm dừng đồ thị';});
+// Tạm dừng dùng chung cho cả đồ thị sEMG (ads.mjs đọc data-paused của nút)
+function setPaused(value) { paused=value;frozen=paused?samples.slice():[];ui.pause.textContent=paused?'▶ Tiếp tục':'Ⅱ Tạm dừng';ui.pause.dataset.paused=paused?'1':''; }
+ui.pause.addEventListener('click',()=>setPaused(!paused));
 ui.record.addEventListener('click',()=>{
   if(recording) { finishRecording();return; }
   if(!port || !latest || performance.now()-lastArrival>1500)return;
-  recorded=[];recording=true;ui.record.textContent='■ Dừng & tải CSV';ui['record-dot'].className='dot red';ui['record-status'].textContent='Đang ghi';ui['record-count'].textContent='0 mẫu';notice('Đang ghi mẫu cảm biến thật. Bấm Dừng & tải CSV để lưu file.');
+  recorded=[];recording=true;ui.record.textContent='■ Dừng & tải CSV';ui['record-dot'].className='state-dot red';ui['record-status'].textContent='Đang ghi';ui['record-count'].textContent='0 mẫu';notice('Đang ghi mẫu cảm biến thật. Bấm Dừng & tải CSV để lưu file.');
 });
 ui.export.addEventListener('click',()=>{
   const data=paused?frozen:samples;if(!data.length)return;
@@ -170,63 +172,26 @@ function canvasContext(id) {
   if(canvas.width!==Math.round(w*ratio)||canvas.height!==Math.round(h*ratio)) { canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio); }
   const ctx=canvas.getContext('2d');ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);return {ctx,w,h};
 }
-function pressTimes(data) {
-  const times=[];
-  for(let i=1;i<data.length;i++)if(data[i-1][28]===0 && data[i][28]===1)times.push(data[i][2]);
-  return times;
-}
-function pressMarkers(ctx,data,last,seconds,L,T,pw,ph) {
-  ctx.save();ctx.strokeStyle='#cd6459';ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.globalAlpha=.65;
-  for(const time of pressTimes(data)) {
-    if(time<last-seconds*1e6)continue;
-    const x=L+pw*(1-(last-time)/(seconds*1e6));
-    ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,T+ph);ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawButton(data) {
-  const {ctx,w,h}=canvasContext('button-chart'),L=46,R=16,T=10,B=25,pw=w-L-R,ph=h-T-B;
-  if(pw<=0||ph<=0)return;
-  const seconds=Number(ui.window.value),last=data.at(-1)?.[2]??0,cutoff=last-seconds*1e6;
-  ctx.font='9px Segoe UI';ctx.fillStyle='#96a79c';ctx.textAlign='right';ctx.lineWidth=1;
-  for(const state of [0,1]) {
-    const y=T+ph*(1-state);ctx.fillText(String(state),L-9,y+3);
-    ctx.beginPath();ctx.strokeStyle='#edf1ee';ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();
-  }
-  ctx.textAlign='center';for(let i=0;i<=4;i++)ctx.fillText(String(-(seconds-seconds*i/4)),L+pw*i/4,h-6);
-  const rows=data.filter(row=>row[2]>=cutoff);
-  if(!rows.some(row=>finite(row[28]))) {
-    ctx.fillText('Nạp firmware có button_state để xem mốc nhấn',L+pw/2,T+ph/2);return;
-  }
-  pressMarkers(ctx,data,last,seconds,L,T,pw,ph);
-  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph+1);ctx.clip();ctx.strokeStyle='#cd6459';ctx.lineWidth=2;ctx.setLineDash([]);ctx.beginPath();
-  let previous=null;
-  for(const row of rows) {
-    if(!finite(row[28])){previous=null;continue;}
-    const x=L+pw*(1-(last-row[2])/(seconds*1e6)),y=T+ph*(1-row[28]);
-    if(!previous || row[2]-previous.time>150000)ctx.moveTo(x,y);
-    else {ctx.lineTo(x,previous.y);ctx.lineTo(x,y);}
-    previous={time:row[2],y};
-  }
-  ctx.stroke();ctx.restore();
-}
-function chart(id,data,series,minRange) {
-  const {ctx,w,h}=canvasContext(id),L=46,R=16,T=12,B=28,pw=w-L-R,ph=h-T-B;
-  if(pw<=0||ph<=0)return;
-  const seconds=Number(ui.window.value),last=data.at(-1)?.[2]??0,rows=data.filter(row=>row[2]>=last-seconds*1e6);
-  let lo=Infinity,hi=-Infinity;
-  for(const row of rows)for(const s of series)if(finite(row[s.index])){lo=Math.min(lo,row[s.index]);hi=Math.max(hi,row[s.index]);}
-  if(!finite(lo)||!finite(hi)){lo=-minRange/2;hi=minRange/2;}
-  const center=(lo+hi)/2,range=Math.max(hi-lo,minRange)*1.2;lo=center-range/2;hi=center+range/2;
-  ctx.font='9px Segoe UI';ctx.lineWidth=1;ctx.fillStyle='#96a79c';ctx.textAlign='right';
-  for(let i=0;i<5;i++){const y=T+ph*i/4;ctx.beginPath();ctx.strokeStyle='#edf1ee';ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.fillText((hi-range*i/4).toFixed(range<10?2:0),L-9,y+3);}
-  ctx.textAlign='center';for(let i=0;i<=4;i++){const x=L+pw*i/4;ctx.fillText((-(seconds-seconds*i/4)).toFixed(0),x,h-8);}
-  if(!rows.length){ctx.fillStyle='#a4b2a8';ctx.font='12px Segoe UI';ctx.fillText('Chờ dữ liệu từ cảm biến',L+pw/2,T+ph/2);return;}
-  pressMarkers(ctx,data,last,seconds,L,T,pw,ph);
-  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
-  for(const s of series){ctx.beginPath();ctx.strokeStyle=s.color;ctx.lineWidth=s.raw?1.1:1.8;ctx.globalAlpha=s.raw ? 0.42 : 1;ctx.setLineDash(s.raw?[3,4]:[]);let started=false,previous=null;
-    for(const row of rows){const v=row[s.index];if(!finite(v)){started=false;continue;}const x=L+pw*(1-(last-row[2])/(seconds*1e6)),y=T+ph*(hi-v)/range;if(!started||previous&&row[2]-previous>150000)ctx.moveTo(x,y);else ctx.lineTo(x,y);started=true;previous=row[2];}ctx.stroke();}
-  ctx.restore();ctx.setLineDash([]);ctx.globalAlpha=1;
+// Đồ thị IMU trực tiếp: 3 track (gia tốc, tốc độ góc, góc) + làn nút nhấn, dùng chung timechart.mjs
+const IMU_GROUPS=[
+  {label:'Gia tốc · g',min:.3,raw:[10,11,12],kal:[17,18,19],names:['X','Y','Z']},
+  {label:'Tốc độ góc · °/s',min:10,raw:[13,14,15],kal:[20,21,22],names:['X','Y','Z']},
+  {label:'Góc nghiêng · °',min:10,raw:[23,24],kal:[25,26],names:['Roll','Pitch']},
+];
+function liveImuChart(data,mode) {
+  const canvas=$('live-imu-chart'),seconds=Number(ui.window.value),last=data.at(-1)?.[2]??0;
+  const rows=data.filter(row=>row[2]>=last-seconds*1e6-20000),t=rows.map(row=>(row[2]-last)/1e6);
+  const height=chartHeight(3,104)+'px';if(canvas.style.height!==height)canvas.style.height=height;
+  const hasKal=rows.some(row=>row.length>=28),useKal=mode!=='raw'&&hasKal,useRaw=mode!=='kalman'||!hasKal;
+  const column=index=>rows.map(row=>finite(row[index])?row[index]:NaN);
+  const tracks=rows.length?IMU_GROUPS.map(group=>({label:group.label,min:group.min,gap:.15,series:group.names.flatMap((name,i)=>[
+    ...(useRaw?[{t,v:column(group.raw[i]),color:COLORS[i],width:useKal?1:1.6,alpha:useKal?.4:1}]:[]),
+    ...(useKal?[{t,v:column(group.kal[i]),color:COLORS[i],width:1.6}]:[]),
+  ])})):[];
+  const hasButton=rows.some(row=>row.length===29);
+  const runs=hasButton?runsOf(t,Int8Array.from(rows,row=>row.length===29?row[28]:-1)):[];
+  drawTimeChart(canvas,{start:-seconds,end:0,tracks,button:hasButton?{runs,presses:runs.filter(run=>run.edge)}:null,
+    empty:'Chờ dữ liệu IMU từ BMI160',noButton:'Firmware chưa gửi button_state'});
 }
 function drawBoard(row) {
   const {ctx,w,h}=canvasContext('attitude');const roll=finite(row?.[25])?row[25]*Math.PI/180:0,pitch=finite(row?.[26])?row[26]*Math.PI/180:0;
@@ -252,19 +217,13 @@ function render(now) {
   const norm=latest?Math.hypot(...latest.slice(10,13)):null;
   ui.norm.innerHTML=fmt(norm,3)+' <small>g</small>';ui['gravity-caption'].textContent=latest?(norm>=.85&&norm<=1.15?'Gần 1 g · có thể hiệu chỉnh góc':'Có gia tốc chuyển động'):'Chưa có dữ liệu';
   ui['session-label'].textContent='SESSION '+(latest?.[0]??'—');
-  const hasButton=finite(latest?.[28]),buttonFresh=fresh && (!!port || !!demoTimer);
-  ui['button-state'].textContent=!hasButton?'Chưa có dữ liệu nút':!buttonFresh?'Không có mẫu mới':latest[28]?'Đang nhấn · 1':'Đã thả · 0';
-  ui['button-state'].className='button-badge'+(hasButton && buttonFresh && latest[28]===1?' pressed':'');
-  ui['button-count'].textContent=hasButton?buttonPresses.toLocaleString('vi-VN'):'—';
   ui['io-errors'].textContent=firmwareCounters?.io??'—';ui['serial-drops'].textContent=firmwareCounters?.drop??'—';ui.invalid.textContent=invalid;ui['max-gap'].textContent=stats.maxGapUs?fmt(stats.maxGapUs/1000,2)+' ms':'—';
   ui.record.disabled=!recording&&(!port||!fresh);ui.export.disabled=!samples.length;ui['reset-filter'].disabled=!port;ui['device-status'].disabled=!port;
   const data=paused?frozen:samples,row=data.at(-1),mode=ui.display.value;
   ui.roll.innerHTML=fmt(row?.[25],1)+'<small>°</small>';ui.pitch.innerHTML=fmt(row?.[26],1)+'<small>°</small>';
   ui['tilt-note'].textContent=!row||row.length<28?'Nạp firmware Kalman để xem góc.':!finite(row[25])?'Giữ yên, gần 1 g để khởi tạo góc.':row[27]?'Accel gần 1 g · đang hiệu chỉnh gyro.':'Ưu tiên gyro; accel chưa đủ tin cậy.';
-  const series=(rawBase,filteredBase)=>COLORS.flatMap((color,i)=>[...(mode!=='kalman'?[{index:rawBase+i,color,raw:true}]:[]),...(mode!=='raw'?[{index:filteredBase+i,color,raw:false}]:[])]);
-  chart('accel-chart',data,series(10,17),.3);chart('gyro-chart',data,series(13,20),10);
-  drawButton(data);
-  chart('tilt-chart',data,[...(mode!=='kalman'?[{index:23,color:COLORS[0],raw:true},{index:24,color:COLORS[1],raw:true}]:[]),...(mode!=='raw'?[{index:25,color:COLORS[0]},{index:26,color:COLORS[1]}]:[])],10);
+  liveImuChart(data,mode);
+  $('imu-live-dot').className='state-dot'+(fresh?' green':demoTimer?' amber':'');
   drawBoard(row);
 }
 async function bridgeRequest(endpoint,payload) {
@@ -286,13 +245,12 @@ function applyBridgeState(state) {
     if(bridgeDevice!==state.device) {
       finishRecording('Cổng cảm biến thay đổi; CSV đã ghi được tải.');
       resetData();sourceKind='serial';bridgeDevice=state.device;
-      log('Python đã mở '+state.device+' ở 460800 baud.');
-      notice('Đã tự kết nối '+state.device+'. SPI chạy trên ESP32; dữ liệu chuyển qua USB-UART.');
+      log('Python đã mở '+state.device+' ở 2000000 baud.');
+      notice('Đã kết nối '+state.device+' @ 2000000 baud · đang nhận đồng thời sEMG (ADS1292R), cử động (BMI160) và nút nhấn.');
     }
     port={bridge:true,device:state.device};ui.connect.textContent='× Ngắt kết nối ESP32';ui.demo.disabled=true;
     ui.source.textContent=state.device+' · ESP32-S3 (ADS1292R + BMI160)';
     connection('Đã kết nối ESP32','green');
-    notice('Đã kết nối '+state.device+' @ 460800 baud. Đang nhận đồng thời sEMG (ADS1292R) & Cử động (BMI160).');
   } else {
     if(port?.bridge) {
       finishRecording('Kết nối đã đóng; dữ liệu đã ghi được tải xuống.');
@@ -301,7 +259,7 @@ function applyBridgeState(state) {
     port=null;bridgeDevice=null;ui.connect.textContent='↔ Kết nối ESP32';ui.demo.disabled=false;
     if(!demoTimer) {
       connection(state.automatic?'Đang tìm ESP32…':'Đã ngắt kết nối');
-      ui.source.textContent='Python tự nhận USB-UART ESP32 · 460800 baud';
+      ui.source.textContent='Python tự nhận USB-UART ESP32 · 2000000 baud';
       if(state.error && state.error!==bridgeError)notice(state.error,true);
     }
   }
@@ -338,4 +296,6 @@ async function initializeConnection() {
   } finally { ui.connect.disabled=false; }
 }
 initializeConnection();
+$('live-imu-legend').innerHTML=['X · roll','Y · pitch','Z'].map((name,i)=>`<span><i class="review-key" style="background:${COLORS[i]}"></i>${name}</span>`).join('')
+  +`<span><i class="review-key band" style="background:${BUTTON_COLOR}"></i>Nút nhấn</span><span><i class="review-key dash" style="border-top-color:${BUTTON_COLOR}"></i>Lúc nhấn</span>`;
 requestAnimationFrame(render);

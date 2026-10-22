@@ -33,4 +33,5 @@ class BMI160 {
   const uint8_t csPin_;
   bool ready_ = false;
   const char *error_ = "not initialized";
+  char errorBuf_[64] = {};
 };

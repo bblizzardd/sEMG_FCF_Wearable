@@ -3,17 +3,22 @@ Combined ESP32 Dual-Sensor Dashboard: ADS1292R (sEMG) + GY-BMI160 (IMU).
 Cả 2 cảm biến cùng cắm trên 1 board ESP32-S3, truyền qua 1 cổng Serial @ 460800 baud.
 """
 import argparse
+import collections
 import functools
 import json
 import os
 import queue
+import re
 import secrets
 import sys
 import threading
 import time
+import urllib.parse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import webbrowser
+
+from combined_csv import CombinedWriter
 
 # Đảm bảo terminal Windows không bị lỗi Unicode
 if hasattr(sys.stdout, "reconfigure"):
@@ -33,13 +38,21 @@ except ImportError:
 USB_VENDORS = {0x1A86, 0x10C4, 0x0403, 0x303A}
 SERIAL_BAUD = 2000000
 BUCKET_SIZE = 10
+POINT_HISTORY = 8000  # điểm decimation 200/s giữ cho web (~40 s)
+DATA_DIR = "data"
+# Chỉ các file CSV phiên do recorder tạo mới được web tải về (chặn mọi đường dẫn khác)
+SESSION_FILE_RE = re.compile(r"^(Combined|sEMG_2000SPS|IMU_100Hz)_(\d{8}_\d{6})\.csv$")
+SESSION_FILE_KINDS = {"Combined": "combined", "sEMG_2000SPS": "semg", "IMU_100Hz": "imu"}
 
 
 # ===========================================================================
 # Dual-Sensor Synchronized Recorder (sEMG + IMU)
 # ===========================================================================
 class DualRecorder:
-    """Quản lý ghi đồng thời 2 cảm biến sEMG (ADS1292R 2000 SPS) và IMU (BMI160 100 Hz)."""
+    """Quản lý ghi đồng thời 2 cảm biến sEMG (ADS1292R 2000 SPS) và IMU (BMI160 100 Hz).
+
+    Mỗi phiên ghi 3 file CSV: sEMG riêng, IMU riêng và file gộp Combined_* (sEMG + IMU + nút).
+    """
 
     def __init__(self):
         self.lock = threading.RLock()
@@ -48,10 +61,14 @@ class DualRecorder:
         self.start_time = 0.0
         self.semg_file = None
         self.imu_file = None
+        self.combined_file = None
+        self.combined = None
         self.semg_filename = ""
         self.imu_filename = ""
+        self.combined_filename = ""
         self.semg_count = 0
         self.imu_count = 0
+        self.combined_rows = 0
 
     def start(self):
         with self.lock:
@@ -62,12 +79,14 @@ class DualRecorder:
                     "session": self.session_id,
                     "semg_file": self.semg_filename,
                     "imu_file": self.imu_filename,
+                    "combined_file": self.combined_filename,
                 }
-            os.makedirs("data", exist_ok=True)
+            os.makedirs(DATA_DIR, exist_ok=True)
             self.session_id = time.strftime("%Y%m%d_%H%M%S")
             self.start_time = time.time()
-            self.semg_filename = os.path.join("data", f"sEMG_2000SPS_{self.session_id}.csv")
-            self.imu_filename = os.path.join("data", f"IMU_100Hz_{self.session_id}.csv")
+            self.semg_filename = os.path.join(DATA_DIR, f"sEMG_2000SPS_{self.session_id}.csv")
+            self.imu_filename = os.path.join(DATA_DIR, f"IMU_100Hz_{self.session_id}.csv")
+            self.combined_filename = os.path.join(DATA_DIR, f"Combined_{self.session_id}.csv")
 
             self.semg_file = open(self.semg_filename, "w", encoding="utf-8")
             self.semg_file.write(
@@ -82,28 +101,37 @@ class DualRecorder:
                 "accel_trusted,button_state\n"
             )
 
+            self.combined_file = open(self.combined_filename, "w", encoding="utf-8")
+            self.combined = CombinedWriter(self.combined_file)
+
             self.semg_count = 0
             self.imu_count = 0
+            self.combined_rows = 0
             self.recording = True
             print(f"\n[RECORDER] >>> BẮT ĐẦU GHI ĐỒNG THỜI PHIÊN {self.session_id} <<<")
             print(f"  + sEMG (2000 SPS): {self.semg_filename}")
             print(f"  + IMU  (100 Hz)  : {self.imu_filename}")
+            print(f"  + Gộp sEMG + IMU + nút: {self.combined_filename}")
             return {
                 "ok": True,
                 "session": self.session_id,
                 "semg_file": self.semg_filename,
                 "imu_file": self.imu_filename,
+                "combined_file": self.combined_filename,
             }
 
-    def write_semg(self, line):
+    def write_semg(self, s_idx, hw_us, ch1_24, ch2_24, raw16, filt16, loff, btn):
+        """btn: chuỗi "0"/"1", hoặc "" khi firmware chưa gửi trạng thái nút."""
         if not self.recording:
             return
         with self.lock:
             if self.semg_file:
-                self.semg_file.write(line)
+                self.semg_file.write(f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff},{btn}\n")
                 self.semg_count += 1
                 if self.semg_count % 500 == 0:
                     self.semg_file.flush()
+            if self.combined:
+                self.combined.add_semg(s_idx, hw_us, ch2_24, raw16, filt16, loff, btn)
 
     def write_imu(self, line):
         if not self.recording:
@@ -114,6 +142,8 @@ class DualRecorder:
                 self.imu_count += 1
                 if self.imu_count % 50 == 0:
                     self.imu_file.flush()
+            if self.combined:
+                self.combined.add_imu(line.split(","))
 
     def stop(self):
         with self.lock:
@@ -129,8 +159,15 @@ class DualRecorder:
                 self.imu_file.flush()
                 self.imu_file.close()
                 self.imu_file = None
+            if self.combined:
+                self.combined.close()
+                self.combined_rows = self.combined.rows
+                self.combined = None
+            if self.combined_file:
+                self.combined_file.close()
+                self.combined_file = None
 
-            info_file = os.path.join("data", f"Session_{self.session_id}_info.json")
+            info_file = os.path.join(DATA_DIR, f"Session_{self.session_id}_info.json")
             info = {
                 "session_id": self.session_id,
                 "start_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.start_time)),
@@ -147,7 +184,14 @@ class DualRecorder:
                     "sampling_rate": "100 Hz",
                     "timestamp_col": "host_us",
                 },
-                "sync_clock": "Cả 2 file đồng bộ chính xác qua đồng hồ vi điều khiển esp_timer_get_time() (đơn vị micro-giây).",
+                "combined": {
+                    "file": self.combined_filename,
+                    "rows": self.combined_rows,
+                    "row_rate": "2000 SPS (theo sEMG)",
+                    "timestamp_col": "timestamp_us",
+                    "note": "Mỗi dòng 1 mẫu sEMG; cột IMU giữ mẫu IMU gần nhất (imu_seq đổi = mẫu IMU mới); button_state lấy theo dòng sEMG.",
+                },
+                "sync_clock": "Cả 3 file đồng bộ chính xác qua đồng hồ vi điều khiển esp_timer_get_time() (đơn vị micro-giây).",
             }
             try:
                 with open(info_file, "w", encoding="utf-8") as f:
@@ -158,6 +202,7 @@ class DualRecorder:
             print(f"\n[RECORDER] >>> KẾT THÚC GHI PHIÊN {self.session_id} ({duration}s) <<<")
             print(f"  + sEMG: {self.semg_count} mẫu -> {self.semg_filename}")
             print(f"  + IMU : {self.imu_count} mẫu -> {self.imu_filename}")
+            print(f"  + Gộp : {self.combined_rows} dòng -> {self.combined_filename}")
             print(f"  + Info: {info_file}")
             return {
                 "ok": True,
@@ -167,6 +212,8 @@ class DualRecorder:
                 "semg_samples": self.semg_count,
                 "imu_file": self.imu_filename,
                 "imu_samples": self.imu_count,
+                "combined_file": self.combined_filename,
+                "combined_rows": self.combined_rows,
                 "info_file": info_file,
             }
 
@@ -179,8 +226,77 @@ class DualRecorder:
                 "duration_s": dur,
                 "semg_samples": self.semg_count,
                 "imu_samples": self.imu_count,
+                "combined_rows": self.combined.rows if self.combined else self.combined_rows,
                 "semg_file": self.semg_filename,
                 "imu_file": self.imu_filename,
+                "combined_file": self.combined_filename,
+            }
+
+
+def list_sessions(recorder=None):
+    """Các phiên trong data/ (mới nhất trước) cùng những file CSV đang có của mỗi phiên."""
+    try:
+        names = os.listdir(DATA_DIR)
+    except OSError:
+        return []
+    live = recorder.status() if recorder else {"recording": False, "session": ""}
+    sessions = {}
+    for name in names:
+        match = SESSION_FILE_RE.match(name)
+        if not match:
+            continue
+        try:
+            size = os.path.getsize(os.path.join(DATA_DIR, name))
+        except OSError:
+            continue
+        sid = match.group(2)
+        entry = sessions.setdefault(sid, {"id": sid, "files": {}, "duration_s": None, "start_time": None,
+                                          "recording": live["recording"] and live["session"] == sid})
+        entry["files"][SESSION_FILE_KINDS[match.group(1)]] = {"name": name, "bytes": size}
+    for sid, entry in sessions.items():
+        try:
+            with open(os.path.join(DATA_DIR, f"Session_{sid}_info.json"), encoding="utf-8") as f:
+                info = json.load(f)
+            entry["duration_s"] = info.get("duration_seconds")
+            entry["start_time"] = info.get("start_time")
+        except (OSError, ValueError):
+            pass
+    return sorted(sessions.values(), key=lambda s: s["id"], reverse=True)
+
+
+# ===========================================================================
+# Nút nhấn mốc Rep (độc lập với BMI160 / ADS1292R trên giao diện)
+# ===========================================================================
+class ButtonState:
+    """Trạng thái nút mốc Rep, cập nhật từ cột button_state của dòng $D (2000 SPS)."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.state = None          # None = firmware cũ chưa gửi trạng thái nút
+        self.presses = 0
+        self.last_press_us = 0
+        self.ts_us = 0
+
+    def update(self, hw_us, state):
+        with self.lock:
+            if state == 1 and self.state == 0:
+                self.presses += 1
+                self.last_press_us = hw_us
+            self.state = state
+            self.ts_us = hw_us
+
+    def reset(self):
+        with self.lock:
+            self.presses = 0
+            self.last_press_us = 0
+
+    def snapshot(self):
+        with self.lock:
+            return {
+                "state": self.state,
+                "presses": self.presses,
+                "last_press_us": self.last_press_us,
+                "ts_us": self.ts_us,
             }
 
 
@@ -204,10 +320,8 @@ class AdsState:
         self.lead_off = False
         self.measured_sps = 0.0
 
-        # Nút nhấn mốc Rep (GPIO 17), cột cuối của dòng $D; None = firmware cũ chưa gửi
-        self.button_state = None
-        self.button_presses = 0
-        self.button_last_press_us = 0
+        # Nút nhấn mốc Rep: cột cuối của dòng $D, tách sang ButtonState
+        self.button = ButtonState()
 
         # Bucket decimation
         self._bucket_n = 0
@@ -215,7 +329,13 @@ class AdsState:
         self._b_max_raw = float("-inf")
         self._b_min_filt = float("inf")
         self._b_max_filt = float("-inf")
+        self._b_btn = -1
         self.latest_qc_raw = 0
+
+        # Chuỗi điểm decimation theo đồng hồ ESP32 cho đồ thị web:
+        # (seq, ts_us, raw, filt, env, base, button, lead_off)
+        self.points = collections.deque(maxlen=POINT_HISTORY)
+        self.point_seq = 0
         self.latest_qc_filt = 0
 
         # SPS window
@@ -285,9 +405,6 @@ class AdsState:
                 "percent": self.percent,
                 "status": self.status_str,
                 "dsp": self.dsp,
-                "button": self.button_state,
-                "button_presses": self.button_presses,
-                "button_last_press_us": self.button_last_press_us,
                 "dual_recording": rec_status,
                 "health": h,
             }
@@ -308,13 +425,11 @@ class AdsState:
         except (ValueError, IndexError):
             return
 
+        if btn is not None:
+            self.button.update(hw_us, btn)
+        btn_col = "" if btn is None else str(btn)
+
         with self.lock:
-            if btn is not None:
-                if btn == 1 and self.button_state == 0:
-                    self.button_presses += 1
-                    self.button_last_press_us = hw_us
-                self.button_state = btn
-            btn_col = "" if btn is None else str(btn)
 
             if self.last_seq is not None:
                 diff = s_idx - (self.last_seq + 1)
@@ -346,9 +461,7 @@ class AdsState:
                     self._sps_t0 = now
 
             if self.recorder and self.recorder.recording:
-                self.recorder.write_semg(
-                    f"{s_idx},{hw_us},{ch1_24},{ch2_24},{raw16},{filt16},{loff},{btn_col}\n"
-                )
+                self.recorder.write_semg(s_idx, hw_us, ch1_24, ch2_24, raw16, filt16, loff, btn_col)
 
             if self.recording and self.record_file:
                 self.record_file.write(
@@ -387,6 +500,8 @@ class AdsState:
                 self._b_min_filt = filt16
             if filt16 > self._b_max_filt:
                 self._b_max_filt = filt16
+            if btn is not None and btn > self._b_btn:
+                self._b_btn = btn
 
             if self._bucket_n >= BUCKET_SIZE:
                 self.latest_qc_raw = (
@@ -425,9 +540,23 @@ class AdsState:
                 self.percent = pct
                 self.status_str = st
 
+                self.point_seq += 1
+                self.points.append((self.point_seq, hw_us, self.latest_qc_raw, self.latest_qc_filt,
+                                    round(self.emg_env, 1), round(self.baseline_noise, 1),
+                                    self._b_btn, 1 if self.lead_off else 0))
+                self._b_btn = -1
                 self._bucket_n = 0
                 self._b_min_raw, self._b_max_raw = float("inf"), float("-inf")
                 self._b_min_filt, self._b_max_filt = float("inf"), float("-inf")
+
+    def points_since(self, cursor):
+        """Các điểm mới hơn cursor: (cursor mới, [[ts_us, raw, filt, env, base, button, lead_off], ...])."""
+        with self.lock:
+            if not self.points:
+                return cursor, []
+            last = self.points[-1][0]
+            fresh = min(len(self.points), last - cursor) if cursor <= last else len(self.points)
+            return last, [list(p[1:]) for p in list(self.points)[len(self.points) - fresh:]] if fresh else []
 
     def process_telemetry_line(self, line):
         """Xử lý dòng telemetry UI 50 Hz."""
@@ -499,7 +628,6 @@ class AdsState:
             self.noise_threshold = self.baseline_noise * 0.35
             self.percent = 0
             self.status_str = "THA LONG"
-            self.button_presses = 0
 
 
 # ===========================================================================
@@ -835,6 +963,33 @@ class CombinedHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def send_data_file(self, name):
+        if not SESSION_FILE_RE.match(name):
+            self.send_error(404)
+            return
+        path = os.path.join(DATA_DIR, name)
+        try:
+            f = open(path, "rb")
+        except OSError:
+            self.send_error(404)
+            return
+        with f:
+            # File của phiên đang ghi vẫn lớn dần: chỉ gửi đúng số byte đã có lúc mở
+            remaining = os.fstat(f.fileno()).st_size
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Length", str(remaining))
+            self.end_headers()
+            try:
+                while remaining > 0:
+                    chunk = f.read(min(1 << 16, remaining))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+            except (OSError, ConnectionError):
+                self.close_connection = True
+
     def do_GET(self):
         if not self.local_request():
             self.send_error(403)
@@ -892,8 +1047,10 @@ class CombinedHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.connection.settimeout(5)
             try:
+                cursor = 0
                 while not self.server.stop_event.is_set():
                     snap = self.server.ads_state.snapshot()
+                    cursor, snap["points"] = self.server.ads_state.points_since(cursor)
                     event = f"event: ads\ndata: {json.dumps(snap, ensure_ascii=False)}\n\n"
                     self.wfile.write(event.encode("utf8"))
                     self.wfile.flush()
@@ -906,6 +1063,49 @@ class CombinedHandler(SimpleHTTPRequestHandler):
         if self.path == "/api/ads/reset":
             self.server.ads_state.reset_qc()
             self.json_response({"ok": True})
+            return
+
+        # Nút nhấn mốc Rep
+        if self.path == "/api/button/status":
+            self.json_response({
+                **self.server.ads_state.button.snapshot(),
+                "connected": self.server.bridge.snapshot()["connected"],
+            })
+            return
+
+        if self.path == "/api/button/stream":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.connection.settimeout(5)
+            try:
+                while not self.server.stop_event.is_set():
+                    snap = {
+                        **self.server.ads_state.button.snapshot(),
+                        "connected": self.server.bridge.snapshot()["connected"],
+                    }
+                    event = f"event: button\ndata: {json.dumps(snap)}\n\n"
+                    self.wfile.write(event.encode("utf8"))
+                    self.wfile.flush()
+                    time.sleep(0.02)
+            except (OSError, TimeoutError, BrokenPipeError):
+                pass
+            self.close_connection = True
+            return
+
+        if self.path == "/api/button/reset":
+            self.server.ads_state.button.reset()
+            self.json_response({"ok": True})
+            return
+
+        # Xem lại phiên đã ghi: danh sách phiên + tải file CSV trong data/
+        if self.path == "/api/sessions":
+            self.json_response({"sessions": list_sessions(self.server.recorder)})
+            return
+
+        if self.path.startswith("/api/data/"):
+            self.send_data_file(urllib.parse.unquote(urllib.parse.urlsplit(self.path).path[len("/api/data/"):]))
             return
 
         if self.path.startswith("/api/"):
